@@ -8,6 +8,23 @@ import { canAutoShow, takeAutoSlot } from "@/lib/overlay-slot";
 
 const DISMISSED_KEY = "delulu:install-prompt-dismissed-at";
 const WAIT_MS = 2 * 24 * 60 * 60 * 1000;
+const VISITS_KEY = "delulu:visits";
+const VISIT_SESSION_KEY = "delulu:visit-counted";
+
+/** Counts visits (one per browser session) and returns the total, this one included. */
+function countVisit(): number {
+  try {
+    let n = Number(localStorage.getItem(VISITS_KEY) ?? 0) || 0;
+    if (!sessionStorage.getItem(VISIT_SESSION_KEY)) {
+      n += 1;
+      localStorage.setItem(VISITS_KEY, String(n));
+      sessionStorage.setItem(VISIT_SESSION_KEY, "1");
+    }
+    return n;
+  } catch {
+    return 2; // storage blocked: don't hold the prompt back forever
+  }
+}
 /** Fire this anywhere a reminder would matter now (e.g. right after joining a Bingo). */
 export const SUGGEST_INSTALL_EVENT = "delulu:suggest-install";
 
@@ -16,7 +33,7 @@ export function suggestInstall(reason: "joined" | "proof" = "joined") {
 }
 
 const COPY = {
-  home: { title: "Never miss a day", subtitle: "Add Delulu to your home screen — open in one tap and get a reminder before your square closes." },
+  home: { title: "Get Delulu on your phone", subtitle: "Add it to your home screen — a heads-up before a day closes so your stake stays safe, and a ping when someone cheers your card." },
   joined: { title: "You're in! Now never miss a day", subtitle: "Add Delulu to your home screen so we can remind you before each day's square closes." },
   proof: { title: "Keep your streak safe", subtitle: "Add Delulu to your home screen — one tap to post, and a heads-up before tomorrow's square closes." },
 } as const;
@@ -41,8 +58,9 @@ export function InstallPromptGate() {
       /* storage blocked */
     }
     // Automatic: from the 2nd visit, at most one prompt a visit, never over the intro or gift.
+    const visits = countVisit();
     const t =
-      Date.now() - dismissedAt > WAIT_MS
+      visits >= 2 && Date.now() - dismissedAt > WAIT_MS
         ? window.setTimeout(() => {
             if (!canAutoShow("install")) return;
             takeAutoSlot("install");

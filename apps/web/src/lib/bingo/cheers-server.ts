@@ -4,6 +4,7 @@ import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { matchTransfer } from "@/lib/support/transfer-match";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
+import { sendPushAndNotification } from "@/lib/push/notify-recipients";
 import {
   BEST_CARD_PRIZE_G,
   CONTEST_MIN_PLAYERS,
@@ -66,6 +67,30 @@ export async function recordCheer(admin: Admin, voter: string, attemptId: string
     lagos_day: day,
   });
   if (error && !/duplicate|unique/i.test(error.message)) throw error;
+  if (error) return; // already counted (a retry) — already notified too
+
+  // Tell the player — best effort, never fails the cheer.
+  try {
+    const [{ data: voterProfile }, { data: camp }] = await Promise.all([
+      admin.from("profiles").select("username").eq("address", from).maybeSingle(),
+      admin.from("bingo_campaigns").select("slug, title").eq("id", attempt.campaign_id).maybeSingle(),
+    ]);
+    const who = voterProfile?.username ? `@${voterProfile.username}` : "Someone";
+    const title = `🔥 ${who} cheered your card +${amount.toLocaleString("en-US")} G$`;
+    const body = camp?.title ? `${camp.title} — every cheer is a vote for this week's best card.` : "Every cheer is a vote for this week's best card.";
+    await sendPushAndNotification({
+      supabase: admin,
+      recipientAddress: to,
+      eventKey: `cheer:${txHash.toLowerCase()}`,
+      title,
+      body,
+      url: camp?.slug ? `/bingo/${camp.slug}#players` : "/explore",
+      type: "system",
+      message: `**${title}** ${body}`,
+    });
+  } catch (err) {
+    console.error("[cheers] notify failed", err);
+  }
 }
 
 export type CheerBoardEntry = {

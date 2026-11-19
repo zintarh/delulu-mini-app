@@ -270,7 +270,11 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
           })),
     joinable,
     // Paused Bingos (e.g. Delulu Debut, replaced by First Week) only show to people still playing them.
-    visible: !!me || (campaign.status === "live" && ((rolling && firstWeekOk) || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)))),
+    // A card you're still playing always shows. An ended or missed card doesn't keep a
+    // Bingo on your lists — a live Bingo shows anyway (as a fresh start), a paused one goes.
+    visible:
+      (!!me && me.phase !== "ended" && !me.missedDay) ||
+      (campaign.status === "live" && ((rolling && firstWeekOk) || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)))),
     players,
     photos,
     rewards: {

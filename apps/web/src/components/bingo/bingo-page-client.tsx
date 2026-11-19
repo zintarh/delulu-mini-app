@@ -11,6 +11,7 @@ import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { BingoBoard, type SquareAvailability } from "@/components/bingo/bingo-board";
 import { BingoCollage } from "@/components/bingo/bingo-collage";
 import { BingoPlayers } from "@/components/bingo/bingo-players";
+import { BingoEarnings, BingoEarningsLine } from "@/components/bingo/bingo-earnings";
 import { CheerContestBanner, CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
 import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
@@ -240,6 +241,9 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
         {/* First Week: lead with what the week pays and what a miss costs. */}
         {slug === FIRST_WEEK_SLUG && !myLive ? <FirstWeekOffer variant="home" className="mt-4 animate-rise" /> : null}
+        {/* What this Bingo pays: the full table before you join, one line for your stake after. */}
+        {slug !== FIRST_WEEK_SLUG && !myLive ? <BingoEarnings bingo={bingo} className="mt-4 animate-rise" /> : null}
+        {slug !== FIRST_WEEK_SLUG && myLive && me ? <BingoEarningsLine bingo={bingo} stake={me.stake} className="mt-4" /> : null}
 
         {me ? (
           <>

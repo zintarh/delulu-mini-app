@@ -89,9 +89,16 @@ function useEarnInfo(bingo: BingoView) {
   const perDay = bingo.rewards.perProof;
   const back = Math.max(0, ...bingo.tiers.map((t) => (typeof t.completionReward === "number" ? t.completionReward : 0)));
   const total = perDay * days + back;
+  const stake = Math.min(...bingo.tiers.map((t) => t.stake).filter((n) => n > 0));
   const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
+  /** "₦1.7k" — short enough for a tiny pill. */
+  const ngnShort = (g: number) => {
+    if (!facts) return null;
+    const n = g * facts.gdUsd * facts.ngnPerUsd;
+    return n >= 1000 ? `₦${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : `₦${Math.round(n)}`;
+  };
   const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : String(n));
-  return { days, perDay, back, total, ngn, k };
+  return { days, perDay, back, total, stake, ngn, ngnShort, k };
 }
 
 export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {
@@ -121,8 +128,9 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         </span>
         {/* The cashback, loud: what finishing pays at the top level. */}
         {earn.back > 0 && !playing ? (
-          <span className={cn("inline-flex items-center gap-1 rounded-full bg-green font-extrabold text-ink shadow-[0_1px_0_#157041]", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
-            🏆 up to +{earn.k(earn.back)} back
+          <span className={cn("inline-flex items-center gap-1 rounded-full bg-green font-extrabold text-ink", pin ? "px-1.5 py-0.5 text-[9px]" : "px-2.5 py-1 text-[11px]")}>
+            {earn.back > Math.min(...bingo.tiers.map((t) => t.completionReward ?? 0)) ? "Up to " : ""}+{earn.k(earn.back)} G$ cashback
+            {earn.ngnShort(earn.back) ? ` · ≈${earn.ngnShort(earn.back)}` : ""}
           </span>
         ) : null}
         {/* Only while you're playing ("Day 2 of 7") — the squares already say 3 or 7 days. */}
@@ -138,15 +146,11 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.45)] [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
           {bingo.title}
         </h3>
-        {!playing && bingo.joinable && earn.total > 0 ? (
-          <>
-            <p className={cn("m-0 mt-1 font-bold text-white/90", pin ? "text-[11px] leading-snug" : "text-[13px]")}>
-              📸 {earn.perDay} G$/day{earn.back ? ` · finish +${earn.k(earn.back)}` : ""}
-            </p>
-            <p className={cn("m-0 mt-1 inline-block rounded-lg bg-white/15 font-extrabold text-yellow backdrop-blur-sm", pin ? "px-1.5 py-0.5 text-[11px] leading-snug" : "px-2 py-1 text-[13px]")}>
-              {earn.days} days: up to {earn.k(earn.total)} G${earn.ngn(earn.total) ? ` ≈ ${earn.ngn(earn.total)}` : ""}
-            </p>
-          </>
+        {/* One plain line: what you put in and for how long. The full breakdown is on the Bingo page. */}
+        {!playing && bingo.joinable && Number.isFinite(earn.stake) ? (
+          <p className={cn("m-0 mt-0.5 font-semibold text-white/85", pin ? "text-[11px]" : "text-[13px]")}>
+            Stake {earn.k(earn.stake)} G$ · {earn.days} days
+          </p>
         ) : (
           <p className={cn("m-0 mt-1 font-semibold text-white/85", pin ? "text-[11px] leading-snug" : "text-[13px]")}>{bingoCta(bingo)}</p>
         )}
