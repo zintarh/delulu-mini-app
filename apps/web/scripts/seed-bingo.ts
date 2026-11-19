@@ -44,7 +44,88 @@ type Seed = {
   firstCycle?: string; // Lagos date
 };
 
+// Season 2 Bingos: 7 or 3 days, 5k+ stakes. Finish bonus 30% of stake (7-day), 15% (3-day).
+const workoutTiers: BingoTier[] = [{ key: "committed", label: "Committed", stake: 10_000, forfeitPct: 0, completionReward: 3_000 }];
+const weekTiers: BingoTier[] = [{ key: "starter", label: "Starter", stake: 5_000, forfeitPct: 0, completionReward: 1_500 }];
+const threeDayTiers: BingoTier[] = [{ key: "starter", label: "Starter", stake: 5_000, forfeitPct: 0, completionReward: 750 }];
+
 const SEEDS: Seed[] = [
+  {
+    slug: "workout-week",
+    title: "Workout Week",
+    description: "Seven days of moving your body. One photo a day proves it.",
+    duration: 7,
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "live",
+    sort: 3,
+    missions: [
+      m("Morning stretch"),
+      m("A 20-minute walk or run"),
+      m("30 squats"),
+      m("Your workout selfie"),
+      m("A healthy meal after you train"),
+      m("Plank for 60 seconds"),
+      m("Your post-workout glow"),
+    ],
+    tiers: workoutTiers,
+  },
+  {
+    slug: "reading-week",
+    title: "Read Every Day",
+    description: "Seven days, a few pages a day. Show us what you're reading.",
+    duration: 7,
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "live",
+    sort: 4,
+    missions: [
+      m("The book you're reading"),
+      m("Your reading spot"),
+      m("A page that made you think"),
+      m("Read with your favourite drink"),
+      m("A line you love from your book"),
+      m("How far you've read"),
+      m("Finished a chapter selfie"),
+    ],
+    tiers: weekTiers,
+  },
+  {
+    slug: "journal-3",
+    title: "Journal for 3 Days",
+    description: "Three days of putting your thoughts on paper.",
+    duration: 3,
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "live",
+    sort: 6,
+    missions: [m("Today's journal page"), m("Something you're grateful for"), m("Your plan for tomorrow")],
+    tiers: threeDayTiers,
+  },
+  {
+    slug: "water-3",
+    title: "Drink More Water",
+    description: "Three days of staying hydrated.",
+    duration: 3,
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "live",
+    sort: 7,
+    missions: [m("Your first glass of water today"), m("Your water bottle on the go"), m("Your last glass of water before bed")],
+    tiers: threeDayTiers,
+  },
+  {
+    slug: "early-riser-3",
+    title: "Early Riser",
+    description: "Three mornings of starting your day early.",
+    duration: 3,
+    enrollment: "rolling",
+    recurrence: "automatic",
+    status: "live",
+    sort: 8,
+    missions: [m("Your morning sky"), m("Your morning routine"), m("Breakfast before 9am")],
+    tiers: threeDayTiers,
+  },
   {
     // One-time welcome week for new and referred players (lib/bingo/first-week.ts):
     // 500 G$ a photo + the 250 weekly bonus + 3,000 to finish = 6,750 G$ (~₦1,000, kept under it).

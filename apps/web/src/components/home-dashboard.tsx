@@ -16,6 +16,7 @@ import { ReferralBanner } from "@/components/referral-banner";
 import { SeasonNotice } from "@/components/season-notice";
 import { AtStakeCard } from "@/components/home/at-stake-card";
 import { HomeFirstWeek } from "@/components/home/home-first-week";
+import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { useUserStore } from "@/stores/useUserStore";
@@ -75,6 +76,8 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
         <HomeGreeting name={name} address={address} />
         {/* New and invited players: the First Week offer comes before everything else. */}
         <HomeFirstWeek guest={!address} />
+        {/* …and a pop-up the first time, so nobody has to find which Bingo has the welcome bonus. */}
+        {address ? <FirstWeekWelcome /> : null}
 
         {address ? (
           <>
