@@ -61,8 +61,10 @@ export function BingoJoinSheet({
   // Naira at the live G$ rate (G$ moves, so never a fixed figure).
   const facts = useEarnFacts();
   const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
-  // Your First Week is gated on eligibility, not the Season 2 minimum.
-  const isLocked = (stake: number) => !isFirstWeekSlug(bingo.slug) && stakeRules.live && stake < stakeRules.minStake;
+  // The Season 2 minimum is for 7-day Bingos: First Week is gated on eligibility instead,
+  // and 3-day Bingos are the light way in (2k–5k stakes).
+  const isLocked = (stake: number) =>
+    !isFirstWeekSlug(bingo.slug) && bingo.durationDays !== 3 && stakeRules.live && stake < stakeRules.minStake;
   const firstOpen = tiers.find((t) => !isLocked(t.stake));
   useEffect(() => {
     const cur = tiers.find((t) => t.key === tierKey);

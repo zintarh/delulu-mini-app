@@ -93,6 +93,8 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     const result: Section[] = [...CAMPAIGN_CATEGORIES, OTHER_CATEGORY]
       .filter((cat) => byKey.has(cat.key) || bingosByKey.has(cat.key))
       .map((cat) => ({ key: cat.key, label: cat.label, campaigns: order(byKey.get(cat.key) ?? []), bingos: bingosByKey.get(cat.key) ?? [] }));
+    // Fullest categories first ("Finished" is added after, so it stays last).
+    result.sort((x, y) => (y.campaigns.length + (y.bingos?.length ?? 0)) - (x.campaigns.length + (x.bingos?.length ?? 0)));
     // First Week (new and invited players only) leads Explore: it's where they should start.
     if (firstWeek.length) result.unshift({ key: "start", label: "Start here", campaigns: [], bingos: firstWeek });
 
