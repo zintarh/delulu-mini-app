@@ -11,6 +11,7 @@ import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { BingoBoard, type SquareAvailability } from "@/components/bingo/bingo-board";
 import { BingoCollage } from "@/components/bingo/bingo-collage";
 import { BingoPlayers } from "@/components/bingo/bingo-players";
+import { CheerContestBanner, CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
 import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
 import { useAuth } from "@/hooks/use-auth";
@@ -46,6 +47,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
   const { bingo, setBingo, loading, error, reload } = useBingo(slug);
   const rolling = bingo?.enrollment === "rolling";
   const board = useBingoBoard(rolling ? { slug } : bingo?.cycle?.id);
+  const cheers = useCheerContest(slug);
   const { bingos: allBingos, reload: reloadAll } = useBingoList();
   const { requireAuth } = useRedirectToSignIn();
   const identity = useIdentity();
@@ -315,12 +317,18 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
         {showBoard ? (
           <section id="players" className="mt-9 scroll-mt-20">
-            <div className="flex items-baseline justify-between">
+            {/* This week's Best card contest: the prize, the top 3, and a nudge to cheer. */}
+            {cheers.data?.live && !cheers.data.setupPending ? (
+              <div className="mb-4">
+                <CheerContestBanner contest={cheers.data} onCheer={() => document.getElementById("players-list")?.scrollIntoView({ behavior: "smooth" })} />
+              </div>
+            ) : null}
+            <div id="players-list" className="flex scroll-mt-20 items-baseline justify-between">
               <h2 className="font-display text-xl font-extrabold uppercase">Leaderboard</h2>
               <span className="label-mono text-[11px] text-muted-foreground">{board.total} {rolling ? "recent" : "playing"}</span>
             </div>
             <div className="mt-3">
-              <BingoPlayers cards={board.cards} required={required} bingoTitle={bingo.title} myAttemptId={me?.attemptId ?? null} />
+              <BingoPlayers cards={board.cards} required={required} bingoTitle={bingo.title} myAttemptId={me?.attemptId ?? null} slug={slug} contest={cheers.data} />
             </div>
             {board.hasMore ? (
               <GameButton variant="line" size="sm" full className="mt-3" onClick={() => void board.loadMore()} disabled={board.loading}>
@@ -365,6 +373,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
           closesAt={step.untilLabel === "closes" ? (step.until ?? null) : null}
         />
       ) : null}
+      <CheerPrompt contest={cheers.data} onPick={() => document.getElementById("players-list")?.scrollIntoView({ behavior: "smooth" })} />
     </MainPage>
   );
 }

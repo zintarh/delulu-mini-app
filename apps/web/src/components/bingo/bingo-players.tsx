@@ -5,6 +5,8 @@ import { ChevronRight } from "lucide-react";
 import { Lulu } from "@/components/ds";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { BingoCollage } from "@/components/bingo/bingo-collage";
+import { CheerPanel } from "@/components/bingo/cheers";
+import type { CheerContest } from "@/lib/bingo/cheers-server";
 import { flexStatus } from "@/components/bingo/bingo-flex-card";
 import type { BoardCard } from "@/hooks/use-bingo";
 import { cn } from "@/lib/utils";
@@ -21,22 +23,30 @@ export function BingoPlayers({
   required,
   bingoTitle,
   myAttemptId,
+  slug,
+  contest,
 }: {
   cards: BoardCard[];
   required: number;
   bingoTitle: string;
   myAttemptId: string | null;
+  slug: string;
+  /** This week's "Best card" contest: rank by cheers once anyone's been cheered. */
+  contest?: CheerContest;
 }) {
   const [open, setOpen] = useState<BoardCard | null>(null);
-  // Most days kept, then whoever got there first.
+  const scores = useMemo(() => contest?.scores ?? {}, [contest?.scores]);
+  const byCheers = Object.keys(scores).length > 0;
+  // Most cheers (the contest), then most days kept, then whoever got there first.
   const ranked = useMemo(
     () =>
       [...cards].sort(
         (a, b) =>
+          (byCheers ? (scores[b.attemptId]?.score ?? 0) - (scores[a.attemptId]?.score ?? 0) : 0) ||
           b.requiredFilled - a.requiredFilled ||
           Date.parse(a.lastFilledAt ?? a.startedAt) - Date.parse(b.lastFilledAt ?? b.startedAt),
       ),
-    [cards],
+    [cards, scores, byCheers],
   );
 
   return (
@@ -89,6 +99,9 @@ export function BingoPlayers({
                     ))}
                   </span>
                 ) : null}
+                {scores[card.attemptId] ? (
+                  <span className="shrink-0 rounded-full bg-orange-soft px-2 py-0.5 text-[11px] font-extrabold text-orange">🔥{scores[card.attemptId].score}</span>
+                ) : null}
                 <span className="w-9 shrink-0 text-right font-display text-[16px] font-extrabold tabular-nums">
                   {card.requiredFilled}/{required}
                 </span>
@@ -109,6 +122,14 @@ export function BingoPlayers({
         {open ? (
           <div className="px-4 pb-2 pt-1">
             <BingoCollage card={open} bingoTitle={bingoTitle} required={required} mine={open.attemptId === myAttemptId} />
+            {/* Every card is one tap from a cheer — the vote in this week's Best card contest. */}
+            <CheerPanel
+              slug={slug}
+              attemptId={open.attemptId}
+              ownerWallet={open.wallet}
+              ownerName={open.username ? `@${open.username}` : "this player"}
+              contest={contest}
+            />
           </div>
         ) : null}
       </ResponsiveSheet>
