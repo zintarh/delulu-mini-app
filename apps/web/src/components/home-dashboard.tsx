@@ -74,7 +74,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
       <div className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}>
         <HomeGreeting name={name} address={address} />
         {/* New and invited players: the First Week offer comes before everything else. */}
-        <HomeFirstWeek guest={!address} />
+        <HomeFirstWeek guest={!address} hidden={next?.step.kind === "first-week"} />
         {/* …and a pop-up the first time, so nobody has to find which Bingo has the welcome bonus. */}
         {address ? <FirstWeekWelcome /> : null}
 

@@ -31,7 +31,7 @@ export function PageBackHeader({
 }) {
   const router = useRouter();
   return (
-    <div className={cn("mx-auto max-w-xl px-5 pt-4", className)}>
+    <div className={cn("mx-auto max-w-3xl px-5 pt-4", className)}>
       <div className="flex items-center justify-between">
         <button type="button" onClick={onBack ?? (() => router.back())} aria-label="Back" className={ICON_BUTTON_CLASS}>
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />

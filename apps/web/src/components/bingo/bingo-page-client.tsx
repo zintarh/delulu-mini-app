@@ -158,7 +158,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
   if (loading) {
     return (
       <MainPage>
-        <div className="mx-auto max-w-md animate-pulse px-5 pt-4">
+        <div className="mx-auto max-w-3xl animate-pulse px-5 pt-4">
           <div className="h-11 w-11 rounded-full bg-muted" />
           <div className="mt-6 h-3 w-32 rounded bg-muted" />
           <div className="mt-3 h-9 w-3/4 rounded-lg bg-muted" />
@@ -208,7 +208,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
   return (
     <MainPage>
-      <div className="mx-auto max-w-md px-5 pb-36 pt-4">
+      <div className="mx-auto max-w-3xl px-5 pb-36 pt-4">
         <div className="flex items-center justify-between">
           <Link href="/explore" aria-label="Back" className={ICON_BUTTON_CLASS}>
             <ChevronLeft className="h-5 w-5" strokeWidth={2} />
@@ -344,7 +344,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
       </div>
 
       {bingo.joinable && !me ? (
-        <div className="fixed inset-x-0 z-40 mx-auto max-w-md px-5 lg:left-[var(--desktop-sidebar-w)]" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
+        <div className="fixed inset-x-0 z-40 mx-auto max-w-3xl px-5 lg:left-[var(--desktop-sidebar-w)]" style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 24px)" }}>
           <GameButton variant="yellow" full size="lg" onClick={() => requireAuth(() => setJoinOpen(true))}>
             {rolling ? (me ? `Start a fresh card · ${fmtG(minStake)} G$` : `Start · ${fmtG(minStake)} G$`) : `Join · from ${fmtG(minStake)} G$`}
           </GameButton>

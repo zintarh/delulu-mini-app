@@ -51,7 +51,7 @@ export default function PublicDeluluPage() {
     return (
       <MainPage className="bg-wash min-h-full">
         <PageBackHeader title="Delulu" />
-        <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pt-4">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-5 pt-4">
           <div className="h-[220px] animate-pulse rounded-[24px] bg-line/70" />
           <div className="h-[96px] animate-pulse rounded-[20px] bg-line/70" />
         </div>
@@ -93,7 +93,7 @@ export default function PublicDeluluPage() {
         }
       />
 
-      <div className="mx-auto flex max-w-xl flex-col gap-4 px-5 pb-12 pt-4">
+      <div className="mx-auto flex max-w-3xl flex-col gap-4 px-5 pb-12 pt-4">
         {/* Creator + story */}
         <section className="animate-rise rounded-[24px] border-2 border-line bg-white p-4 shadow-edge">
           <div className="flex items-center gap-3">

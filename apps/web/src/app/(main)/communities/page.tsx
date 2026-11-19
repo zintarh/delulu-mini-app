@@ -59,7 +59,7 @@ export default function CommunitiesPage() {
   }, []);
 
   return (
-    <MainPage className="mx-auto max-w-2xl px-4 py-6">
+    <MainPage className="mx-auto max-w-3xl px-4 py-6">
       <div className="mb-6">
         <h1
           className="text-2xl font-extrabold tracking-tight text-foreground"

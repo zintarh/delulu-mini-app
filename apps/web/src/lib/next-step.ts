@@ -6,12 +6,16 @@
 import type { BingoView } from "@/lib/bingo/view";
 
 const DAY_MS = 86_400_000;
+/** Same as FIRST_WEEK_SLUG (lib/bingo/first-week) — that module pulls in server code, this one stays pure. */
+const FIRST_WEEK = "first-week";
 
 /** In-page actions a next step can trigger (links use `href`). */
 export type NextStepAction = "join" | "today" | "verify";
 
 export type NextStep = {
   tone: "go" | "wait" | "win" | "warn";
+  /** "first-week": Home shows the First Week offer card instead of the plain card. */
+  kind?: "first-week";
   title: string;
   body?: string;
   /** Countdown target ("opens in 5h", "closes in 2h"). */
@@ -201,19 +205,33 @@ export function homeNextStep(input: {
     };
   }
 
-  // 4. The way in: the one-time starter Bingo, else the always-on 7-day one.
-  const starter = bingos.find((b) => b.enrollment === "rolling" && b.recurrence === "one_time" && b.joinable);
+  // 4. The way in: First Week (7 days + the welcome money, new and invited players only —
+  // the list only has it for them), else a 7-day Bingo, else anything open. Never a
+  // 3-day one first: the habit (and the money) is in the week.
+  const starter = bingos.find((b) => b.slug === FIRST_WEEK && b.joinable);
+  if (starter) {
+    return {
+      step: {
+        tone: "go",
+        kind: "first-week",
+        title: `Start here: ${starter.title}`,
+        body: "7 days, one photo a day — paid as you go.",
+        cta: { label: "Start my first week", href: `/bingo/${starter.slug}` },
+      },
+      featuredSlug: starter.slug,
+    };
+  }
   const weekly = bingos.find((b) => b.durationDays === 7 && b.joinable);
-  const pick = starter ?? weekly ?? bingos.find((b) => b.joinable) ?? null;
+  const pick = weekly ?? bingos.find((b) => b.joinable) ?? null;
   if (pick) {
     const stake = Math.min(...pick.tiers.map((t) => t.stake));
     const days = pick.durationDays;
     return {
       step: {
         tone: "go",
-        title: pick === starter ? `Start here: ${pick.title}` : `Next up: ${pick.title}`,
+        title: `Next up: ${pick.title}`,
         body: `${days} days, one photo a day${pick.rewards.perProof > 0 ? `, ${fmt(pick.rewards.perProof)} G$ a photo` : ""} — stake ${fmt(stake)} G$ and get it back when you finish.`,
-        cta: { label: pick === starter ? "Start my first Bingo" : `Start · ${fmt(stake)} G$`, href: `/bingo/${pick.slug}` },
+        cta: { label: `Start · ${fmt(stake)} G$`, href: `/bingo/${pick.slug}` },
       },
       featuredSlug: pick.slug,
     };

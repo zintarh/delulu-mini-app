@@ -94,14 +94,8 @@ function useEarnInfo(bingo: BingoView) {
   const atStake = bingo.tiers.find((t) => t.stake === stake);
   const backAtStake = typeof atStake?.completionReward === "number" ? atStake.completionReward : 0;
   const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
-  /** "₦1.7k" — short enough for a tiny pill. */
-  const ngnShort = (g: number) => {
-    if (!facts) return null;
-    const n = g * facts.gdUsd * facts.ngnPerUsd;
-    return n >= 1000 ? `₦${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : `₦${Math.round(n)}`;
-  };
   const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : String(n));
-  return { days, perDay, back, backAtStake, total, stake, ngn, ngnShort, k };
+  return { days, perDay, back, backAtStake, total, stake, ngn, k };
 }
 
 export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {

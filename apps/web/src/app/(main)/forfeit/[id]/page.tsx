@@ -405,7 +405,7 @@ export default function ContractDetailPage() {
       </div>
 
       <div className="border-t-2 border-line/70 bg-white/55 px-5 backdrop-blur-md night:border-white/10 night:bg-[#0f1233]/60 pb-[max(env(safe-area-inset-bottom),28px)] pt-4">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-3xl">
           {chain?.active && !todayDone ? (
             <button type="button" onClick={openProof} className={gameButtonClass({ full: true })}>
               <Camera className="h-5 w-5" strokeWidth={2} />

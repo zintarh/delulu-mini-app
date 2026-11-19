@@ -94,7 +94,7 @@ export default function FlowStateGuidePage() {
 
   return (
     <MainPage>
-      <div className="mx-auto flex max-w-md flex-col gap-3 px-5 pb-16 pt-4">
+      <div className="mx-auto flex max-w-3xl flex-col gap-3 px-5 pb-16 pt-4">
         <Link href="/home" aria-label="Home" className={ICON_BUTTON_CLASS}>
           <ChevronLeft className="h-5 w-5" strokeWidth={2} />
         </Link>

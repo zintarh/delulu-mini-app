@@ -11,11 +11,12 @@ import { nextBingoFor, proofNextStep, type NextStep, type NextStepAction } from 
 import { useBingoList } from "@/hooks/use-bingo";
 import { cn } from "@/lib/utils";
 
+/** `glow`: the dark, glowing announcement look (things to do / wins); `sub`: secondary text on that box. */
 const TONE = {
-  go: { box: "border-ink bg-white", icon: Sparkles, iconCls: "bg-yellow text-ink" },
-  wait: { box: "border-line bg-white", icon: Clock, iconCls: "bg-paper text-ink" },
-  win: { box: "border-green-line bg-[#f2fbf5]", icon: Trophy, iconCls: "bg-green text-ink" },
-  warn: { box: "border-orange/40 bg-orange-soft", icon: TriangleAlert, iconCls: "bg-white text-orange" },
+  go: { box: "border-ink bg-ink text-white shadow-[0_4px_0_#000]", icon: Sparkles, iconCls: "bg-yellow text-ink", sub: "text-white/70", glow: "bg-yellow/30" },
+  wait: { box: "border-line bg-white shadow-edge-sm", icon: Clock, iconCls: "bg-paper text-ink", sub: "text-muted-foreground", glow: null },
+  win: { box: "border-green-edge bg-green-edge text-white shadow-[0_4px_0_#0d4a2a]", icon: Trophy, iconCls: "bg-yellow text-ink", sub: "text-white/80", glow: "bg-yellow/30" },
+  warn: { box: "border-orange/40 bg-orange-soft shadow-edge-sm", icon: TriangleAlert, iconCls: "bg-white text-orange", sub: "text-muted-foreground", glow: null },
 } as const;
 
 /** Re-renders each minute so countdowns stay true. */
@@ -101,14 +102,15 @@ export function NextStepCard({
   }
 
   return (
-    <div className={cn("animate-rise rounded-[20px] border-2 p-3.5 text-left shadow-edge-sm", t.box, className)}>
-      <div className="flex items-start gap-3">
+    <div className={cn("relative animate-rise overflow-hidden rounded-[22px] border-2 p-3.5 text-left", t.box, className)}>
+      {t.glow ? <span className={cn("pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full blur-3xl", t.glow)} aria-hidden /> : null}
+      <div className="relative flex items-start gap-3">
         <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", t.iconCls)}>
           <Icon className="h-[18px] w-[18px]" strokeWidth={2.4} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[15px] font-extrabold leading-snug">{step.title}</p>
-          {step.body ? <p className="m-0 mt-0.5 text-[13px] font-semibold leading-snug text-muted-foreground">{step.body}</p> : null}
+          {step.body ? <p className={cn("m-0 mt-0.5 text-[13px] font-semibold leading-snug", t.sub)}>{step.body}</p> : null}
           {step.until && Date.parse(step.until) > Date.now() ? (
             step.untilLabel === "closes" && Date.parse(step.until) - Date.now() < 3 * 3_600_000 ? (
               // Under 3h: the countdown is the message.
@@ -116,7 +118,7 @@ export function NextStepCard({
                 <Clock className="h-3.5 w-3.5" strokeWidth={2.6} /> Closes in {fmtUntil(step.until)}
               </p>
             ) : (
-              <p className="label-mono m-0 mt-1.5 text-[10px] text-muted-foreground">
+              <p className={cn("label-mono m-0 mt-1.5 text-[10px]", t.sub)}>
                 {step.untilLabel === "closes" ? "Closes" : "Opens"} in {fmtUntil(step.until)}
               </p>
             )
@@ -125,9 +127,9 @@ export function NextStepCard({
       </div>
 
       {cta || (step.remind && (remind.state === "offer" || remind.state === "busy")) ? (
-        <div className="mt-3 flex gap-2">
+        <div className="relative mt-3 flex gap-2">
           {cta?.href ? (
-            <Link href={cta.href} className={gameButtonClass({ variant: step.tone === "win" ? "green" : "yellow", size: "sm", full: true })}>
+            <Link href={cta.href} className={gameButtonClass({ variant: "yellow", size: "sm", full: true })}>
               {cta.label} <ArrowRight className="h-4 w-4" />
             </Link>
           ) : cta?.action ? (
@@ -142,7 +144,7 @@ export function NextStepCard({
           ) : null}
         </div>
       ) : step.remind && remind.state === "on" ? (
-        <p className="label-mono m-0 mt-2 inline-flex items-center gap-1 text-[10px] text-green-edge">
+        <p className={cn("label-mono relative m-0 mt-2 inline-flex items-center gap-1 text-[10px]", step.tone === "win" ? "text-white" : "text-green-edge")}>
           <BellRing className="h-3 w-3" /> We&apos;ll remind you
         </p>
       ) : null}

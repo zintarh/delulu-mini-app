@@ -190,13 +190,16 @@ test("Home always has exactly one next step, in the right order", async () => {
     }) as never;
   const debut = mk("delulu-debut", 3, "one_time");
   const weekly = mk("outside-your-bubble", 7, "automatic");
+  const firstWeek = mk("first-week", 7, "one_time");
 
   // Not verified → verify first.
   assert.equal(homeNextStep({ bingos: [debut, weekly], verified: false }).step.cta?.action, "verify");
-  // Verified newcomer → the starter Bingo, featured (so the list below skips it).
-  const start = homeNextStep({ bingos: [debut, weekly], verified: true });
-  assert.equal(start.featuredSlug, "delulu-debut");
-  assert.match(start.step.title, /^Start here/);
+  // Verified newcomer → First Week, featured (so the list below skips it).
+  const start = homeNextStep({ bingos: [debut, firstWeek, weekly], verified: true });
+  assert.equal(start.featuredSlug, "first-week");
+  assert.equal(start.step.kind, "first-week");
+  // No First Week (not new) → a 7-day Bingo, never a 3-day one first.
+  assert.equal(homeNextStep({ bingos: [debut, weekly], verified: true }).featuredSlug, "outside-your-bubble");
   // Playing → today's square beats everything (even unverified).
   const playing = homeNextStep({ bingos: [mk("delulu-debut", 3, "one_time", {}), weekly], verified: false });
   assert.equal(playing.step.cta?.action, "today");

@@ -1274,7 +1274,7 @@ export function ForfeitCreatePage() {
       <div className="relative border-t-2 border-dashed border-line bg-white px-5 pb-[max(env(safe-area-inset-bottom),28px)] pt-[18px]">
         <span className="absolute -left-2.5 -top-2.5 h-5 w-5 rounded-full bg-paper" aria-hidden />
         <span className="absolute -right-2.5 -top-2.5 h-5 w-5 rounded-full bg-paper" aria-hidden />
-        <div className="mx-auto flex max-w-xl flex-col gap-3.5">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3.5">
           <div className="flex items-baseline justify-between">
             <span className="label-mono text-muted-foreground">At stake</span>
             <span className="font-display text-[28px] font-extrabold leading-none">{amountLabel}</span>
