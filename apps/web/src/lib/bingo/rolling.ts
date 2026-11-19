@@ -81,12 +81,10 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
     // A retry of the same stake is fine.
     const same = (before ?? []).find((a) => a.join_tx === txHash.toLowerCase());
     if (same) return same.id as string;
-    // First Week: a card that ended on a missed day doesn't use it up — only finishing does
-    // (a still-running card is caught below). Other one-time Bingos: one card, ever.
-    const usedUp = isFirstWeekSlug(campaign.slug)
-      ? (before ?? []).some((a) => Number(a.required_filled) >= campaign.duration_days)
-      : (before ?? []).length > 0;
-    if (usedUp) throw new Error(`${campaign.title} is a one-time Bingo — you've already played it.`);
+    // Finish-once: a card that ended on a missed day doesn't use it up — only finishing does
+    // (a still-running card is caught below).
+    const usedUp = (before ?? []).some((a) => Number(a.required_filled) >= campaign.duration_days);
+    if (usedUp) throw new Error(`You've already finished ${campaign.title} — pick another Bingo.`);
   }
 
   const created = await parseForfeitCommitmentCreatedFromTx(txHash);

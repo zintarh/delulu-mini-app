@@ -13,42 +13,33 @@ import { useExploreCampaigns } from "@/hooks/use-explore-campaigns";
 import { useBingoList } from "@/hooks/use-bingo";
 import { BingoBannerCard } from "@/components/bingo/bingo-tile";
 import { PinBoard, pinAspect } from "@/components/ui/pin-board";
+import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import type { BingoView } from "@/lib/bingo/view";
 import { CAMPAIGN_CATEGORIES, OTHER_CATEGORY, campaignCategoryFor } from "@/lib/community/campaign-category";
-import { cn } from "@/lib/utils";
 
 /** Finished campaigns shown at the bottom — the most recent few, not the whole archive. */
 const FINISHED_LIMIT = 6;
 
-type Section = { key: string; label: string; campaigns: CampaignExploreCardData[] };
+type Section = { key: string; label: string; campaigns: CampaignExploreCardData[]; bingos?: BingoView[] };
 
-/** One category: a big heading, then a Pinterest-style board of its missions. */
+/** One category: a big heading, then a Pinterest-style board — its Bingos first, then its missions. */
 function CategoryRow({ section }: { section: Section }) {
+  const bingos = section.bingos ?? [];
   return (
     <section className="animate-rise">
       <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">{section.label}</h2>
       <PinBoard>
+        {bingos.map((b, i) => (
+          <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
+        ))}
         {section.campaigns.map((c, i) => (
-          <CampaignBannerCard key={c.id} campaign={c} pin={pinAspect(i)} />
+          <CampaignBannerCard key={c.id} campaign={c} pin={pinAspect(bingos.length + i)} />
         ))}
       </PinBoard>
     </section>
   );
 }
 
-/** Bingos sit with campaigns on their own board: yours first, then ones you can join. */
-function BingoRow({ bingos }: { bingos: BingoView[] }) {
-  return (
-    <section className="animate-rise">
-      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">Bingo</h2>
-      <PinBoard>
-        {bingos.map((b, i) => (
-          <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
-        ))}
-      </PinBoard>
-    </section>
-  );
-}
 
 const bingoRank = (b: BingoView) =>
   b.me && b.me.status === "active" && b.me.phase !== "ended" ? 0 : b.joinable ? 1 : b.cycle?.phase === "upcoming" ? 2 : 3;
@@ -84,6 +75,14 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
       const { key } = campaignCategoryFor(c.title, c.description);
       byKey.set(key, [...(byKey.get(key) ?? []), c]);
     }
+    // Bingos are missions too: each goes in its category (yours first — `bingos` is already ranked).
+    const firstWeek = bingos.filter((b) => b.slug === FIRST_WEEK_SLUG);
+    const bingosByKey = new Map<string, BingoView[]>();
+    for (const b of bingos) {
+      if (b.slug === FIRST_WEEK_SLUG) continue;
+      const { key } = campaignCategoryFor(b.title, b.description);
+      bingosByKey.set(key, [...(bingosByKey.get(key) ?? []), b]);
+    }
     // Within a category: yours first, then the ones ending soonest.
     const order = (list: CampaignExploreCardData[]) =>
       [...list].sort(
@@ -92,13 +91,15 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
           (campaignDaysLeft(a) ?? 1e9) - (campaignDaysLeft(b) ?? 1e9),
       );
     const result: Section[] = [...CAMPAIGN_CATEGORIES, OTHER_CATEGORY]
-      .filter((cat) => byKey.has(cat.key))
-      .map((cat) => ({ key: cat.key, label: cat.label, campaigns: order(byKey.get(cat.key)!) }));
+      .filter((cat) => byKey.has(cat.key) || bingosByKey.has(cat.key))
+      .map((cat) => ({ key: cat.key, label: cat.label, campaigns: order(byKey.get(cat.key) ?? []), bingos: bingosByKey.get(cat.key) ?? [] }));
+    // First Week (new and invited players only) leads Explore: it's where they should start.
+    if (firstWeek.length) result.unshift({ key: "start", label: "Start here", campaigns: [], bingos: firstWeek });
 
     const finished = campaigns.filter((c) => !isCampaignOpen(c)).slice(0, FINISHED_LIMIT);
     if (finished.length > 0) result.push({ key: "finished", label: "Finished", campaigns: finished });
     return result;
-  }, [campaigns]);
+  }, [campaigns, bingos]);
 
   if (isLoading) {
     return (
@@ -139,7 +140,6 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
 
   return (
     <div className="space-y-9">
-      {bingos.length > 0 ? <BingoRow bingos={bingos} /> : null}
       {sections.map((section) => (
         <CategoryRow key={section.key} section={section} />
       ))}
