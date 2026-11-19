@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/useUserStore";
 import { formatAddress, cn } from "@/lib/utils";
-import { Camera, Loader2, Settings, Share } from "lucide-react";
+import { Camera, LifeBuoy, Loader2, Settings, Share } from "lucide-react";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { useUsernameByAddress } from "@/hooks/use-username-by-address";
@@ -178,6 +178,9 @@ function ProfileHeader({
   return (
     <section className="mx-auto max-w-3xl px-5 pb-2 pt-4 xl:max-w-3xl">
       <div className="flex justify-end gap-2">
+        <Link href="/settings#help" aria-label="Help" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
+          <LifeBuoy className="h-5 w-5" strokeWidth={2} />
+        </Link>
         <Link href="/profile/flex" aria-label="Share flex card" className="press-edge flex h-11 w-11 items-center justify-center rounded-full border-2 border-line bg-white shadow-edge-sm">
           <Share className="h-5 w-5" strokeWidth={2} />
         </Link>

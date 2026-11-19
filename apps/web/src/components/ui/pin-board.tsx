@@ -25,6 +25,19 @@ export function PinBoard({ children, className, twoUp = false }: { children: Rea
   );
 }
 
-/** Height rhythm for the i-th card: tall, square-ish, taller… never two identical rows. */
-const ASPECTS = ["aspect-[3/4]", "aspect-[4/5]", "aspect-[1/1]", "aspect-[2/3]", "aspect-[5/6]", "aspect-[3/4]", "aspect-[4/5]", "aspect-[9/10]"];
+/**
+ * Height rhythm for the i-th card: tall, square-ish, taller… never two identical rows.
+ * Phones get taller shapes: a column there is only ~170px wide, and a squarer
+ * card would leave the title and stake line covering most of it.
+ */
+const ASPECTS = [
+  "aspect-[3/5] sm:aspect-[3/4]",
+  "aspect-[2/3] sm:aspect-[4/5]",
+  "aspect-[5/8] sm:aspect-[1/1]",
+  "aspect-[4/7] sm:aspect-[2/3]",
+  "aspect-[2/3] sm:aspect-[5/6]",
+  "aspect-[3/5] sm:aspect-[3/4]",
+  "aspect-[5/8] sm:aspect-[4/5]",
+  "aspect-[2/3] sm:aspect-[9/10]",
+];
 export const pinAspect = (i: number) => ASPECTS[i % ASPECTS.length];

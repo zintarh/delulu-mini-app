@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, ChevronRight, Copy, KeyRound, Loader2, LogOut, Mail, Send, ShieldCheck, User, Wallet } from "lucide-react";
+import { AtSign, Bell, Check, ChevronRight, Copy, KeyRound, Loader2, LogOut, Mail, MessageCircle, Send, ShieldCheck, User, Users, Wallet } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -22,7 +22,7 @@ import { GameButton, GameSwitch, Stamp } from "@/components/ds";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useFaceCheck } from "@/contexts/right-panel-context";
 
-import { TG_GROUP_URL } from "@/components/get-gas-modal";
+import { COMMUNITY_TELEGRAM_URL, SUPPORT_TELEGRAM_URL, X_URL } from "@/lib/support";
 import { cn, formatAddress } from "@/lib/utils";
 
 
@@ -178,17 +178,20 @@ export default function SettingsPage() {
               </SettingsCard>
             </section>
 
-            <section className="flex animate-rise flex-col gap-2">
+            <section id="help" className="flex animate-rise flex-col gap-2">
               <SectionLabel>Help</SectionLabel>
               <SettingsCard>
-                <Row
-                  icon={<Send className="h-5 w-5" strokeWidth={2} />}
-                  title="Join Telegram"
-                  href={TG_GROUP_URL}
-                  last
-                >
+                <Row icon={<MessageCircle className="h-5 w-5" strokeWidth={2} />} title="Message support" href={SUPPORT_TELEGRAM_URL}>
+                  <Send className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+                </Row>
+                <Row icon={<Users className="h-5 w-5" strokeWidth={2} />} title="Join the community" href={COMMUNITY_TELEGRAM_URL} last={!X_URL}>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
                 </Row>
+                {X_URL ? (
+                  <Row icon={<AtSign className="h-5 w-5" strokeWidth={2} />} title="Follow on X" href={X_URL} last>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={2} />
+                  </Row>
+                ) : null}
               </SettingsCard>
             </section>
 

@@ -90,6 +90,9 @@ function useEarnInfo(bingo: BingoView) {
   const back = Math.max(0, ...bingo.tiers.map((t) => (typeof t.completionReward === "number" ? t.completionReward : 0)));
   const total = perDay * days + back;
   const stake = Math.min(...bingo.tiers.map((t) => t.stake).filter((n) => n > 0));
+  // The cashback for the stake the card shows, so the two always match.
+  const atStake = bingo.tiers.find((t) => t.stake === stake);
+  const backAtStake = typeof atStake?.completionReward === "number" ? atStake.completionReward : 0;
   const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
   /** "₦1.7k" — short enough for a tiny pill. */
   const ngnShort = (g: number) => {
@@ -98,7 +101,7 @@ function useEarnInfo(bingo: BingoView) {
     return n >= 1000 ? `₦${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : `₦${Math.round(n)}`;
   };
   const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : String(n));
-  return { days, perDay, back, total, stake, ngn, ngnShort, k };
+  return { days, perDay, back, backAtStake, total, stake, ngn, ngnShort, k };
 }
 
 export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {
@@ -120,17 +123,16 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
       {/* The board is the card — photos as they come in, stickers until then — with the words on a gradient over it. */}
       <BingoBoardBackground squares={squares} className="absolute inset-0" />
       {/* Only the bottom darkens, for the title — the stickers/photos above stay bright. */}
-      <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" aria-hidden />
+      <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/95 via-black/65 to-transparent" aria-hidden />
 
       <div className={cn("pointer-events-none absolute z-[2] flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
         <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-yellow font-extrabold uppercase tracking-wide text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>
           <Grid3x3 className="h-3.5 w-3.5" strokeWidth={2.6} /> Bingo
         </span>
         {/* The cashback, loud: what finishing pays at the top level. */}
-        {earn.back > 0 && !playing ? (
-          <span className={cn("inline-flex items-center gap-1 rounded-full bg-green font-extrabold text-ink", pin ? "px-1.5 py-0.5 text-[9px]" : "px-2.5 py-1 text-[11px]")}>
-            {earn.back > Math.min(...bingo.tiers.map((t) => t.completionReward ?? 0)) ? "Up to " : ""}+{earn.k(earn.back)} G$ cashback
-            {earn.ngnShort(earn.back) ? ` · ≈${earn.ngnShort(earn.back)}` : ""}
+        {earn.backAtStake > 0 && !playing ? (
+          <span className={cn("inline-flex items-center rounded-full bg-green-strong font-extrabold text-white", pin ? "px-1.5 py-0.5 text-[9px]" : "px-2.5 py-1 text-[11px]")}>
+            Cashback +{earn.k(earn.backAtStake)}
           </span>
         ) : null}
         {/* Only while you're playing ("Day 2 of 7") — the squares already say 3 or 7 days. */}

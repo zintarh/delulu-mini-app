@@ -468,7 +468,7 @@ export function CampaignBannerCard({
         </span>
       )}
       {/* Scrim: light at the top for the chip, strong at the bottom for the text. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/5" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/10" aria-hidden />
 
       <div className={cn("absolute flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
         <span
