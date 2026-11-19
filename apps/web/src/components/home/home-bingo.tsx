@@ -10,6 +10,8 @@ import { useBingoList } from "@/hooks/use-bingo";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { fmtG } from "@/lib/bingo/format";
+import { seededShuffle, shuffleWindow } from "@/lib/shuffle";
+import { useAuth } from "@/hooks/use-auth";
 
 const playing = (b: BingoView) => !!b.me && b.me.status === "active" && !b.me.missedDay && b.me.phase !== "ended";
 
@@ -19,8 +21,12 @@ const playing = (b: BingoView) => !!b.me && b.me.status === "active" && !b.me.mi
  * Bingo up top as their way in. First Week has its own offer at the top of
  * Home (HomeFirstWeek), so it is never repeated here.
  */
+const MORE_TO_PLAY = 4;
+const SHUFFLE_HOURS = 6;
+
 export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boolean; exclude?: string | null }) {
   const { bingos: all } = useBingoList();
+  const { address } = useAuth();
   // The Bingo "Your next step" is about isn't shown twice.
   const bingos = all?.filter((b) => b.slug !== exclude && b.slug !== FIRST_WEEK_SLUG) ?? null;
   if (!bingos || bingos.length === 0) return null;
@@ -31,7 +37,10 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
   // Open to join, or announced and starting soon.
   const open = bingos.filter((b) => !playing(b) && b !== starter && (b.joinable || b.cycle?.phase === "upcoming"));
   const showStarter = starter && mine.length === 0 && newcomer;
-  const list = [...mine, ...(showStarter ? [] : starter && mine.length === 0 ? [starter] : []), ...open].slice(0, 4);
+  // A few cards, not the catalogue: yours first, then the rest reshuffled every few hours
+  // (stable in between, so the page doesn't jump) — Explore has them all.
+  const rest = seededShuffle(open, `${address ?? "guest"}:${shuffleWindow(SHUFFLE_HOURS)}`);
+  const list = [...mine, ...(showStarter ? [] : starter && mine.length === 0 ? [starter] : []), ...rest].slice(0, MORE_TO_PLAY);
   if (!showStarter && list.length === 0) return null;
 
   return (
@@ -39,7 +48,7 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-xl font-extrabold uppercase">{newcomer ? "Bingo" : "More to play"}</h2>
         <Link href="/explore" className="label-mono text-[11px] text-muted-foreground no-underline">
-          All
+          See all →
         </Link>
       </div>
       {showStarter ? <StarterBingoCard bingo={starter} /> : null}

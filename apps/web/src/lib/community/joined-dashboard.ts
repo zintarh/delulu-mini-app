@@ -17,7 +17,7 @@ import { unwrapRelation } from "@/lib/supabase/unwrap-relation";
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
 const ON_CHAIN_SELECT = `
-  id, title, cover_image_url, display_ends_at, created_at, duration_days, on_chain_challenge_id,
+  id, title, cover_image_url, display_ends_at, created_at, duration_days, on_chain_challenge_id, is_hidden,
   proof_type, live_camera_duration_seconds,
   is_free_to_join, join_token, join_amount, forfeit_pct,
   communities ( name, slug )
@@ -78,11 +78,19 @@ export async function fetchJoinedCampaignDashboard(
   const onChainPromise = (async () => {
     if (challengeIds.length === 0) return [];
 
-    const { data: onChainRows } = await admin
+    const { data: onChainRowsAll } = await admin
       .from("community_campaigns")
       .select(ON_CHAIN_SELECT)
       .in("status", [...PARTICIPATING_STATUSES])
       .in("on_chain_challenge_id", challengeIds);
+    // A hidden campaign that isn't a Bingo tier has been discontinued: off Home,
+    // and it no longer counts as "behind" (which would lock referrals).
+    const hiddenIds = (onChainRowsAll ?? []).filter((r) => (r as { is_hidden?: boolean }).is_hidden).map((r) => (r as { id: string }).id);
+    const { data: bingoTiers } = hiddenIds.length
+      ? await admin.from("bingo_cycle_tiers").select("community_campaign_id").in("community_campaign_id", hiddenIds)
+      : { data: [] as { community_campaign_id: string }[] };
+    const tierIds = new Set((bingoTiers ?? []).map((t) => String(t.community_campaign_id)));
+    const onChainRows = (onChainRowsAll ?? []).filter((r) => !(r as { is_hidden?: boolean }).is_hidden || tierIds.has((r as { id: string }).id));
 
     const challengeIdToCampaign = new Map<
       number,
