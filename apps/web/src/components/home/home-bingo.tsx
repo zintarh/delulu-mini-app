@@ -53,7 +53,7 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
       </div>
       {showStarter ? <StarterBingoCard bingo={starter} /> : null}
       {list.length ? (
-        <PinBoard>
+        <PinBoard twoUp>
           {list.map((b, i) => (
             <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
           ))}

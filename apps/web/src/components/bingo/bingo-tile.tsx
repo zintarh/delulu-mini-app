@@ -111,7 +111,8 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
       <Link href={`/bingo/${bingo.slug}`} aria-label={bingo.title} className="absolute inset-0 z-[1]" />
       {/* The board is the card — photos as they come in, stickers until then — with the words on a gradient over it. */}
       <BingoBoardBackground squares={squares} className="absolute inset-0" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" aria-hidden />
+      {/* Only the bottom darkens, for the title — the stickers/photos above stay bright. */}
+      <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" aria-hidden />
 
       <div className={cn("pointer-events-none absolute z-[2] flex flex-wrap items-center", pin ? "inset-x-2.5 top-2.5 gap-1" : "inset-x-5 top-5 gap-2")}>
         <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-yellow font-extrabold uppercase tracking-wide text-ink", pin ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-[12px]")}>

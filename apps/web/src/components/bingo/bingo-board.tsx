@@ -252,7 +252,7 @@ export function BingoBoardBackground({
   const row = squares.length <= 3;
   const layout = !row ? "grid-cols-3 grid-rows-3" : stack ? "grid-cols-1 grid-rows-3" : "grid-cols-3 grid-rows-1";
   return (
-    <div className={cn("grid gap-[3px] bg-ink", layout, className)} aria-hidden>
+    <div className={cn("grid gap-[2px] bg-white/80", layout, className)} aria-hidden>
       {squares.slice(0, 9).map((s) => (
         <Cell key={s.index} square={s} sticker={sticker ?? (row ? 64 : 44)} className="aspect-auto h-full min-h-0" />
       ))}
