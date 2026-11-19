@@ -39,7 +39,8 @@ export function versionSchemaFor(durationDays: 3 | 7) {
   return z
     .object({
       missions: z.array(missionSchema).min(durationDays).max(durationDays === 7 ? 9 : 3),
-      tiers: z.array(tierSchema).min(1).max(3),
+      // Up to 5 stake levels (7-day: 10k / 20k / 30k / 50k / 100k).
+      tiers: z.array(tierSchema).min(1).max(5),
     })
     .superRefine((v, ctx) => {
       const required = v.missions.filter((m) => !m.bonus).length;

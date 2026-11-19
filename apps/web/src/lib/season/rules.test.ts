@@ -14,14 +14,15 @@ const DAY = 86_400_000;
 const live = SEASON_2_START_MS + DAY;
 const before = SEASON_2_START_MS - DAY;
 
-test("points scale with stake, token points under 5k, capped at 50k", () => {
+test("points scale with stake, token points under 5k, capped at a 100k stake", () => {
   assert.equal(seasonPointsForStake(0), LOW_STAKE_POINTS);
   assert.equal(seasonPointsForStake(1_000), LOW_STAKE_POINTS);
   assert.equal(seasonPointsForStake(4_999), LOW_STAKE_POINTS);
   assert.equal(seasonPointsForStake(5_000), 500);
   assert.equal(seasonPointsForStake(10_000), 1_000);
   assert.equal(seasonPointsForStake(20_000), 2_000);
-  assert.equal(seasonPointsForStake(500_000), 5_000);
+  assert.equal(seasonPointsForStake(100_000), 10_000);
+  assert.equal(seasonPointsForStake(500_000), 10_000);
 });
 
 test("newcomer for 2 weeks unless they pass 20 proofs or 20 days", () => {

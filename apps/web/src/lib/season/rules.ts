@@ -27,9 +27,9 @@ export const NEWCOMER_MIN_STAKE = 5_000;
 export const REGULAR_MIN_STAKE = 5_000;
 export const MAX_GOAL_DAYS = 7;
 
-/** Points per verified proof: stake ÷ 10 from 5k up, capped at a 50k stake. */
+/** Points per verified proof: stake ÷ 10 from 5k up, capped at a 100k stake (the top Bingo level). */
 export const POINTS_PER_STAKE_DIVISOR = 10;
-export const POINTS_STAKE_CAP = 50_000;
+export const POINTS_STAKE_CAP = 100_000;
 /** Token points for proofs backed by less than 5k (word pledges, free campaigns included). */
 export const LOW_STAKE_POINTS = 10;
 
