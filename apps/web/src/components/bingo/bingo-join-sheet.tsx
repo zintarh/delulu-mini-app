@@ -22,6 +22,8 @@ import { rollingFirstDeadline, rollingStartsTomorrow } from "@/lib/bingo/types";
 import { fmtDay, fmtG } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 import { useStakeRules } from "@/hooks/use-stake-rules";
+import { useEarnFacts } from "@/hooks/use-earn-facts";
+import { fmtNgn } from "@/lib/earn/format";
 import { isFirstWeekSlug } from "@/lib/bingo/first-week";
 import { seasonPointsForStake } from "@/lib/season/rules";
 
@@ -56,6 +58,9 @@ export function BingoJoinSheet({
   const [tierKey, setTierKey] = useState((initialTierKey && tiers.some((t) => t.key === initialTierKey) ? initialTierKey : tiers[0]?.key) ?? "");
   // Season 2: tiers under this wallet's minimum stake are locked.
   const { rules: stakeRules } = useStakeRules(address);
+  // Naira at the live G$ rate (G$ moves, so never a fixed figure).
+  const facts = useEarnFacts();
+  const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
   // Your First Week is gated on eligibility, not the Season 2 minimum.
   const isLocked = (stake: number) => !isFirstWeekSlug(bingo.slug) && stakeRules.live && stake < stakeRules.minStake;
   const firstOpen = tiers.find((t) => !isLocked(t.stake));
@@ -218,10 +223,12 @@ export function BingoJoinSheet({
                   {t.label}
                 </span>
                 <span className="font-display text-xl font-extrabold leading-none">{fmtG(t.stake)}</span>
-                <span className="text-[10px] font-bold opacity-70">G$ · +{seasonPointsForStake(t.stake).toLocaleString()} pts</span>
+                <span className="text-[10px] font-bold opacity-70">G${ngn(t.stake) ? ` · ≈ ${ngn(t.stake)}` : ""}</span>
+                <span className="text-[10px] font-bold opacity-70">+{seasonPointsForStake(t.stake).toLocaleString()} pts a day</span>
                 {typeof t.completionReward === "number" && t.completionReward > 0 ? (
-                  <span className={cn("mt-1 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold", t.key === tier?.key ? "bg-green text-ink" : "bg-green-soft text-green-edge")}>
-                    +{fmtG(t.completionReward)} finish
+                  <span className={cn("mt-1 rounded-full px-1.5 py-0.5 text-center text-[10px] font-extrabold leading-tight", t.key === tier?.key ? "bg-green text-ink" : "bg-green-soft text-green-edge")}>
+                    +{fmtG(t.completionReward)} back
+                    {ngn(t.completionReward) ? <span className="block font-bold opacity-80">≈ {ngn(t.completionReward)}</span> : null}
                   </span>
                 ) : null}
               </button>

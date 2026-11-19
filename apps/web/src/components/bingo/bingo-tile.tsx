@@ -6,6 +6,8 @@ import { BingoBoardBackground } from "@/components/bingo/bingo-board";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
 import { fmtDay, fmtG, fmtRange, fmtUntil } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
+import { useEarnFacts } from "@/hooks/use-earn-facts";
+import { fmtNgn } from "@/lib/earn/format";
 
 /** "Day 3 of 7" / "Starts Wed 18 Nov" / "3 days · start anytime" — the same everywhere. */
 export function bingoStatus(b: BingoView): { text: string; live: boolean } {
@@ -76,8 +78,25 @@ export function BingoTile({ bingo, className }: { bingo: BingoView; className?: 
  * banner card, with a BINGO badge and a collage of players' real photos
  * (or the empty card until the first square fills).
  */
+/** "Stake 10k–30k · up to +3,000 G$ back (≈ ₦430)" — what you put in and what finishing pays, at the live rate. */
+function useEarnLine(bingo: BingoView): string | null {
+  const facts = useEarnFacts();
+  const stakes = bingo.tiers.map((t) => t.stake).filter((n) => n > 0);
+  if (!stakes.length) return null;
+  const k = (n: number) => (n >= 1000 ? `${n / 1000}k` : String(n));
+  const lo = Math.min(...stakes);
+  const hi = Math.max(...stakes);
+  const back = Math.max(0, ...bingo.tiers.map((t) => (typeof t.completionReward === "number" ? t.completionReward : 0)));
+  const range = lo === hi ? `Stake ${k(lo)}` : `Stake ${k(lo)}–${k(hi)}`;
+  if (!back) return `${range} · ${fmtG(bingo.rewards.perProof)} G$ a photo`;
+  const ngn = facts ? ` (≈ ${fmtNgn(back * facts.gdUsd * facts.ngnPerUsd)})` : "";
+  return `${range} · up to +${fmtG(back)} G$ back${ngn}`;
+}
+
 export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {
   const status = bingoStatus(bingo);
+  const earn = useEarnLine(bingo);
+  const playing = !!bingo.me && bingo.me.status === "active" && bingo.me.phase !== "ended" && !bingo.me.missedDay;
   const squares = bingo.me ? bingo.me.squares : buildSquares(bingo.missions, [], false);
   return (
     <Link
@@ -110,8 +129,9 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.45)] [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
           {bingo.title}
         </h3>
-        <p className={cn("m-0 mt-1 truncate font-semibold text-white/80", pin ? "text-[11px]" : "text-[13px]")}>
-          {bingoCta(bingo)}
+        <p className={cn("m-0 mt-1 font-semibold text-white/85", pin ? "text-[11px] leading-snug" : "text-[13px]")}>
+          {/* Not playing yet: what it costs and what finishing pays. Playing: your next step. */}
+          {!playing && bingo.joinable && earn ? earn : bingoCta(bingo)}
         </p>
         {bingo.players > 0 ? (
           <p className={cn("m-0 inline-flex items-center gap-1.5 font-bold text-white/90", pin ? "mt-1.5 text-[11px]" : "mt-2 text-[12px]")}>

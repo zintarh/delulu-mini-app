@@ -256,6 +256,18 @@ export function BingoBoardBackground({
       {squares.slice(0, 9).map((s) => (
         <Cell key={s.index} square={s} sticker={sticker ?? (row ? 64 : 44)} className="aspect-auto h-full min-h-0" />
       ))}
+      {/* A 7-square card on a 3×3 leaves two cells: fill them (Lulu + a BINGO tile) instead of blank white. */}
+      {!row && squares.length < 9
+        ? Array.from({ length: 9 - Math.min(9, squares.length) }, (_, i) => (
+            <span key={`fill-${i}`} className={cn("flex h-full min-h-0 items-center justify-center", i % 2 === 0 ? "bg-yellow" : "bg-ink")}>
+              {i % 2 === 0 ? (
+                <Lulu size={Math.round((sticker ?? 44) * 0.9)} animated={false} />
+              ) : (
+                <span className="font-display text-[11px] font-extrabold uppercase tracking-wide text-yellow">Bingo</span>
+              )}
+            </span>
+          ))
+        : null}
     </div>
   );
 }
