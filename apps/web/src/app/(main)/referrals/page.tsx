@@ -12,7 +12,7 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Lulu } from "@/components/ds";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
-import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel, currentReferralRound, roundFirstPayment } from "@/lib/referral/campaign";
+import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel, currentReferralRound, roundFirstPayment, REFERRAL_ROUNDS } from "@/lib/referral/campaign";
 
 
 const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
@@ -121,6 +121,7 @@ export default function MyReferralsPage() {
   const ended = isReferralCampaignOver();
   const round = currentReferralRound();
   const slots = useReferralSlots(!ended);
+  const roundNumber = round ? REFERRAL_ROUNDS.findIndex((r) => r.start === round.start) + 1 : 0;
 
   return (
     <MainPage>
@@ -137,7 +138,20 @@ export default function MyReferralsPage() {
           )}
         >
           <Clock className="h-4 w-4 shrink-0" />
-          {ended ? "Referrals have ended" : `Referrals end ${referralCampaignEndLabel()}`}
+          {ended ? (
+            "Referrals have ended"
+          ) : (
+            // Urgency from scarcity, not an end date: spots left this round, and they refresh weekly.
+            <span className="min-w-0">
+              <span className="block">
+                Round {roundNumber}
+                {slots?.live && slots.slots > 0 ? ` · ${slots.left.toLocaleString("en-US")} of ${slots.slots.toLocaleString("en-US")} spots left` : ""}
+              </span>
+              <span className="block text-[12px] font-semibold text-muted-foreground">
+                This round closes {referralCampaignEndLabel()} · fresh spots every Tuesday, first come first served
+              </span>
+            </span>
+          )}
         </div>
 
         {/* How a referral pays — the same split each friend's row tracks below. */}
