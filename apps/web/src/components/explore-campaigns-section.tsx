@@ -28,7 +28,7 @@ function CategoryRow({ section }: { section: Section }) {
   return (
     <section className="animate-rise">
       <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">{section.label}</h2>
-      <PinBoard className="xl:columns-4">
+      <PinBoard wide>
         {bingos.map((b, i) => (
           <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
         ))}
@@ -109,7 +109,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
         {[0, 1].map((i) => (
           <div key={i}>
             <div className="mb-3 h-7 w-40 animate-pulse rounded-lg bg-ink/10" />
-            <PinBoard className="xl:columns-4">
+            <PinBoard wide>
               {[0, 1, 2, 3].map((k) => (
                 <CampaignBannerCardSkeleton key={k} pin={pinAspect(k)} />
               ))}

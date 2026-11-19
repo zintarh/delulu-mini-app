@@ -16,7 +16,7 @@ export type CollageTile =
 const PHOTO_RATIOS = [1.32, 1.0, 1.18, 0.86, 1.26, 1.05, 1.14, 0.92, 1.22];
 const EMPTY_RATIO = 0.62;
 const MISSED_RATIO = 0.5;
-const SCORE_RATIO = 0.72;
+const SCORE_RATIO = 0.9;
 
 export function collageColumns(
   squares: { index: number; state: "empty" | "confirming" | "filled" | "missed" }[],

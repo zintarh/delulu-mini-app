@@ -44,11 +44,40 @@ export function BingoCollage({
     const style = { aspectRatio: `1 / ${tile.h}` };
     if (tile.kind === "score") {
       return (
-        <div className="flex flex-col items-center justify-center rounded-[18px]" style={{ ...style, background: t.chipBg, color: t.chipFg }}>
-          <span className="font-display text-[34px] font-extrabold leading-none tabular-nums">
-            {card.requiredFilled}/{required}
+        <div
+          className="relative flex flex-col items-center justify-center overflow-hidden rounded-[18px] shadow-[0_2px_10px_rgba(0,0,0,0.12)]"
+          style={{ ...style, background: t.chipBg, color: t.chipFg }}
+        >
+          {/* A soft glow, and a ring that fills with every day kept. */}
+          <span className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/25 blur-2xl" aria-hidden />
+          <span className="pointer-events-none absolute -bottom-8 -left-6 h-20 w-20 rounded-full bg-white/15 blur-2xl" aria-hidden />
+          <span className="relative flex h-[84px] w-[84px] items-center justify-center">
+            <svg viewBox="0 0 84 84" className="absolute inset-0 -rotate-90" aria-hidden>
+              <circle cx="42" cy="42" r="36" fill="none" stroke="currentColor" strokeOpacity="0.18" strokeWidth="7" />
+              <circle
+                cx="42"
+                cy="42"
+                r="36"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 36}
+                strokeDashoffset={2 * Math.PI * 36 * (1 - Math.min(1, card.requiredFilled / Math.max(1, required)))}
+                className="transition-[stroke-dashoffset] duration-700"
+              />
+            </svg>
+            {status.done ? (
+              <Lulu size={50} mood="kept" />
+            ) : (
+              <span className="font-display text-[26px] font-extrabold leading-none tabular-nums">
+                {card.requiredFilled}/{required}
+              </span>
+            )}
           </span>
-          <span className="mt-1 text-[10px] font-extrabold uppercase tracking-wider opacity-80">days kept</span>
+          <span className="relative mt-1.5 text-[10px] font-extrabold uppercase tracking-wider opacity-85">
+            {status.done ? `${required}/${required} · Bingo!` : "days kept"}
+          </span>
         </div>
       );
     }

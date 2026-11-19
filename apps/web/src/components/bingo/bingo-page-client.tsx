@@ -157,7 +157,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
   if (loading) {
     return (
-      <MainPage>
+      <MainPage className="bg-wash min-h-full">
         <div className="mx-auto max-w-3xl animate-pulse px-5 pt-4">
           <div className="h-11 w-11 rounded-full bg-muted" />
           <div className="mt-6 h-3 w-32 rounded bg-muted" />
@@ -169,7 +169,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
   }
   if (!bingo || error) {
     return (
-      <MainPage>
+      <MainPage className="bg-wash min-h-full">
         <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-5 pt-20 text-center">
           <Lulu size={72} mood="sleep" />
           <p className="font-bold">{error ?? "This Bingo isn't available."}</p>
@@ -207,7 +207,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
   };
 
   return (
-    <MainPage>
+    <MainPage className="bg-wash min-h-full">
       <div className="mx-auto max-w-3xl px-5 pb-36 pt-4">
         <div className="flex items-center justify-between">
           <Link href="/explore" aria-label="Back" className={ICON_BUTTON_CLASS}>

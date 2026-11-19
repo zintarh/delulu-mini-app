@@ -17,6 +17,7 @@ import { engineRewardId } from "@/lib/celo/reward-vault-payout";
 import { recordApprovedProof } from "@/lib/proof-reward/grant";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { loadRewardsConfig } from "@/lib/rewards/config";
+import { takeSpotFromSmallerBingo } from "@/lib/rewards/spots";
 import { processPayout, reserveReward, type PayoutStatus } from "@/lib/rewards/ledger";
 import {
   addDays,
@@ -355,7 +356,7 @@ async function evaluateDaily(
   // A Bingo tier can set its own per-photo amount (e.g. Delulu Debut: 100 G$); everything else uses the global one.
   const amount = (await bingoRewardPerSquare(admin, proof.goalKind, proof.goalRef).catch(() => null)) ?? config.dailyProof.amount;
   const siblingRefs = proof.goalKind === "forfeit" ? await sameHabitGoalRefs(admin, proof.wallet, proof.goalRef) : [];
-  const { data, error } = await admin.rpc("reserve_daily_proof_reward", {
+  const reserve = () => admin.rpc("reserve_daily_proof_reward", {
     p_wallet: proof.wallet,
     p_goal_kind: proof.goalKind,
     p_goal_ref: proof.goalRef,
@@ -369,8 +370,15 @@ async function evaluateDaily(
     // pre-20261116 function signature.
     ...(siblingRefs.length > 0 ? { p_sibling_refs: siblingRefs } : {}),
   });
+  let { data, error } = await reserve();
   if (error) throw new Error(`[rewards] daily reservation: ${error.message}`);
-  const res = data as { outcome: string; payout_id?: string; status?: PayoutStatus };
+  let res = data as { outcome: string; payout_id?: string; status?: PayoutStatus };
+  // Spots full, and this is a Bingo card: the biggest stakes earn — take a smaller card's spot, then try once more.
+  if (res.outcome === "goal_limit" && proof.goalKind === "forfeit" && (await takeSpotFromSmallerBingo(admin, proof.wallet, proof.goalRef, day).catch(() => false))) {
+    ({ data, error } = await reserve());
+    if (error) throw new Error(`[rewards] daily reservation: ${error.message}`);
+    res = data as typeof res;
+  }
   if (res.outcome === "reserved" || res.outcome === "exists") {
     return pay(admin, res.payout_id!, amount, res.status ?? "pending", deadline);
   }

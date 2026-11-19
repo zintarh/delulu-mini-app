@@ -129,7 +129,7 @@ export default function CampaignsPage() {
                   </button>
                 </div>
               ) : isCampaignSearching ? (
-                <PinBoard className="xl:columns-4">
+                <PinBoard wide>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <CampaignBannerCardSkeleton key={i} pin={pinAspect(i)} />
                   ))}
@@ -148,7 +148,7 @@ export default function CampaignsPage() {
                   </Link>
                 </div>
               ) : (
-                <PinBoard className="xl:columns-4">
+                <PinBoard wide>
                   {campaignResults.map((c, i) => (
                     <CampaignBannerCard
                       key={c.id}

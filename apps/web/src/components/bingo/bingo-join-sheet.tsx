@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { parseUnits } from "viem";
 import { useChainId } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Camera, Coins, Eye, Lock, RotateCcw, TriangleAlert } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { LowBalancePanel } from "@/components/low-balance-panel";
@@ -73,6 +74,18 @@ export function BingoJoinSheet({
   }, [stakeRules.minStake, stakeRules.live, firstOpen?.key]);
   const tier = tiers.find((t) => t.key === tierKey) ?? tiers[0];
   const tierLocked = !!tier && isLocked(tier.stake);
+  // Photo-reward spots: joining is never limited, but only a few cards pay per photo (biggest stakes first).
+  const { data: spots } = useQuery({
+    queryKey: ["bingo-spots", address?.toLowerCase()],
+    enabled: open && !!address && rolling,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const r = await fetch(`/api/bingo/spots?address=${address}`);
+      return r.ok ? ((await r.json()) as { max: number | null; used: number; bingoStakes: number[] }) : null;
+    },
+  });
+  const spotsFull = !!spots?.max && spots.used >= spots.max;
+  const smaller = spotsFull && tier ? spots!.bingoStakes.filter((n) => n < tier.stake).sort((a, b) => a - b)[0] : undefined;
   const { formatted, refetch } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const balance = Number(formatted) || 0;
 
@@ -246,6 +259,15 @@ export function BingoJoinSheet({
             </li>
           ))}
         </ul>
+
+        {spotsFull ? (
+          <p className="m-0 flex items-start gap-2 rounded-xl bg-green-soft px-3 py-2 text-[12px] font-bold leading-snug text-green-edge">
+            <Coins className="mt-px h-4 w-4 shrink-0" />
+            {smaller != null
+              ? `Earns photo G$ in place of your ${fmtG(smaller)} G$ card — bigger stakes earn first`
+              : `Your ${spots!.max} photo-reward spots are full · this card earns cashback when you finish`}
+          </p>
+        ) : null}
 
         <div className="flex items-center justify-between text-[13px]">
           <span className="text-muted-foreground">Your balance</span>

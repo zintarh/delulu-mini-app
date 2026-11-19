@@ -1,26 +1,54 @@
+"use client";
+
+import { Children, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
+const LG = "(min-width: 1024px)";
+const XL = "(min-width: 1280px)";
+
+function subscribe(cb: () => void) {
+  const lists = [LG, XL].map((q) => window.matchMedia(q));
+  lists.forEach((l) => l.addEventListener("change", cb));
+  return () => lists.forEach((l) => l.removeEventListener("change", cb));
+}
+
+/** Columns for the screen: 2 on phones and tablets, 3 on laptops, 4 on wide screens (when `wide`). */
+function useColumns(wide: boolean, twoUp: boolean): number {
+  return useSyncExternalStore(
+    subscribe,
+    () => (twoUp ? 2 : wide && window.matchMedia(XL).matches ? 4 : window.matchMedia(LG).matches ? 3 : 2),
+    () => 2,
+  );
+}
+
 /**
- * Pinterest-style board: two masonry columns (three on wide screens) of
- * mixed-height cards. Children keep their own height; pinAspect() gives a
- * list of cards the varied rhythm that makes it read as a board.
+ * Pinterest-style board: cards dealt left, right, left, right into columns of
+ * mixed-height cards (pinAspect() gives the rhythm). Dealt rather than CSS
+ * `columns`, so two cards always sit side by side instead of stacking in one
+ * column.
  */
-export function PinBoard({ children, className, twoUp = false }: { children: React.ReactNode; className?: string; /** Always two columns, cards alternating left/right (small sets like Home's 4). */ twoUp?: boolean }) {
-  if (twoUp) {
-    const items = Array.isArray(children) ? children.flat().filter(Boolean) : [children];
-    return (
-      <div className={cn("grid grid-cols-2 items-start gap-3 sm:gap-4", className)}>
-        {[0, 1].map((col) => (
-          <div key={col} className="flex flex-col gap-3 sm:gap-4">
-            {items.filter((_, i) => i % 2 === col)}
-          </div>
-        ))}
-      </div>
-    );
-  }
+export function PinBoard({
+  children,
+  className,
+  twoUp = false,
+  wide = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  /** Always two columns (small sets like Home's 4). */
+  twoUp?: boolean;
+  /** Four columns on wide screens (Explore). */
+  wide?: boolean;
+}) {
+  const cols = useColumns(wide, twoUp);
+  const items = Children.toArray(children);
   return (
-    <div className={cn("columns-2 gap-3 sm:gap-4 lg:columns-3 [&>*]:mb-3 [&>*]:break-inside-avoid sm:[&>*]:mb-4", className)}>
-      {children}
+    <div className={cn("grid items-start gap-3 sm:gap-4", className)} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {Array.from({ length: cols }, (_, col) => (
+        <div key={col} className="flex min-w-0 flex-col gap-3 sm:gap-4">
+          {items.filter((_, i) => i % cols === col)}
+        </div>
+      ))}
     </div>
   );
 }
