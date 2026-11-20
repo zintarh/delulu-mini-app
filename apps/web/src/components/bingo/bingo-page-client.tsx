@@ -134,7 +134,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
   /** Share the card itself (an image of their photos), with a link back; link only if not playing. */
   const share = async () => {
     if (!bingo) return;
-    const url = `${window.location.origin}/bingo/${bingo.slug}`;
+    // Shared from your card, the link previews as your card (see bingo/[slug]/page.tsx).
+    const url = `${window.location.origin}/bingo/${bingo.slug}${me ? `?card=${me.attemptId}` : ""}`;
     const text = me
       ? me.requiredFilled >= required
         ? `BINGO! 🎉 I finished ${bingo.title} on Delulu`

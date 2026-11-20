@@ -55,7 +55,8 @@ export function BingoFinishSheet({
 
   if (!me) return null;
   const text = `BINGO! 🎉 I kept all ${required} days of ${bingo.title} on Delulu`;
-  const url = typeof window !== "undefined" ? `${window.location.origin}/bingo/${bingo.slug}` : `https://www.staydelulu.xyz/bingo/${bingo.slug}`;
+  // The link previews as this card (bingo/[slug]/page.tsx).
+  const url = `${typeof window !== "undefined" ? window.location.origin : "https://www.staydelulu.xyz"}/bingo/${bingo.slug}?card=${me.attemptId}`;
 
   const cardFile = async () => {
     const res = await fetch(image!);
