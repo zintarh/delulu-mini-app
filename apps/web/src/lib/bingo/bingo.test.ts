@@ -90,7 +90,9 @@ test("next step: every state says what to do next", async () => {
     { title: "Something that made you smile", bonus: false },
   ];
   const now = Date.now();
-  const started = new Date(now - 2 * 3_600_000).toISOString();
+  // Cards run midnight to midnight (Lagos): this one started at the last Lagos midnight.
+  const lagosNow = new Date(now + 3_600_000);
+  const started = new Date(Date.UTC(lagosNow.getUTCFullYear(), lagosNow.getUTCMonth(), lagosNow.getUTCDate()) - 3_600_000).toISOString();
   const mk = (me: Record<string, unknown> | null, extra: Record<string, unknown> = {}) =>
     ({
       id: "first3", slug: "my-first-3", title: "My First 3", description: null, coverImageUrl: null,
@@ -221,4 +223,10 @@ test("rolling Bingo days follow the Lagos calendar: day 1 closes at midnight; la
   const late = Date.parse("2026-11-18T20:00:00Z");
   assert.equal(new Date(rollingFirstDeadline(late) * 1000).toISOString(), "2026-11-19T23:00:00.000Z");
   assert.equal(rollingStartsTomorrow(late), true);
+});
+
+test("old join-time cards say when their day resets; midnight cards don't", async () => {
+  const { dayResetLabel } = await import("@/lib/next-step");
+  assert.equal(dayResetLabel("2026-11-18T14:15:13+00:00"), "3:15pm"); // 3:15pm Lagos
+  assert.equal(dayResetLabel("2026-11-19T23:00:00+00:00"), null); // Lagos midnight
 });

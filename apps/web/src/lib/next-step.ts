@@ -38,6 +38,17 @@ function nextBingoCta(next: BingoView | null) {
   return next ? { label: next.durationDays === 7 ? `Join ${next.title}` : `Start ${next.title}`, href: `/bingo/${next.slug}` } : { label: "See Bingos", href: "/explore" };
 }
 
+/**
+ * Cards started before 19 Nov 2026 run from their join time, not midnight
+ * (their deadlines are fixed on-chain): "3:15pm". Null for midnight cards.
+ */
+export function dayResetLabel(startedAt: string): string | null {
+  const t = new Date(startedAt);
+  const lagos = new Date(t.getTime() + 3_600_000);
+  if (lagos.getUTCHours() === 0 && lagos.getUTCMinutes() === 0) return null;
+  return t.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" }).replace(" ", "").toLowerCase();
+}
+
 /** The everyday habit a Bingo grows into, for "make it yours". */
 export function habitFor(bingoTitle: string): string {
   if (/pray/i.test(bingoTitle)) return "Pray every day";
@@ -119,6 +130,8 @@ export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
   }
 
   // Live.
+  const reset = rolling ? dayResetLabel(me.startedAt) : null;
+  const resetNote = reset ? ` Your day resets at ${reset}.` : "";
   const today = me.today ?? 0;
   const base = rolling ? Date.parse(me.startedAt) : Date.parse(b.cycle?.startsAt ?? me.startedAt);
   const dayEnd = new Date(base + (today + 1) * DAY_MS).toISOString();
@@ -127,8 +140,8 @@ export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
   if (!me.todayUsed) {
     const mission = me.dayOrdered ? b.missions[today]?.title : null;
     return lastDay
-      ? { tone: "go", title: "Last square today!", body: mission ? `Finish your card: “${mission}”.` : "Fill one more square to finish your card.", until: dayEnd, untilLabel: "closes", cta: { label: "Add today's photo", action: "today" } }
-      : { tone: "go", title: mission ? `Day ${today + 1}: ${mission}` : "Pick any square for today", body: `${me.requiredFilled}/${required} done`, until: dayEnd, untilLabel: "closes", cta: { label: "Add today's photo", action: "today" } };
+      ? { tone: "go", title: "Last square today!", body: (mission ? `Finish your card: “${mission}”.` : "Fill one more square to finish your card.") + resetNote, until: dayEnd, untilLabel: "closes", cta: { label: "Add today's photo", action: "today" } }
+      : { tone: "go", title: mission ? `Day ${today + 1}: ${mission}` : "Pick any square for today", body: `${me.requiredFilled}/${required} done.${resetNote}`, until: dayEnd, untilLabel: "closes", cta: { label: "Add today's photo", action: "today" } };
   }
 
   // Done for today.
@@ -140,7 +153,11 @@ export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
   return {
     tone: "wait",
     title: "Done for today 🎉",
-    body: tomorrow ? `Come back tomorrow for day ${today + 2}: “${tomorrow}”.` : "Come back tomorrow for your next square.",
+    body: reset
+      ? `Day ${today + 2}${tomorrow ? `: “${tomorrow}”` : ""} opens at ${reset} — your day resets then.`
+      : tomorrow
+        ? `Come back tomorrow for day ${today + 2}: “${tomorrow}”.`
+        : "Come back tomorrow for your next square.",
     until: me.nextSquareAt ?? dayEnd,
     untilLabel: "opens",
     remind: true,
