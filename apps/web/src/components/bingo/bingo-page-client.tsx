@@ -21,12 +21,13 @@ import { NextStepCard } from "@/components/next-step-card";
 import { suggestInstall } from "@/components/pwa/install-prompt-gate";
 import { bingoNextStep, type NextStepAction } from "@/lib/next-step";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
-import { fireConfetti, showAppToast } from "@/lib/celebrate";
+import { showAppToast } from "@/lib/celebrate";
 import { buildSquares, type BingoSquareView, type BingoView } from "@/lib/bingo/view";
 import { finishRollingStart, pendingRollingStart } from "@/lib/bingo/rolling-client";
 import { fmtDay, fmtG, fmtRange } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 import { FirstWeekOffer } from "@/components/first-week-offer";
+import { BingoFinishSheet, finishSeen } from "@/components/bingo/bingo-finish-sheet";
 import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 
@@ -56,10 +57,16 @@ export function BingoPageClient({ slug }: { slug: string }) {
   const faceCheck = useFaceCheckOptional();
   const [joinOpen, setJoinOpen] = useState(false);
   const [picked, setPicked] = useState<BingoSquareView | null>(null);
+  const [finishOpen, setFinishOpen] = useState(false);
 
   const me = bingo?.me ?? null;
   const myLive = me?.phase === "live" && me.status === "active" && !me.missedDay;
   const required = bingo ? bingo.missions.filter((m) => !m.bonus).length : 0;
+  // A finished card gets its celebration once — even when the last square confirmed after they left.
+  const finishedAttempt = me && required > 0 && me.requiredFilled >= required ? me.attemptId : null;
+  useEffect(() => {
+    if (finishedAttempt && !finishSeen(finishedAttempt)) setFinishOpen(true);
+  }, [finishedAttempt]);
 
   // A 3-day stake that landed on-chain but didn't finish setting up (closed tab, bad signal): finish it.
   const resumed = useRef(false);
@@ -106,10 +113,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
       void reloadAll();
       const square = bingo?.missions[index];
       if (before === 0) suggestInstall("proof");
-      if (square && !square.bonus && before + 1 >= required) {
-        void fireConfetti();
-        showAppToast("BINGO! Your card is complete");
-      }
+      if (square && !square.bonus && before + 1 >= required) setFinishOpen(true);
     },
     [setBingo, reload, board, reloadAll, me?.requiredFilled, bingo?.missions, required],
   );
@@ -354,6 +358,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
         </div>
       ) : null}
 
+      <BingoFinishSheet bingo={bingo} open={finishOpen} onOpenChange={setFinishOpen} />
       {bingo.joinable ? (
         <BingoJoinSheet
           bingo={bingo}
