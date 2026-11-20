@@ -6,6 +6,7 @@ import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { Lulu } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { useFlowVote } from "@/hooks/use-flow-vote";
+import { useFlowVotersLine } from "@/hooks/use-flow-voters";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { fireConfetti } from "@/lib/celebrate";
 import { FLOW_STATE, flowStateLive } from "@/lib/flow-state";
@@ -29,6 +30,7 @@ export function VotePrompt() {
 
 function VotePromptInner() {
   const vote = useFlowVote();
+  const votersLine = useFlowVotersLine();
   const faceCheck = useFaceCheckOptional();
   const [open, setOpen] = useState(false);
   const shown = useRef(false);
@@ -103,6 +105,7 @@ function VotePromptInner() {
                   ? "A quick face check gives you votes. Then one tap."
                   : "Free · one tap · it keeps the rewards flowing to you."}
             </p>
+            {votersLine && !voted ? <p className="m-0 mt-2 text-[12px] font-bold text-white/90">{votersLine}</p> : null}
             {FLOW_STATE.endsOn && !voted ? <p className="label-mono m-0 mt-2 text-[10px] text-yellow">Ends {FLOW_STATE.endsOn}</p> : null}
             {line ? <p className={`m-0 mt-2 text-[12px] font-bold ${vote.error ? "text-orange" : "text-yellow"}`}>{line}</p> : null}
 

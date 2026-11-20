@@ -4,6 +4,8 @@ import { sendPushAndNotification } from "@/lib/push/notify-recipients";
 import { buildLuluEmailHtml, buildLuluEmailText } from "@/lib/outreach/email";
 import { loadPeople, type Person } from "@/lib/nudges/people";
 import { getEarnFacts } from "@/lib/earn/facts";
+import { flowStateLive } from "@/lib/flow-state";
+import { flowVoteStates } from "@/lib/flow-state-tally";
 import { NUDGE_RULES, actedOn, isQuietHours, pickNudge, type Nudge, type NudgeHistory, type NudgeRule } from "@/lib/nudges/rules";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -40,6 +42,14 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
   people = people.filter((p) => !INTERNAL_WALLETS.has(p.wallet));
   if (opts.only?.length) people = people.filter((p) => opts.only!.includes(p.wallet));
   const byWallet = new Map(people.map((p) => [p.wallet, p]));
+  // Flow State: who's verified and not voting for Delulu yet (one multicall per 300 people).
+  if (flowStateLive()) {
+    const states = await flowVoteStates(people.map((p) => p.wallet)).catch((err) => {
+      console.error("[nudges] flow vote states unavailable", err);
+      return new Map<string, "voted" | "todo" | "unverified">();
+    });
+    for (const p of people) p.flowVote = states.get(p.wallet);
+  }
 
   // History: what's been sent (no repeats, one a day) — and mark what worked.
   const { data: log, error: logError } = await admin

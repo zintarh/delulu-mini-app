@@ -52,6 +52,8 @@ export type Person = {
   recentMiss: null | { attemptId: string; slug: string; title: string; oneTime: boolean };
   /** Invited by a friend and already counted for them (their referrer got the first payment). */
   referralQualified?: boolean;
+  /** Flow State vote: face-verified and not voting for Delulu yet = "todo". Set by the nudge run while voting is open. */
+  flowVote?: "voted" | "todo" | "unverified";
   /** Friends they've brought this season and where each one is — referrer nudges act on it. Null if none. */
   referrer?: ReferrerInfo | null;
 };

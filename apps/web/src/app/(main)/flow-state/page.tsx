@@ -9,6 +9,7 @@ import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { ExportKeySheet } from "@/components/wallet/export-key-sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { FLOW_STATE, FLOW_URL } from "@/lib/flow-state";
+import { useFlowVotersLine } from "@/hooks/use-flow-voters";
 import { useFlowVote } from "@/hooks/use-flow-vote";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { cn } from "@/lib/utils";
@@ -200,6 +201,7 @@ export default function FlowStateGuidePage() {
 /** The one-tap vote, right here: claim your votes (a signature, no fee), then give them to Delulu. */
 function VoteHere() {
   const vote = useFlowVote();
+  const votersLine = useFlowVotersLine();
   const faceCheck = useFaceCheckOptional();
   const voted = vote.status === "voted";
   const line = vote.busy || vote.error || vote.notice;
@@ -226,6 +228,7 @@ function VoteHere() {
                   ? "Delulu isn't taking votes in this round right now."
                   : "Free · one tap — we claim your votes and give them to Delulu. Your other votes stay as they are."}
         </p>
+        {votersLine && !voted ? <p className="m-0 mt-2 text-[12px] font-bold text-white/90">{votersLine}</p> : null}
         {line ? <p className={cn("m-0 mt-2 text-[12px] font-bold", vote.error ? "text-orange" : "text-yellow")}>{line}</p> : null}
         {vote.status === "vote" || vote.status === "verify" ? (
           <button

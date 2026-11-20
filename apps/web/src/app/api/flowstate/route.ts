@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, verifyMessage } from "viem";
-import { FLOW_CHAIN, FLOW_COUNCIL, flowClaimMessage } from "@/lib/flow-state";
+import { FLOW_CHAIN, FLOW_COUNCIL, flowClaimMessage, flowStateLive } from "@/lib/flow-state";
+import { flowTally } from "@/lib/flow-state-tally";
+import { getSupabaseAdmin } from "@/lib/push/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ELIGIBILITY = "https://flowstate.network/api/flow-council/eligibility";
 const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
+
+/** GET — "N Delulu players have voted" (our players backing Delulu + Delulu's council votes). */
+export async function GET() {
+  const admin = getSupabaseAdmin();
+  if (!admin || !flowStateLive()) return reply({ voters: 0, votes: 0, canVote: 0 });
+  try {
+    const tally = await flowTally(admin);
+    return NextResponse.json(tally, { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=300" } });
+  } catch (err) {
+    console.error("[flowstate] tally failed", err);
+    return reply({ error: "Count unavailable" }, 503);
+  }
+}
 
 /**
  * POST { address, issuedAt, signature } — claim this wallet's votes on the
