@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BingoFlexCard } from "@/components/bingo/bingo-flex-card";
-import { BingoCollage } from "@/components/bingo/bingo-collage";
+import { HomeBingoMini } from "@/components/home/home-bingo-mini";
 import { NextStepCard } from "@/components/next-step-card";
 import { FirstWeekOffer } from "@/components/first-week-offer";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
@@ -47,16 +45,8 @@ export function HomeNextStep() {
           <NextStepCard step={next.step} onAction={onAction} compact={waiting} />
         )}
       </div>
-      {featured?.me ? (
-        <Link href={`/bingo/${featured.slug}`} className="block no-underline transition-transform active:scale-[0.99]" aria-label={`Open ${featured.title}`}>
-          {/* Once there's a photo, the card is a collage of them; before that, the sticker card. */}
-          {featured.me.squares.some((q) => !q.bonus && (q.state === "filled" || q.state === "confirming")) ? (
-            <BingoCollage card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} mine />
-          ) : (
-            <BingoFlexCard card={featured.me} bingoTitle={featured.title} required={featured.missions.filter((m) => !m.bonus).length} mine />
-          )}
-        </Link>
-      ) : null}
+      {/* Your card, small — the full board is one tap away on the Bingo page. */}
+      {featured?.me ? <HomeBingoMini card={featured.me} slug={featured.slug} title={featured.title} today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null} /> : null}
     </section>
   );
 }
