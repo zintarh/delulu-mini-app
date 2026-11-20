@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { APP_HOME } from "@/components/main-nav-config";
 import { useEffect, useState } from "react";
 import { fmtMoney, fmtNgn, type EarnFacts } from "@/lib/earn/format";
+import { referralRewardNow } from "@/lib/referral/campaign";
 
 /* Copy and layout follow docs/redesign/screens/Main.dc.html. */
 
@@ -270,7 +271,7 @@ export function TwoWaysSection() {
           </div>
           <div data-reveal="right" style={revealDelay(0.2)} className={card}>
             <span className="text-2xl font-extrabold">🤝 Invite friends</span>
-            <span className="text-[15px] text-muted-foreground">5,000 G$ for each friend who joins and shows up{ngnOf(facts, 5000) ? ` (≈ ${ngnOf(facts, 5000)})` : ""}. Fresh spots every Tuesday.</span>
+            <span className="text-[15px] text-muted-foreground">{referralRewardNow().toLocaleString("en-US")} G$ for each friend who joins and shows up{ngnOf(facts, referralRewardNow()) ? ` (≈ ${ngnOf(facts, referralRewardNow())})` : ""}. Fresh spots every Tuesday.</span>
           </div>
           <div data-reveal="left" style={revealDelay(0.25)} className={card}>
             <span className="text-2xl font-extrabold">🇳🇬 Turn it into naira</span>
@@ -401,7 +402,7 @@ export function StoriesSection() {
 /* ---------------------------------------------------------------- FAQ */
 const FAQS: [string, string][] = [
   ["Do I need money to start?", "No. After one quick face check you can claim free money every day from GoodDollar — and new players' first week pays them."],
-  ["How much can I earn?", "Every photo pays 100 G$. Finish a Bingo and your stake comes back with cashback on top — bigger stakes get more. Invite friends for 5,000 G$ each."],
+  ["How much can I earn?", `Every photo pays 100 G$. Finish a Bingo and your stake comes back with cashback on top — bigger stakes get more. Invite friends for ${referralRewardNow().toLocaleString("en-US")} G$ each.`],
   ["What happens if I miss a day?", "The card ends and that stake goes to the community pool. You keep everything you've earned so far, and you can start another Bingo."],
   ["How are proofs checked?", "AI checks your photo in seconds. Each day runs midnight to midnight, so you have the whole day to post."],
   ["Can I turn it into naira?", "Yes — from 5,000 G$. G$ is a token, so its naira value moves with the market."],

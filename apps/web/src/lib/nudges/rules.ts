@@ -87,7 +87,7 @@ export function offerLines(nowMs: number, skip: "gift" | "photo" | "finish" | "r
   // Earning every day leads — that's what keeps students coming back.
   const lines: string[] = ["💸 Free money to claim every day"];
   if (skip !== "photo") lines.push("📸 100 G$ for every Bingo photo — one photo a day, a minute between classes");
-  if (skip !== "finish") lines.push("🏆 Finish a 7-day Bingo: your stake back + up to 2,000 G$ bonus");
+  if (skip !== "finish") lines.push("🏆 Finish a 7-day Bingo: your stake back + up to 20,000 G$ bonus");
   if (skip !== "gift" && giftEligible) lines.push("🎁 1,000 G$ free to start your first Bingo (after one quick face check)");
   const ref = referralPhase(new Date(nowMs));
   if (skip !== "referral" && ref.phase !== "off") {
@@ -342,9 +342,9 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
       rule: "level_up",
       dedupeKey: p.lastCompletedAt.slice(0, 10),
       title: "Ready for the big one? 🏆",
-      body: "Start a 7-day Bingo — up to +2,000 G$ for finishing, plus 100 G$ a photo.",
+      body: "Start a 7-day Bingo — up to +20,000 G$ for finishing, plus 100 G$ a photo.",
       path: "/bingo/outside-your-bubble",
-      emailSubject: "You finished! Now level up: up to +2,000 G$",
+      emailSubject: "You finished! Now level up: up to +20,000 G$",
       emailHeading: `${name(p)}you did it 🎉`,
       emailBody: withOffers(
         facts?.sevenDay
@@ -366,14 +366,14 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
       title: pitch ? `${pitch} 💸` : "Earn every day this week 💸",
       body: pitch
         ? `Start the 7-day Bingo: one photo a day. Stay active all 7 days and you earn ${fmtMoney(facts!.sevenDay!.entry)}.`
-        : "Start the 7-day Bingo: 100 G$ for each day's photo, and up to +2,000 G$ when you finish.",
+        : "Start the 7-day Bingo: 100 G$ for each day's photo, and up to +20,000 G$ when you finish.",
       path: "/bingo/outside-your-bubble",
       emailSubject: "7 days, 7 photos, paid every day",
       emailHeading: `${name(p)}make this week pay`,
       emailBody: withOffers(
         facts?.sevenDay
           ? `You've got nothing running right now — let's change that.\n\nStart the 7-day Bingo: post one photo a day (it takes a minute between classes). Stay active all 7 days and you earn ${fmtMoney(facts.sevenDay.entry)} — plus your stake back.`
-          : "You've got nothing running right now — let's change that.\n\nStart the 7-day Bingo: post one photo a day (it takes a minute between classes) and earn 100 G$ for every photo. Finish all 7 and you get your stake back plus a bonus of up to 2,000 G$.",
+          : "You've got nothing running right now — let's change that.\n\nStart the 7-day Bingo: post one photo a day (it takes a minute between classes) and earn 100 G$ for every photo. Finish all 7 and you get your stake back plus a bonus of up to 20,000 G$.",
         nowMs,
         "finish", p),
       cta: "Start my 7 days",
@@ -430,12 +430,12 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
         },
         {
           title: pitch ? `${pitch} 📸` : "7 days, 7 photos, paid every day 📸",
-          body: pitch ? "Start the 7-day Bingo: one photo a day — miss none and it's yours." : "Start the 7-day Bingo: 100 G$ a photo and up to +2,000 G$ when you finish.",
+          body: pitch ? "Start the 7-day Bingo: one photo a day — miss none and it's yours." : "Start the 7-day Bingo: 100 G$ a photo and up to +20,000 G$ when you finish.",
           emailSubject: pitch ? `Stay active 7 days: ${pitch.replace("7 days = ", "earn ")}` : "7 photos this week = up to 2,700 G$",
           emailHeading: `${name(p)}one photo a day, paid every day`,
           emailBody: facts?.sevenDay
             ? `Start the 7-day Bingo today. Post one photo a day — it takes a minute between classes.\n\nStay active all 7 days and you earn ${fmtMoney(facts.sevenDay.entry)}, plus your stake back. That's just the start — see what top players have made below.`
-            : `Start the 7-day Bingo today. Post one photo a day — it takes a minute between classes.\n\nEvery photo pays 100 G$, and finishing all 7 gets your stake back plus a bonus of up to 2,000 G$.`,
+            : `Start the 7-day Bingo today. Post one photo a day — it takes a minute between classes.\n\nEvery photo pays 100 G$, and finishing all 7 gets your stake back plus a bonus of up to 20,000 G$.`,
           cta: "Start my 7 days",
           path: "/bingo/outside-your-bubble",
         },
