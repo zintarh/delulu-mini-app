@@ -7,6 +7,12 @@ import { fmtNgn, fmtUsd, toMoney } from "@/lib/earn/format";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { cn } from "@/lib/utils";
+import type { BingoView } from "@/lib/bingo/view";
+
+/** The card AtStakeCard is about: a running rolling Bingo you're still in. */
+export function atStakePlaying(bingos: BingoView[] | null | undefined) {
+  return bingos?.find((b) => b.enrollment === "rolling" && b.me && b.me.phase === "live" && !b.me.missedDay) ?? null;
+}
 
 const chip = "inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold";
 
@@ -20,7 +26,7 @@ export function AtStakeCard({ className }: { className?: string }) {
   const { bingos } = useBingoList();
   if (!facts || !bingos) return null;
 
-  const playing = bingos.find((b) => b.enrollment === "rolling" && b.me && b.me.phase === "live" && !b.me.missedDay);
+  const playing = atStakePlaying(bingos);
   const bonusFor = (slug: string) =>
     slug === facts.firstWeek?.slug ? facts.firstWeek.entry : slug === facts.sevenDay?.slug ? facts.sevenDay.entry : null;
   const top = [...facts.topCampaign.slice(0, 1), ...facts.topReferrers.slice(0, 1)];

@@ -80,15 +80,15 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
 
         {address ? (
           <>
-            {/* Today: Lulu (mood, progress, news), then the ONE next step, then money. */}
+            {/* Lulu's card, then the referral link (the campaign that's running), then today:
+                the ONE next step (hidden once the at-stake card says "done"), then money. */}
             <div className="flex flex-col gap-4">
               <LuluHero address={address} />
+              <ReferralBanner address={address} />
               <HomeNextStep />
               <AtStakeCard />
-              {/* Vote for Delulu — one tap, right here (the pop-up asks too, until they've voted). */}
+              {/* Only until they've voted — after that it lives in Activity. */}
               <FlowStateCard />
-              {/* Slim rows: the two things everyone should see right now. */}
-              <ReferralBanner address={address} />
               <DailyMoneyCard />
             </div>
             {/* Your own delulus — the empty "create your first" row is gone: a first

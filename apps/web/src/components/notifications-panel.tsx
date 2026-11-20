@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useNotificationsPanel } from "@/contexts/right-panel-context";
 import { useNotificationCount } from "@/contexts/notification-count-context";
 import { useAuth } from "@/hooks/use-auth";
+import { FlowStateCard } from "@/components/home/flow-state-card";
 
 type NotificationRow = {
   id: string;
@@ -162,6 +163,10 @@ function PanelContent({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-8 pt-6">
+        {/* The Flow State vote lives here (Home only asks people who haven't voted). */}
+        <div className="mb-5 empty:hidden">
+          <FlowStateCard place="activity" />
+        </div>
         {loading ? (
           <div>
             {Array.from({ length: 5 }).map((_, i) => (

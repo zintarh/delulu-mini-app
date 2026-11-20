@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { useFlowVote } from "@/hooks/use-flow-vote";
@@ -8,19 +9,27 @@ import { FLOW_STATE, flowStateLive } from "@/lib/flow-state";
 import { cn } from "@/lib/utils";
 
 /**
- * Home's vote ask — one slim row while the Flow State vote is on, and the
- * vote happens right here: one tap claims the player's votes (a signature,
- * no fee) and gives them to Delulu. The /flow-state page has the details.
+ * The vote ask — one slim row while the Flow State vote is on, and the vote
+ * happens right here: one tap claims the player's votes (a signature, no fee)
+ * and gives them to Delulu. The /flow-state page has the details.
+ *
+ * On Home it's only for people who haven't voted (Home stays light): it waits
+ * until we know, and after voting there it stays for the thank-you, then is
+ * gone on the next visit. The Activity panel always has it while the vote is on.
  */
-export function FlowStateCard() {
+export function FlowStateCard({ place = "home" }: { place?: "home" | "activity" }) {
   if (!flowStateLive()) return null;
-  return <FlowStateRow />;
+  return <FlowStateRow place={place} />;
 }
 
-function FlowStateRow() {
+function FlowStateRow({ place }: { place: "home" | "activity" }) {
   const vote = useFlowVote();
   const faceCheck = useFaceCheckOptional();
   const voted = vote.status === "voted";
+  // Seen not-yet-voted this visit → keep the row after voting, for the thank-you.
+  const askedHere = useRef(false);
+  if (vote.status === "vote" || vote.status === "verify" || vote.status === "full") askedHere.current = true;
+  if (place === "home" && (vote.status === "loading" || vote.status === "closed" || (voted && !askedHere.current))) return null;
   const sub = vote.busy
     ? vote.busy
     : vote.error

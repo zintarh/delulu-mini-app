@@ -8,6 +8,8 @@ import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { useIdentity } from "@/hooks/identityHook";
 import { useBingoList } from "@/hooks/use-bingo";
 import { homeNextStep, type NextStepAction } from "@/lib/next-step";
+import { atStakePlaying } from "@/components/home/at-stake-card";
+import { useEarnFacts } from "@/hooks/use-earn-facts";
 
 /** The step Home leads with, plus the Bingo it's about (so the list below doesn't repeat it). */
 export function useHomeNextStep() {
@@ -24,6 +26,7 @@ export function HomeNextStep() {
   const faceCheck = useFaceCheckOptional();
   const next = useHomeNextStep();
   const { bingos } = useBingoList();
+  const facts = useEarnFacts();
   if (!next) return <div className="h-[104px] animate-pulse rounded-[20px] bg-line" aria-busy="true" />;
 
   const onAction = (action: NextStepAction) => {
@@ -32,6 +35,8 @@ export function HomeNextStep() {
   };
   // Waiting (done for today, opens soon) is information, not a task: one slim line, no big card.
   const waiting = next.step.tone === "wait";
+  // Done for today and the at-stake card right below already says so ("Day N done ✓") — one done card, not two.
+  if (waiting && facts && atStakePlaying(bingos)?.me?.todayUsed) return null;
   // Their card shows when there's something to do today, or right after finishing (the flex moment).
   const featured = waiting ? null : (bingos?.find((b) => b.slug === next.featuredSlug && b.me) ?? null);
   return (
