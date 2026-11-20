@@ -224,7 +224,7 @@ function VoteHere() {
                 ? "All your votes are on other projects. Change them on Flow State to back Delulu."
                 : vote.status === "closed"
                   ? "Delulu isn't taking votes in this round right now."
-                  : "Free — we claim your votes and give them to Delulu. Your other votes stay as they are."}
+                  : "Free · one tap — we claim your votes and give them to Delulu. Your other votes stay as they are."}
         </p>
         {line ? <p className={cn("m-0 mt-2 text-[12px] font-bold", vote.error ? "text-orange" : "text-yellow")}>{line}</p> : null}
         {vote.status === "vote" || vote.status === "verify" ? (
