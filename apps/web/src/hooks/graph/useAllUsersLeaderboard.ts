@@ -37,7 +37,7 @@ type ApiResponse = {
  * (same total as home useUserTotalPoints).
  */
 /** `season` 1 = all-time totals, 2 = Season 2 (stake-scaled); omitted = the current season. */
-export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string, season?: 1 | 2, timeWindow?: "week" | "month") {
+export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string, season?: 1 | 2, timeWindow?: "week" | "fortnight" | "month") {
   const [entries, setEntries] = useState<UserLeaderboardEntry[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState<number | string | null>(null);

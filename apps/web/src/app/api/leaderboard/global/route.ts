@@ -12,7 +12,7 @@ const PAGE_SIZE = 10;
 
 /**
  * GET /api/leaderboard/global
- * ?window=week|month: Season points (stake-based) this week / this month —
+ * ?window=week|fortnight|month: Season points (stake-based) this week / this 2-week round / this month —
  * the boards the app shows. ?season=2: since Season 2 began. ?season=1: all-time.
  */
 export async function GET(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const seasonParam = request.nextUrl.searchParams.get("season");
   const windowParam = request.nextUrl.searchParams.get("window");
-  const win: BoardWindow | null = windowParam === "week" || windowParam === "month" ? windowParam : null;
+  const win: BoardWindow | null = windowParam === "week" || windowParam === "fortnight" || windowParam === "month" ? windowParam : null;
   const range = win ? boardWindow(win) : null;
   const season = seasonParam === "1" ? 1 : seasonParam === "2" || isSeason2Live() ? 2 : 1;
   const rows = range

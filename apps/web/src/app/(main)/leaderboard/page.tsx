@@ -9,7 +9,7 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Flame, Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
-import { MONTHLY_PRIZE, boardWindow, weekWindow, type BoardWindow } from "@/lib/leaderboard/windows";
+import { PRIZE, boardWindow, fortnightWindow, weekWindow, type BoardWindow } from "@/lib/leaderboard/windows";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtUsd } from "@/lib/earn/format";
 import { usePfps } from "@/hooks/use-profile-pfp";
@@ -196,8 +196,9 @@ function BoardBanner({ win }: { win: BoardWindow }) {
   const range = boardWindow(win);
   const daysLeft = Math.max(0, Math.ceil((range.endMs - Date.now()) / 86_400_000));
   const ends = daysLeft <= 1 ? "ends today" : `${daysLeft} days left`;
-  if (win === "month") {
-    const usd = facts ? MONTHLY_PRIZE.poolG * facts.gdUsd : null;
+  if (win !== "week") {
+    const usd = facts ? PRIZE.poolG * facts.gdUsd : null;
+    const round = fortnightWindow();
     return (
       <div className="relative mt-4 overflow-hidden rounded-[22px] border-2 border-ink bg-ink p-4 text-white shadow-[0_4px_0_#000]">
         <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-yellow/35 blur-3xl" aria-hidden />
@@ -206,9 +207,9 @@ function BoardBanner({ win }: { win: BoardWindow }) {
             <TrophyArt size={48} />
           </span>
           <div className="min-w-0">
-            <p className="m-0 text-[13px] font-bold text-white/70">Top {MONTHLY_PRIZE.winners} share every month</p>
+            <p className="m-0 text-[13px] font-bold text-white/70">Round {round.index} · top {PRIZE.winners} share every 2 weeks</p>
             <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">
-              {MONTHLY_PRIZE.poolG.toLocaleString("en-US")} G$
+              {PRIZE.poolG.toLocaleString("en-US")} G$
               {usd ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtUsd(usd)}</span> : null}
             </p>
             <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Bigger stake, more points · {ends}</p>
@@ -244,7 +245,7 @@ function Board({ win }: { win: BoardWindow }) {
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} />;
-  if (entries.length === 0) return <EmptyState message={win === "week" ? "The week just started — your next photo puts you on the board." : "No one on the board yet this month."} />;
+  if (entries.length === 0) return <EmptyState message="It just started — your next photo puts you on the board." />;
 
   const isOnCurrentPage = !!me && entries.some((e) => e.address.toLowerCase() === me);
   const pinnedMe: Entry | null =
@@ -276,9 +277,9 @@ function Board({ win }: { win: BoardWindow }) {
   );
 }
 
-/** Leaderboard: this week and this month — both scored on Season points (bigger stake, more points). */
+/** Leaderboard: this week and the 2-week prize round — both scored by stake (bigger stake, more points). */
 export default function LeaderboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("month");
+  const [activeTab, setActiveTab] = useState<Tab>("fortnight");
 
   return (
     <MainPage>
@@ -290,7 +291,7 @@ export default function LeaderboardPage() {
           onChange={setActiveTab}
           options={[
             { value: "week", label: "This week" },
-            { value: "month", label: "This month" },
+            { value: "fortnight", label: "2 weeks · prize" },
           ]}
         />
         <BoardBanner win={activeTab} />

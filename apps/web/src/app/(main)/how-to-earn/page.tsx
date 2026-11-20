@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { useBingoList } from "@/hooks/use-bingo";
 import { fmtNgn, fmtUsd } from "@/lib/earn/format";
-import { MONTHLY_PRIZE } from "@/lib/leaderboard/windows";
+import { PRIZE } from "@/lib/leaderboard/windows";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
 import { REFERRAL_ROUNDS, roundFirstPayment } from "@/lib/referral/campaign";
 
@@ -190,9 +190,9 @@ export default function HowToEarnPage() {
             />
             <WayToEarn
               art={<Trophy size={38} />}
-              title="Monthly leaderboard"
-              sub={`Top ${MONTHLY_PRIZE.winners} share ${MONTHLY_PRIZE.poolG.toLocaleString("en-US")} G$${facts ? ` ≈ ${fmtUsd(MONTHLY_PRIZE.poolG * facts.gdUsd)}` : ""} every month · bigger stake, more points`}
-              badge="500k G$"
+              title="Leaderboard prize"
+              sub={`Top ${PRIZE.winners} share ${PRIZE.poolG.toLocaleString("en-US")} G$${facts ? ` ≈ ${fmtUsd(PRIZE.poolG * facts.gdUsd)}` : ""} every 2 weeks · bigger stake, higher rank`}
+              badge="Every 2 weeks"
               href="/leaderboard"
             />
           </div>
