@@ -36,6 +36,9 @@ const PLAN: Record<string, { days: 3 | 7; stakes: number[]; missions?: string[] 
   "journal-3": { days: 3, stakes: [2_000, 3_000, 5_000] },
   "water-3": { days: 3, stakes: [2_000, 3_000, 5_000] },
   "prayer-streak": { days: 3, stakes: [2_000, 3_000, 5_000] },
+  "prayer-week": { days: 7, stakes: SEVEN_DAY },
+  "holy-book-week": { days: 7, stakes: SEVEN_DAY },
+  "do-good-3": { days: 3, stakes: [2_000, 3_000, 5_000] },
 };
 
 async function main() {
