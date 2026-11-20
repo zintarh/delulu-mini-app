@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronLeft, Copy, KeyRound } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, Copy, KeyRound, Loader2 } from "lucide-react";
 import { GameButton, Lulu } from "@/components/ds";
 import { MainPage } from "@/components/main-app-header";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { ExportKeySheet } from "@/components/wallet/export-key-sheet";
 import { useAuth } from "@/hooks/use-auth";
-import { FLOW_STATE } from "@/lib/flow-state";
+import { FLOW_STATE, FLOW_URL } from "@/lib/flow-state";
+import { useFlowVote } from "@/hooks/use-flow-vote";
+import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { cn } from "@/lib/utils";
 
 const APP_STORE = "https://apps.apple.com/app/metamask/id1438144202";
@@ -79,7 +81,7 @@ export default function FlowStateGuidePage() {
   const { done, mark } = useDoneSteps();
   const [exportOpen, setExportOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const url = FLOW_STATE.voteUrl;
+  const url = FLOW_URL;
 
   const copyLink = async () => {
     try {
@@ -111,6 +113,15 @@ export default function FlowStateGuidePage() {
           {FLOW_STATE.endsOn ? <b className="text-ink"> Ends {FLOW_STATE.endsOn}.</b> : null}
         </p>
 
+        <VoteHere />
+
+        {/* For anyone whose votes sit on another wallet: the old MetaMask way. */}
+        <details className="group mt-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl px-1 py-2 text-[13px] font-extrabold text-muted-foreground">
+            Vote another way (MetaMask)
+            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="flex flex-col gap-3 pt-1">
         <Step n={1} done={done.includes(1)} title="Get MetaMask">
           <div className="flex gap-2">
             {os !== "android" ? (
@@ -178,8 +189,67 @@ export default function FlowStateGuidePage() {
           ) : null}
           <p className="m-0 select-all break-all rounded-xl bg-paper px-3 py-2 font-mono text-[11px] text-muted-foreground">{url}</p>
         </Step>
+          </div>
+        </details>
       </div>
       <ExportKeySheet open={exportOpen} onOpenChange={setExportOpen} />
     </MainPage>
+  );
+}
+
+/** The one-tap vote, right here: claim your votes (a signature, no fee), then give them to Delulu. */
+function VoteHere() {
+  const vote = useFlowVote();
+  const faceCheck = useFaceCheckOptional();
+  const voted = vote.status === "voted";
+  const line = vote.busy || vote.error || vote.notice;
+  return (
+    <section
+      className={cn(
+        "relative overflow-hidden rounded-[24px] border-2 p-4",
+        voted ? "border-green-edge bg-green-edge text-white shadow-[0_4px_0_#0d4a2a]" : "border-ink bg-ink text-white shadow-[0_4px_0_#000]",
+      )}
+    >
+      <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-yellow/30 blur-3xl" aria-hidden />
+      <div className="relative">
+        <p className="m-0 font-display text-[22px] font-extrabold uppercase leading-none">
+          {voted ? `${vote.votes} votes for Delulu ✓` : vote.status === "verify" ? "Verify to vote" : "Vote in one tap"}
+        </p>
+        <p className="m-0 mt-1.5 text-[13px] font-semibold text-white/75">
+          {voted
+            ? "Thank you — your votes stream rewards to Delulu all round."
+            : vote.status === "verify"
+              ? "Your face check gives you votes. It takes a minute."
+              : vote.status === "full"
+                ? "All your votes are on other projects. Change them on Flow State to back Delulu."
+                : vote.status === "closed"
+                  ? "Delulu isn't taking votes in this round right now."
+                  : "Free — we claim your votes and give them to Delulu. Your other votes stay as they are."}
+        </p>
+        {line ? <p className={cn("m-0 mt-2 text-[12px] font-bold", vote.error ? "text-orange" : "text-yellow")}>{line}</p> : null}
+        {vote.status === "vote" || vote.status === "verify" ? (
+          <button
+            type="button"
+            disabled={!!vote.busy}
+            onClick={() => (vote.status === "verify" ? faceCheck?.start() : void vote.voteAll())}
+            className="press-edge mt-3.5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-yellow text-[14px] font-extrabold uppercase text-ink shadow-[0_3px_0_#b38f00] disabled:opacity-70"
+          >
+            {vote.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {vote.status === "verify" ? "Verify my face" : "Vote for Delulu"}
+          </button>
+        ) : vote.status === "full" ? (
+          <a href={FLOW_URL} target="_blank" rel="noopener noreferrer" className="press-edge mt-3.5 flex h-12 w-full items-center justify-center rounded-2xl bg-white text-[14px] font-extrabold uppercase text-ink no-underline">
+            Open Flow State
+          </a>
+        ) : vote.status === "loading" ? (
+          <div className="mt-3.5 h-12 animate-pulse rounded-2xl bg-white/15" />
+        ) : null}
+        {vote.pending ? (
+          <a href={`https://celoscan.io/tx/${vote.pending.hash}`} target="_blank" rel="noopener noreferrer" className="mt-2 block text-[12px] font-bold text-white/80 underline">
+            View your vote ↗
+          </a>
+        ) : null}
+      </div>
+    </section>
   );
 }
