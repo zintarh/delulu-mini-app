@@ -70,7 +70,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   );
   const done = (a.required_filled as number) >= required;
   const day = Math.min(required, Math.floor((Date.now() - Date.parse(a.started_at as string)) / 86_400_000) + 1);
-  const status = done ? "BINGO!" : `Day ${day} of ${required}`;
+  // What they did, on the card: "BINGO! · 3 of 3 days kept".
+  const status = done ? `BINGO! · ${required} of ${required} days kept` : `Day ${day} of ${required}`;
   const name = profile?.username ? `@${profile.username}` : `${String(a.wallet).slice(0, 6)}…${String(a.wallet).slice(-4)}`;
   const origin = request.nextUrl.origin;
 

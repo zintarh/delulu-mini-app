@@ -137,6 +137,20 @@ export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
   const dayEnd = new Date(base + (today + 1) * DAY_MS).toISOString();
   const lastDay = today >= required - 1;
 
+  // Today's photo was approved but its on-chain step didn't finish (cancelled, failed, dropped):
+  // say so plainly — it isn't done until that's confirmed, and the day still closes on time.
+  const stuck = me.squares.find((s) => !s.bonus && s.state === "confirming");
+  if (!me.todayUsed && stuck) {
+    return {
+      tone: "go",
+      title: lastDay ? "Almost done — confirm your last photo" : "Almost done — confirm today's photo",
+      body: `Your photo was approved. Tap Finish to lock in day ${stuck.index + 1}.${resetNote}`,
+      until: dayEnd,
+      untilLabel: "closes",
+      cta: { label: "Finish", action: "today" },
+    };
+  }
+
   if (!me.todayUsed) {
     const mission = me.dayOrdered ? b.missions[today]?.title : null;
     return lastDay

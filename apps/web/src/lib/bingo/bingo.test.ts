@@ -230,3 +230,26 @@ test("old join-time cards say when their day resets; midnight cards don't", asyn
   assert.equal(dayResetLabel("2026-11-18T14:15:13+00:00"), "3:15pm"); // 3:15pm Lagos
   assert.equal(dayResetLabel("2026-11-19T23:00:00+00:00"), null); // Lagos midnight
 });
+
+test("an approved photo that never confirmed on-chain asks to finish, not 'add a photo'", async () => {
+  const { bingoNextStep } = await import("@/lib/next-step");
+  const missions = [{ title: "A", bonus: false }, { title: "B", bonus: false }, { title: "C", bonus: false }];
+  const lagosNow = new Date(Date.now() + 3_600_000);
+  const started = new Date(Date.UTC(lagosNow.getUTCFullYear(), lagosNow.getUTCMonth(), lagosNow.getUTCDate()) - 3_600_000 - 2 * DAY_MS).toISOString();
+  const step = bingoNextStep({
+    id: "d", slug: "delulu-debut", title: "Delulu Debut", description: null, coverImageUrl: null, durationDays: 3, enrollment: "rolling", recurrence: "one_time",
+    missions, cycle: null, tiers: [], joinable: false, players: 1, photos: [], rewards: { perProof: 100, completion: 0 },
+    me: {
+      attemptId: "a", wallet: "0x1", username: null, avatarUrl: null, tierKey: "t", tierLabel: "T", stake: 1000, status: "active",
+      squaresFilled: 2, requiredFilled: 2, lastFilledAt: null, startedAt: started, endsAt: new Date(Date.parse(started) + 3 * DAY_MS).toISOString(),
+      squares: [
+        { index: 0, title: "A", bonus: false, state: "filled", photoUrl: "x", filledAt: null },
+        { index: 1, title: "B", bonus: false, state: "filled", photoUrl: "x", filledAt: null },
+        { index: 2, title: "C", bonus: false, state: "confirming", photoUrl: "x", filledAt: null },
+      ],
+      phase: "live", today: 2, todayUsed: false, nextSquareAt: null, dayOrdered: true, missedDay: false,
+    },
+  } as never);
+  assert.equal(step.title, "Almost done — confirm your last photo");
+  assert.equal(step.cta?.label, "Finish");
+});
