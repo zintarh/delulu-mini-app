@@ -43,8 +43,11 @@ export type ReferralRound = {
  * GoodBuilders Season 2: six 2-week epochs from Tue 17 Nov 2026, each ending on
  * a Tuesday demo day (1 Dec, 15 Dec, 29 Dec, 12 Jan, 26 Jan, 9 Feb). Referrals
  * run weekly inside them — two rounds per epoch, Tuesday to Tuesday (Lagos
- * midnight). 5,000 G$ per friend: 2,000 when they qualify + 3,000 after 3 days
- * in a row. Spots per round are set from the admin; `slots` is the default.
+ * midnight). 7,000 G$ per friend: 4,000 when they qualify + 3,000 after 3 days
+ * in a row — the streak part is big on purpose: friends who come back are what
+ * we pay for. (Was 2,000 + 3,000 until 20 Nov, then 7,000 + 3,000 for a day; the
+ * 3,000 bonus never changed, so credits already paid keep exactly what they
+ * were shown.) Spots per round are set from the admin; `slots` is the default.
  */
 export const SEASON_START_LAGOS = "2026-11-17";
 export const EPOCH_COUNT = 6;
@@ -64,8 +67,8 @@ export const DEFAULT_WEEKLY_SPOTS = [50, 50, 100, 100, 125, 125, 150, 150, 175, 
 export const REFERRAL_ROUNDS: ReferralRound[] = Array.from({ length: EPOCH_COUNT * 2 }, (_, i) => ({
   start: lagosMidnightIso(seasonDay(i * 7)),
   end: lagosMidnightIso(seasonDay((i + 1) * 7)),
-  reward: 5000,
-  firstPayment: 2000,
+  reward: 7_000,
+  firstPayment: 4_000,
   budget: 50_000,
   slots: DEFAULT_WEEKLY_SPOTS[i] ?? 100,
 }));
