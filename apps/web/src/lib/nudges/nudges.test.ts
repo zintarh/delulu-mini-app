@@ -75,7 +75,7 @@ test("offers ride along in every email; new moments: level up, referral week, do
   assert.equal(lvl?.rule, "level_up");
   assert.match(lvl!.emailBody, /Earn on Delulu every day/);
   assert.match(lvl!.emailBody, /^💸 Free money to claim every day$/m);
-  assert.match(lvl!.emailBody, /5,000 G\$ for every friend/);
+  assert.match(lvl!.emailBody, /10,000 G\$ for every friend/);
   // Active player during a round → referral nudge, once per round (after this week's 7-day nudge).
   const sevenDay = [{ rule: "seven_day_start", sentAt: new Date(live - 24 * H).toISOString(), acted: false }];
   assert.equal(pickNudge(p, live)?.rule, "seven_day_start");
@@ -221,7 +221,7 @@ test("referrer: paid → cheer, friends stuck → daily who's-where", () => {
 
   const stuck = pickNudge(person({ referrer: { earnedG: 2000, friends, latestPaid: null } }), inRound);
   assert.equal(stuck?.rule, "referrer_friends");
-  assert.match(stuck!.title, /8,000 G\$ waiting/); // 5,000 for ada + 3,000 bonus for bola
+  assert.match(stuck!.title, /13,000 G\$ waiting/); // 10,000 for ada + 3,000 bonus for bola
   assert.match(stuck!.emailBody, /@ada needs a quick face check/);
   assert.match(stuck!.emailBody, /@bola hasn't posted today/);
 

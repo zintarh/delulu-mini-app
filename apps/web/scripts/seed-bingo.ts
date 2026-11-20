@@ -58,7 +58,7 @@ const s2Tiers = (days: 3 | 7): BingoTier[] =>
     label: S2_LABEL[stake],
     stake,
     forfeitPct: 0,
-    completionReward: Math.round((stake * (days === 7 ? (stake >= 50_000 ? 0.15 : stake >= 20_000 ? 0.12 : 0.1) : 0.04)) / 10) * 10,
+    completionReward: Math.round((stake * (days === 7 ? (stake >= 50_000 ? 0.2 : stake >= 20_000 ? 0.18 : 0.15) : 0.08)) / 10) * 10,
   }));
 
 const SEEDS: Seed[] = [
