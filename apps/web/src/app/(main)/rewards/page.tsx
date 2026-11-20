@@ -18,6 +18,7 @@ import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
 import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
+import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { MainPage } from "@/components/main-app-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Bolt, Chest, Coin, CoinStack, GameButton, GameCard, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
@@ -475,6 +476,9 @@ export default function RewardsPage() {
                   </GameButton>
                 </div>
               </GameCard>
+
+              {/* The 2-week leaderboard prize and where you stand. */}
+              <LeaderboardPrizeCard className="animate-rise" />
 
               {/* Free daily money (GoodDollar UBI) */}
               <RewardsDailyCard />

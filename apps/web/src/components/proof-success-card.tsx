@@ -6,6 +6,7 @@ import { Bolt, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import { ProofRewardRow } from "@/components/proof-reward-row";
 import { ProofNextStep } from "@/components/next-step-card";
+import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { SeasonNotice } from "@/components/season-notice";
 import { LOW_STAKE_POINTS, isSeason2Live } from "@/lib/season/rules";
 
@@ -192,6 +193,8 @@ export function ProofSuccessCard({
 
       {/* Never end on a dead end: when to come back, or what to play next. */}
       <ProofNextStep milestoneIndex={milestoneIndex} milestoneCount={milestoneCount} />
+      {/* That photo just moved you on the board — show where you stand. */}
+      <LeaderboardPrizeCard className="mt-3" />
 
       <GameButton
         full

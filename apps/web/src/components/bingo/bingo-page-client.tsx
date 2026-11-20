@@ -27,6 +27,7 @@ import { finishRollingStart, pendingRollingStart } from "@/lib/bingo/rolling-cli
 import { fmtDay, fmtG, fmtRange } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 import { FirstWeekOffer } from "@/components/first-week-offer";
+import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 
 
@@ -301,6 +302,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
             {/* Nothing to add right now (posted today, card ended, missed a day): what's next. */}
             {addTarget ? null : <NextStepCard step={step} onAction={onStepAction} className="mt-4" />}
+            {/* Posted today: where that put you on the board. */}
+            {me?.todayUsed ? <LeaderboardPrizeCard className="mt-3" /> : null}
           </>
         ) : (
           <>
