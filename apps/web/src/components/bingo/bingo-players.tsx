@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Lulu } from "@/components/ds";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { BingoCollage } from "@/components/bingo/bingo-collage";
 import { CheerPanel } from "@/components/bingo/cheers";
 import type { CheerContest } from "@/lib/bingo/cheers-server";
@@ -12,6 +13,8 @@ import type { BoardCard } from "@/hooks/use-bingo";
 import { cn } from "@/lib/utils";
 
 const MEDAL = ["🥇", "🥈", "🥉"];
+/** Top 10 first; the rest a page at a time. */
+const PAGE_SIZE = 10;
 
 /**
  * Players as a plain leaderboard — most days kept first — and a tap opens
@@ -35,6 +38,7 @@ export function BingoPlayers({
   contest?: CheerContest;
 }) {
   const [open, setOpen] = useState<BoardCard | null>(null);
+  const [page, setPage] = useState(0);
   const scores = useMemo(() => contest?.scores ?? {}, [contest?.scores]);
   const byCheers = Object.keys(scores).length > 0;
   // Most cheers (the contest), then most days kept, then whoever got there first.
@@ -49,10 +53,23 @@ export function BingoPlayers({
     [cards, scores, byCheers],
   );
 
+  const pages = Math.max(1, Math.ceil(ranked.length / PAGE_SIZE));
+  const current = Math.min(page, pages - 1);
+  const from = current * PAGE_SIZE;
+  const shown = ranked.slice(from, from + PAGE_SIZE);
+  // Your card isn't on this page: pin it at the bottom, with its real rank.
+  const myIndex = myAttemptId ? ranked.findIndex((c) => c.attemptId === myAttemptId) : -1;
+  const pinned = myIndex >= 0 && (myIndex < from || myIndex >= from + PAGE_SIZE) ? { card: ranked[myIndex], i: myIndex } : null;
+  const rows = [...shown.map((card, k) => ({ card, i: from + k })), ...(pinned ? [pinned] : [])];
+  const go = (p: number) => {
+    setPage(p);
+    document.getElementById("players-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <>
       <ol className="flex flex-col gap-1.5">
-        {ranked.map((card, i) => {
+        {rows.map(({ card, i }) => {
           const mine = card.attemptId === myAttemptId;
           const status = flexStatus(card, required);
           const photos = card.squares.filter((s) => !s.bonus && s.state === "filled" && s.photoUrl).slice(-3).reverse();
@@ -111,6 +128,17 @@ export function BingoPlayers({
           );
         })}
       </ol>
+      {pages > 1 ? (
+        <LeaderboardPagination
+          page={current}
+          rangeStart={from + 1}
+          rangeEnd={from + shown.length}
+          total={ranked.length}
+          hasNextPage={current < pages - 1}
+          onPrev={() => go(Math.max(0, current - 1))}
+          onNext={() => go(current + 1)}
+        />
+      ) : null}
 
       <ResponsiveSheet
         open={open != null}
