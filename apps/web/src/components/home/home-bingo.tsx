@@ -1,15 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { GameCard, gameButtonClass } from "@/components/ds";
-import { BingoBoard } from "@/components/bingo/bingo-board";
 import { BingoBannerCard } from "@/components/bingo/bingo-tile";
 import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 import { useBingoList } from "@/hooks/use-bingo";
-import { buildSquares, type BingoView } from "@/lib/bingo/view";
+import type { BingoView } from "@/lib/bingo/view";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
-import { fmtG } from "@/lib/bingo/format";
 import { seededShuffle, shuffleWindow } from "@/lib/shuffle";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -17,31 +13,36 @@ const playing = (b: BingoView) => !!b.me && b.me.status === "active" && !b.me.mi
 
 /**
  * Home's Bingo section: the cards you're playing first (next photo one tap
- * away), then Bingos open to join. New players get the one-time starter
- * Bingo up top as their way in. First Week has its own offer at the top of
- * Home (HomeFirstWeek), so it is never repeated here.
+ * away), then Bingos open to join — the big-cashback 7-day ones, with at most
+ * one small 3-day Bingo. First Week has its own offer at the top of Home
+ * (HomeFirstWeek), so it is never repeated here.
  */
 const MORE_TO_PLAY = 4;
 const SHUFFLE_HOURS = 6;
+/** A Bingo "worth it" on Home pays at least this much cashback at its top stake (the 7-day ones). */
+const BIG_CASHBACK = 1_000;
+const maxCashback = (b: BingoView) => Math.max(0, ...b.tiers.map((t) => (typeof t.completionReward === "number" ? t.completionReward : 0)));
 
 export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boolean; exclude?: string | null }) {
   const { bingos: all } = useBingoList();
   const { address } = useAuth();
-  // The Bingo "Your next step" is about isn't shown twice.
+  // The Bingo "Your next step" is about isn't shown twice; First Week has its own card at the top of Home.
   const bingos = all?.filter((b) => b.slug !== exclude && b.slug !== FIRST_WEEK_SLUG) ?? null;
   if (!bingos || bingos.length === 0) return null;
 
   const mine = bingos.filter(playing);
-  // A one-time onboarding Bingo is the way in; replayable ones (Prayer Streak) sit in the list.
-  const starter = bingos.find((b) => b.enrollment === "rolling" && b.recurrence === "one_time" && b.joinable);
   // Open to join, or announced and starting soon.
-  const open = bingos.filter((b) => !playing(b) && b !== starter && (b.joinable || b.cycle?.phase === "upcoming"));
-  const showStarter = starter && mine.length === 0 && newcomer;
-  // A few cards, not the catalogue: yours first, then the rest reshuffled every few hours
-  // (stable in between, so the page doesn't jump) — Explore has them all.
-  const rest = seededShuffle(open, `${address ?? "guest"}:${shuffleWindow(SHUFFLE_HOURS)}`);
-  const list = [...mine, ...(showStarter ? [] : starter && mine.length === 0 ? [starter] : []), ...rest].slice(0, MORE_TO_PLAY);
-  if (!showStarter && list.length === 0) return null;
+  const open = bingos.filter((b) => !playing(b) && (b.joinable || b.cycle?.phase === "upcoming"));
+  // Lead with the juicy ones (7-day, big cashback); at most one small 3-day Bingo, last.
+  // Reshuffled every few hours (stable in between, so the page doesn't jump) — Explore has them all.
+  const seed = `${address ?? "guest"}:${shuffleWindow(SHUFFLE_HOURS)}`;
+  const big = seededShuffle(open.filter((b) => maxCashback(b) >= BIG_CASHBACK), seed);
+  const small = seededShuffle(open.filter((b) => maxCashback(b) < BIG_CASHBACK), seed);
+  const slots = Math.max(0, MORE_TO_PLAY - mine.length);
+  const picks = [...big.slice(0, Math.max(0, slots - (small.length ? 1 : 0))), ...small.slice(0, 1)];
+  // Not enough big ones: fill with whatever's left.
+  const list = [...mine, ...picks, ...[...big, ...small].filter((b) => !picks.includes(b))].slice(0, MORE_TO_PLAY);
+  if (list.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3">
@@ -51,33 +52,12 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
           See all →
         </Link>
       </div>
-      {showStarter ? <StarterBingoCard bingo={starter} /> : null}
-      {list.length ? (
-        <PinBoard twoUp>
-          {list.map((b, i) => (
-            <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
-          ))}
-        </PinBoard>
-      ) : null}
+      <PinBoard twoUp>
+        {list.map((b, i) => (
+          <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
+        ))}
+      </PinBoard>
     </section>
   );
 }
 
-/** The newcomer way in: the whole 3-day loop, shown as the card they'll fill. */
-function StarterBingoCard({ bingo }: { bingo: BingoView }) {
-  const stake = Math.min(...bingo.tiers.map((t) => t.stake));
-  return (
-    <GameCard className="animate-rise p-4">
-      <p className="label-mono m-0 text-[10px] text-muted-foreground">New here · your first Bingo</p>
-      <p className="m-0 mt-1 font-display text-[26px] font-extrabold uppercase leading-[0.95]">{bingo.title}</p>
-      <BingoBoard squares={buildSquares(bingo.missions, [], false)} className="mt-3" />
-      <p className="m-0 mt-3 text-[13px] font-semibold leading-snug">
-        {bingo.durationDays} days, {bingo.durationDays} photos. Stake {fmtG(stake)} G$ and get it back when you finish
-        {bingo.rewards.perProof > 0 ? ` — plus up to ${fmtG(bingo.rewards.perProof)} G$ a photo` : ""}.
-      </p>
-      <Link href={`/bingo/${bingo.slug}`} className={gameButtonClass({ variant: "ink", full: true, className: "mt-3" })}>
-        Start my first Bingo <ArrowRight className="h-4 w-4" />
-      </Link>
-    </GameCard>
-  );
-}
