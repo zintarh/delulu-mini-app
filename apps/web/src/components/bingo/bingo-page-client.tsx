@@ -62,6 +62,17 @@ export function BingoPageClient({ slug }: { slug: string }) {
   const me = bingo?.me ?? null;
   const myLive = me?.phase === "live" && me.status === "active" && !me.missedDay;
   const required = bingo ? bingo.missions.filter((m) => !m.bonus).length : 0;
+  // An approved photo whose on-chain step never finished: open it straight away, ready to sign —
+  // one tap from done, before the day closes. Once per visit.
+  const stuckSquare = me && !me.todayUsed ? (me.squares.find((sq) => !sq.bonus && sq.state === "confirming") ?? null) : null;
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (stuckSquare && !resumedRef.current) {
+      resumedRef.current = true;
+      setPicked(stuckSquare);
+    }
+  }, [stuckSquare]);
+
   // A finished card gets its celebration once — even when the last square confirmed after they left.
   const finishedAttempt = me && required > 0 && me.requiredFilled >= required ? me.attemptId : null;
   useEffect(() => {
