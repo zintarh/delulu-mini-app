@@ -124,9 +124,10 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
           <Grid3x3 className="h-3.5 w-3.5" strokeWidth={2.6} /> Bingo
         </span>
         {/* The cashback, loud: what finishing pays at the top level. */}
-        {earn.backAtStake > 0 && !playing ? (
+        {/* The most this Bingo pays back (its top stake) — "up to", since the line below shows the smallest stake. */}
+        {earn.back > 0 && !playing ? (
           <span className={cn("inline-flex items-center rounded-full bg-green-strong font-extrabold text-white", pin ? "px-1.5 py-0.5 text-[9px]" : "px-2.5 py-1 text-[11px]")}>
-            Cashback +{earn.backAtStake.toLocaleString("en-US")} G${earn.ngn(earn.backAtStake) ? ` ≈ ${earn.ngn(earn.backAtStake)}` : ""}
+            Cashback {earn.back > earn.backAtStake ? "up to " : ""}+{earn.back.toLocaleString("en-US")} G${earn.ngn(earn.back) ? ` ≈ ${earn.ngn(earn.back)}` : ""}
           </span>
         ) : null}
         {/* Only while you're playing ("Day 2 of 7") — the squares already say 3 or 7 days. */}
