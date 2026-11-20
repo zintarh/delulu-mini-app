@@ -7,6 +7,7 @@
  *     100 G$ a photo, personal clock), live, one card per wallet
  *   Prayer Streak — 3 days of you praying, same terms, replayable
  *   Little Adventures / Good Vibes Only — more 3-day Bingos, saved as drafts
+ *   Prayer Week, Read Your Holy Book (7-day) · Do Good for 3 Days — faith & kindness, Season 2 stakes
  *
  * 7-day tiers: Starter 1,000 (+500 to finish) · Pro 2,000 (+1,200) · Elite 3,000 (+2,000).
  *
@@ -48,6 +49,17 @@ type Seed = {
 const workoutTiers: BingoTier[] = [{ key: "committed", label: "Committed", stake: 10_000, forfeitPct: 0, completionReward: 3_000 }];
 const weekTiers: BingoTier[] = [{ key: "starter", label: "Starter", stake: 5_000, forfeitPct: 0, completionReward: 1_500 }];
 const threeDayTiers: BingoTier[] = [{ key: "starter", label: "Starter", stake: 5_000, forfeitPct: 0, completionReward: 750 }];
+
+/** Season 2 ladders, same as scripts/season-tiers.ts: 7-day 10k–100k at 10/12/15% back, 3-day 2k–5k at 4%. */
+const S2_LABEL: Record<number, string> = { 2_000: "Light", 3_000: "Easy", 5_000: "Starter", 10_000: "Committed", 20_000: "Pro", 30_000: "Pro+", 50_000: "Gold", 100_000: "Gold+" };
+const s2Tiers = (days: 3 | 7): BingoTier[] =>
+  (days === 7 ? [10_000, 20_000, 30_000, 50_000, 100_000] : [2_000, 3_000, 5_000]).map((stake) => ({
+    key: S2_LABEL[stake].toLowerCase().replace("+", "_plus"),
+    label: S2_LABEL[stake],
+    stake,
+    forfeitPct: 0,
+    completionReward: Math.round((stake * (days === 7 ? (stake >= 50_000 ? 0.15 : stake >= 20_000 ? 0.12 : 0.1) : 0.04)) / 10) * 10,
+  }));
 
 const SEEDS: Seed[] = [
   {
@@ -236,6 +248,58 @@ const SEEDS: Seed[] = [
     sort: 3,
     missions: [m("Your favourite food"), m("Your favourite place"), m("Something that makes you happy")],
     tiers: NEWCOMER_TIERS,
+  },
+  {
+    slug: "prayer-week",
+    title: "Prayer Week",
+    description: "Seven days of prayer. One photo of you praying each day.",
+    duration: 7,
+    enrollment: "rolling",
+    recurrence: "one_time",
+    status: "live",
+    sort: 5,
+    missions: [
+      m("You praying this morning"),
+      m("Your prayer spot"),
+      m("You praying before a meal"),
+      m("A prayer you wrote down"),
+      m("You praying with someone"),
+      m("You praying at night"),
+      m("Your end-of-week prayer selfie"),
+    ],
+    tiers: s2Tiers(7),
+  },
+  {
+    slug: "holy-book-week",
+    title: "Read Your Holy Book",
+    description: "Seven days in the Bible or the Quran. One photo a day of what you read.",
+    duration: 7,
+    enrollment: "rolling",
+    recurrence: "one_time",
+    status: "live",
+    sort: 5,
+    missions: [
+      m("Your Bible or Quran"),
+      m("Today's chapter or surah"),
+      m("A verse that spoke to you"),
+      m("Where you read today"),
+      m("Read with your morning drink"),
+      m("A verse you wrote down"),
+      m("Your 7-day reading selfie"),
+    ],
+    tiers: s2Tiers(7),
+  },
+  {
+    slug: "do-good-3",
+    title: "Do Good for 3 Days",
+    description: "Three days, three good deeds. One photo of something good you did each day.",
+    duration: 3,
+    enrollment: "rolling",
+    recurrence: "one_time",
+    status: "live",
+    sort: 6,
+    missions: [m("Something good you did today"), m("You helping someone"), m("A kind thing you did for a friend")],
+    tiers: s2Tiers(3),
   },
 ];
 
