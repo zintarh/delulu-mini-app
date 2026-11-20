@@ -1116,6 +1116,7 @@ const SEASON_FORFEIT_PROOFS_QUERY = `
       id
       creatorAddress
       createdAt
+      commitmentId
       commitment { stakeAmount token }
     }
   }
@@ -1175,7 +1176,11 @@ async function pageAll<T extends { id: string }>(
  * Forfeit goals, Bingos and missions alike) boosted by consistency: × (1 +
  * 0.1 × days kept this round). Bigger stake and more days both climb.
  */
-export async function fetchBoardScoresFromGraph(sinceUnix: number): Promise<GlobalAppPointsRow[]> {
+export async function fetchBoardScoresFromGraph(
+  sinceUnix: number,
+  /** Forfeit commitment id → the stake to score it at (First Week cards count as a 10k stake). */
+  scoreStakeOverride: ReadonlyMap<string, number> = new Map(),
+): Promise<GlobalAppPointsRow[]> {
   const byWallet = new Map<string, { delulu: number; campaign: number; days: Set<string>; username: string | null }>();
   const lagosDay = (createdAt: string | number | undefined) => new Date(Number(createdAt ?? 0) * 1000 + 3_600_000).toISOString().slice(0, 10);
   const add = (wallet: string, field: "delulu" | "campaign", pts: number, createdAt: string | undefined, username: string | null = null) => {
@@ -1188,7 +1193,7 @@ export async function fetchBoardScoresFromGraph(sinceUnix: number): Promise<Glob
   };
   try {
     const [forfeits, campaigns] = await Promise.all([
-      pageAll<{ id: string; creatorAddress: string; createdAt: string; commitment: { stakeAmount: string; token: string } | null }>(
+      pageAll<{ id: string; creatorAddress: string; createdAt: string; commitmentId: string; commitment: { stakeAmount: string; token: string } | null }>(
         SEASON_FORFEIT_PROOFS_QUERY,
         "forfeitPeriodResolutions",
         sinceUnix,
@@ -1201,7 +1206,10 @@ export async function fetchBoardScoresFromGraph(sinceUnix: number): Promise<Glob
         challenge: { joinAmount: string; joinToken: string | null; isPaid: boolean } | null;
       }>(SEASON_CAMPAIGN_PROOFS_QUERY, "communityCampaignMilestoneCompletions", sinceUnix),
     ]);
-    for (const r of forfeits) add(r.creatorAddress, "delulu", seasonPointsForStake(gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token)), r.createdAt);
+    for (const r of forfeits) {
+      const stake = scoreStakeOverride.get(String(r.commitmentId)) ?? gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token);
+      add(r.creatorAddress, "delulu", seasonPointsForStake(stake), r.createdAt);
+    }
     for (const r of campaigns) {
       const stake = r.challenge?.isPaid ? gDollarWhole(r.challenge.joinAmount, r.challenge.joinToken) : 0;
       add(r.participantAddress, "campaign", seasonPointsForStake(stake), r.createdAt, r.participant?.username ?? null);

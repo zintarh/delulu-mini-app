@@ -11,6 +11,9 @@ export const WEEKLY_ANCHOR_MS = Date.UTC(2026, 10, 20) - LAGOS_OFFSET_MS;
 
 export type BoardWindow = "week" | "fortnight" | "month";
 
+/** New players' First Week (a 1k stake) scores like this stake, so a kept week ranks with regular 10k players. */
+export const FIRST_WEEK_BOARD_STAKE = 10_000;
+
 /** Each day kept this round adds 10% to your stake points: 14 days kept = × 2.4. */
 export const CONSISTENCY_BOOST_PER_DAY = 0.1;
 /** Board score: stake points (stake ÷ 10 per kept day) × the consistency boost. */

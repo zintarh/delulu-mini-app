@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fetchBoardScoresFromGraph, fetchGlobalAppPointsFromGraph, fetchSeasonPointsFromGraph } from "@/lib/community/campaign-subgraph";
 import { SEASON_2_START_MS, isSeason2Live } from "@/lib/season/rules";
-import { boardWindow, type BoardWindow } from "@/lib/leaderboard/windows";
+import { FIRST_WEEK_BOARD_STAKE, boardWindow, type BoardWindow } from "@/lib/leaderboard/windows";
+import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
 import { fetchLiveStreaks } from "@/lib/rewards/live-streaks";
 
@@ -26,8 +27,17 @@ export async function GET(request: NextRequest) {
   const win: BoardWindow | null = windowParam === "week" || windowParam === "fortnight" || windowParam === "month" ? windowParam : null;
   const range = win ? boardWindow(win) : null;
   const season = seasonParam === "1" ? 1 : seasonParam === "2" || isSeason2Live() ? 2 : 1;
+  // New players: First Week cards score like a 10k stake, so a kept week can rank.
+  const firstWeekOverride = new Map<string, number>();
+  if (range) {
+    const { data: fw } = await admin.from("bingo_campaigns").select("id").eq("slug", FIRST_WEEK_SLUG).maybeSingle();
+    if (fw) {
+      const { data: cards } = await admin.from("bingo_attempts").select("forfeit_commitment_id").eq("campaign_id", fw.id).not("forfeit_commitment_id", "is", null);
+      for (const c of cards ?? []) firstWeekOverride.set(String(c.forfeit_commitment_id), FIRST_WEEK_BOARD_STAKE);
+    }
+  }
   const rows = range
-    ? await fetchBoardScoresFromGraph(Math.floor(range.startMs / 1000))
+    ? await fetchBoardScoresFromGraph(Math.floor(range.startMs / 1000), firstWeekOverride)
     : season === 2
       ? await fetchSeasonPointsFromGraph(Math.floor(SEASON_2_START_MS / 1000))
       : await fetchGlobalAppPointsFromGraph();

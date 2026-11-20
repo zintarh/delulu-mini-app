@@ -23,7 +23,7 @@ export type RecruitEmail = {
   firstPayment: number;
   /** "≈ ₦720" for the reward */
   rewardNaira: string;
-  /** What the friend's First Week pays them: "6,750 G$ (≈ ₦970)" */
+  /** What the friend's First Week pays them, e.g. "9,500 G$ (≈ ₦…)" — from the live config. */
   friendGets: string;
   spotsLeft: number;
   spots: number;
