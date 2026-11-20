@@ -28,6 +28,7 @@ export type Nudge = {
 };
 
 export const NUDGE_RULES = [
+  "photo_unconfirmed",
   "last_call",
   "square_due",
   "missed_day",
@@ -49,6 +50,7 @@ export const NUDGE_RULES = [
 export type NudgeRule = (typeof NUDGE_RULES)[number];
 
 export const RULE_LABEL: Record<NudgeRule, string> = {
+  photo_unconfirmed: "Photo approved but not finished — tap to lock it in",
   last_call: "Last call: ~2h left, stake on the line",
   square_due: "Today's square closing",
   missed_day: "Missed a day",
@@ -108,6 +110,8 @@ export const isQuietHours = (nowMs: number) => {
 
 /** The last-call window before a day closes (the cron runs every 30 min, so ≥ 4 chances). */
 export const LAST_CALL_HOURS = 2.5;
+/** An approved photo still unfinished after this long gets the "tap to finish" nudge. */
+const UNCONFIRMED_AFTER_MS = 10 * 60_000;
 const hoursLeft = (iso: string, nowMs: number) => (Date.parse(iso) - nowMs) / HOUR;
 const fmtHours = (h: number) => (h >= 1 ? `${Math.floor(h)}h` : `${Math.max(1, Math.round(h * 60))}m`);
 const name = (p: Person) => (p.username ? `${p.username}, ` : "");
@@ -175,6 +179,26 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
   const pitch = sevenDayPitch(facts);
   const age = nowMs - Date.parse(p.createdAt);
   const card = p.activeCard;
+
+  // 00. Today's photo was approved but its on-chain step never finished (app closed,
+  //     signal dropped, a transaction failed): it isn't done until they tap Finish.
+  //     Like last call, it may go on top of the daily nudge and in quiet hours.
+  if (card && !card.todayFilled && card.todayApprovedAt && nowMs - Date.parse(card.todayApprovedAt) >= UNCONFIRMED_AFTER_MS) {
+    const left = hoursLeft(card.dayEndsAt, nowMs);
+    if (left > 0) {
+      return {
+        rule: "photo_unconfirmed",
+        dedupeKey: `${card.attemptId}:${card.today}`,
+        title: "📸 Your photo is approved — tap to finish",
+        body: `One tap locks in day ${card.today + 1} of ${card.title}. It closes in ${fmtHours(left)}.`,
+        path: `/bingo/${card.slug}`,
+        emailSubject: `Tap to finish day ${card.today + 1} of ${card.title}`,
+        emailHeading: `Almost done, ${p.username ?? "friend"}`,
+        emailBody: `Your photo for day ${card.today + 1} of ${card.title} was approved, but the last step didn't finish.\n\nOpen Delulu and tap Finish — it takes a second. The day closes in ${fmtHours(left)}.`,
+        cta: "Finish my day",
+      };
+    }
+  }
 
   // 0. Last call: ~2h left and today's photo still missing — the stake is on
   //    the line. The one nudge allowed on top of the daily one (and in quiet hours).
@@ -476,6 +500,7 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
   const sent = Date.parse(sentAtIso);
   const after = (iso: string | null) => !!iso && Date.parse(iso) >= sent && Date.parse(iso) - sent <= DAY;
   switch (rule) {
+    case "photo_unconfirmed":
     case "last_call":
     case "square_due":
     case "missed_day":

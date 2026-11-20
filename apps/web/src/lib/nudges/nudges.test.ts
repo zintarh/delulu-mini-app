@@ -32,6 +32,16 @@ test("today's square closing within 8h beats everything else", () => {
   assert.notEqual(pickNudge(base({ activeCard: { ...card, todayFilled: true } }), now)?.rule, "square_due");
 });
 
+test("an approved photo left unfinished for 10+ min gets 'tap to finish' first — even over last call", () => {
+  const card = { attemptId: "a9", slug: "first-week", title: "Your First Week", days: 7, stake: 1000, startedAt: "", today: 1, todayFilled: false, todayMission: "x", dayEndsAt: new Date(now + 1 * H).toISOString() };
+  const stuck = pickNudge(base({ activeCard: { ...card, todayApprovedAt: new Date(now - 20 * 60_000).toISOString() } }), now);
+  assert.equal(stuck?.rule, "photo_unconfirmed");
+  assert.equal(stuck?.dedupeKey, "a9:1");
+  // Just approved (still signing) → not yet; no approved photo → the usual last call.
+  assert.notEqual(pickNudge(base({ activeCard: { ...card, todayApprovedAt: new Date(now - 2 * 60_000).toISOString() } }), now)?.rule, "photo_unconfirmed");
+  assert.equal(pickNudge(base({ activeCard: card }), now)?.rule, "last_call");
+});
+
 test("first-days journey: setup → verify → play → install", () => {
   assert.equal(pickNudge(base({ onboardedAt: null, giftSent: false, everStartedBingo: false, lastProofAt: null, createdAt: new Date(now - 3 * H).toISOString() }), now)?.rule, "setup_unfinished");
   assert.equal(pickNudge(base({ onboardedAt: null, giftSent: false, everStartedBingo: false, lastProofAt: null, createdAt: new Date(now - 1 * H).toISOString() }), now), null); // give them 2h first

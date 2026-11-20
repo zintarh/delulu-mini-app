@@ -39,6 +39,8 @@ export type Person = {
     startedAt: string;
     today: number;
     todayFilled: boolean;
+    /** Today's photo was approved but its on-chain step hasn't finished (when it was approved). */
+    todayApprovedAt?: string | null;
     todayMission: string | null;
     dayEndsAt: string;
   };
@@ -260,8 +262,8 @@ export async function loadPeople(
   const liveIds = live.map((a) => a.id);
   const [{ data: filled }, { data: versions }] = await Promise.all([
     liveIds.length
-      ? admin.from("bingo_squares").select("attempt_id, slot_index").in("attempt_id", liveIds).eq("status", "filled")
-      : Promise.resolve({ data: [] as { attempt_id: string; slot_index: number | null }[] }),
+      ? admin.from("bingo_squares").select("attempt_id, slot_index, status, approved_at").in("attempt_id", liveIds).in("status", ["filled", "confirming"])
+      : Promise.resolve({ data: [] as { attempt_id: string; slot_index: number | null; status: string; approved_at: string }[] }),
     live.length
       ? admin.from("bingo_versions").select("id, missions").in("id", [...new Set(live.map((a) => a.version_id))])
       : Promise.resolve({ data: [] as { id: string; missions: { title: string }[] }[] }),
@@ -273,7 +275,8 @@ export async function loadPeople(
     const { data } = await admin.from("profiles").select("address, username").in("address", c);
     for (const r of data ?? []) referrerNames.set(String(r.address).toLowerCase(), (r.username as string) ?? null);
   }
-  const filledSlots = new Set((filled ?? []).map((f) => `${f.attempt_id}:${f.slot_index}`));
+  const filledSlots = new Set((filled ?? []).filter((f) => f.status === "filled").map((f) => `${f.attempt_id}:${f.slot_index}`));
+  const approvedSlots = new Map((filled ?? []).filter((f) => f.status === "confirming").map((f) => [`${f.attempt_id}:${f.slot_index}`, String(f.approved_at)]));
   const missionsOf = new Map((versions ?? []).map((v) => [v.id as string, (v.missions as { title: string }[]).map((m) => m.title)]));
 
   const people: Person[] = profiles.map((p) => {
@@ -298,6 +301,7 @@ export async function loadPeople(
         startedAt: active.started_at,
         today,
         todayFilled: filledSlots.has(`${active.id}:${today}`),
+        todayApprovedAt: approvedSlots.get(`${active.id}:${today}`) ?? null,
         todayMission: missionsOf.get(active.version_id)?.[today] ?? null,
         dayEndsAt: new Date(Date.parse(active.started_at) + (today + 1) * DAY_MS).toISOString(),
       };

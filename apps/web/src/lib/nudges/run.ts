@@ -111,7 +111,8 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
     const n = pickNudge(p, nowMs, historyOf.get(p.wallet) ?? [], facts);
     if (!n || sentKeys.has(`${p.wallet}|${n.rule}|${n.dedupeKey}`)) continue;
     // One nudge a day and nothing 10pm–8am — except the last call before a stake is lost.
-    if (n.rule !== "last_call" && (nudgedToday.has(p.wallet) || quietHours)) continue;
+    // Stake-on-the-line nudges go out on top of the daily one, and in quiet hours.
+    if (n.rule !== "last_call" && n.rule !== "photo_unconfirmed" && (nudgedToday.has(p.wallet) || quietHours)) continue;
     candidates.push({ p, n });
   }
   candidates.sort((a, b) => NUDGE_RULES.indexOf(a.n.rule) - NUDGE_RULES.indexOf(b.n.rule));
