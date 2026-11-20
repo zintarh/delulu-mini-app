@@ -36,7 +36,7 @@ const lagosDay = (ms: number) => new Date(ms + 3_600_000).toISOString().slice(0,
 export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: number; only?: string[] } = {}): Promise<NudgeRunResult> {
   const nowMs = opts.nowMs ?? Date.now();
   const since = new Date(nowMs - WINDOW_DAYS * 86_400_000).toISOString();
-  let people = await loadPeople(admin, since, nowMs, { includeActive: true, includeDormant: true, includeReferred: true });
+  let people = await loadPeople(admin, since, nowMs, { includeActive: true, includeDormant: true, includeReferred: true, includeReferrers: true });
   people = people.filter((p) => !INTERNAL_WALLETS.has(p.wallet));
   if (opts.only?.length) people = people.filter((p) => opts.only!.includes(p.wallet));
   const byWallet = new Map(people.map((p) => [p.wallet, p]));

@@ -1,5 +1,6 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { DAY_MS, daySlot, rollingMissedDay } from "@/lib/bingo/types";
+import { SEASON_START_LAGOS } from "@/lib/referral/campaign";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -49,6 +50,23 @@ export type Person = {
   referredBy: null | { wallet: string; username: string | null };
   /** A card that ended on a missed day in the last 2 days. */
   recentMiss: null | { attemptId: string; slug: string; title: string; oneTime: boolean };
+  /** Invited by a friend and already counted for them (their referrer got the first payment). */
+  referralQualified?: boolean;
+  /** Friends they've brought this season and where each one is — referrer nudges act on it. Null if none. */
+  referrer?: ReferrerInfo | null;
+};
+
+/**
+ * Where an invited friend is, seen from the referrer's side:
+ * setup → verify → first_photo (not counted yet) → streak (counted, 3-day bonus pending) → done.
+ */
+export type FriendStep = "setup" | "verify" | "first_photo" | "streak" | "done";
+export type ReferrerInfo = {
+  /** G$ actually sent to them this season (first payments + 3-day bonuses). */
+  earnedG: number;
+  friends: { wallet: string; username: string | null; step: FriendStep; signedUpAt: string; postedToday: boolean }[];
+  /** Their newest payout in the last 2 days, to cheer about (key dedupes the nudge). */
+  latestPaid: null | { key: string; amountG: number; friend: string | null; kind: "first" | "bonus" };
 };
 
 export const FUNNEL = [
@@ -122,11 +140,21 @@ export async function loadPeople(
   admin: Admin,
   sinceIso: string,
   nowMs = Date.now(),
-  opts: { includeActive?: boolean; includeDormant?: boolean; includeReferred?: boolean } = {},
+  opts: { includeActive?: boolean; includeDormant?: boolean; includeReferred?: boolean; includeReferrers?: boolean } = {},
 ): Promise<Person[]> {
   const profiles = await all<Record<string, unknown>>((f, t) =>
     admin.from("profiles").select("*").gte("created_at", sinceIso).order("created_at", { ascending: true }).range(f, t),
   );
+  // This season's invites: who brought whom, and the referral credits (paid / bonus paid).
+  const seasonIso = new Date(`${SEASON_START_LAGOS}T00:00:00+01:00`).toISOString();
+  const [seasonFriends, seasonCredits] = opts.includeReferrers
+    ? await Promise.all([
+        all<Record<string, unknown>>((f, t) =>
+          admin.from("profiles").select("address, referred_by, created_at").gte("created_at", seasonIso).not("referred_by", "is", null).range(f, t),
+        ),
+        all<Record<string, unknown>>((f, t) => admin.from("referral_credits").select("*").gte("credited_at", seasonIso).range(f, t)),
+      ])
+    : [[], []];
   if (opts.includeDormant) {
     // Everyone older who once set up an account and has a real inbox.
     const older = await all<Record<string, unknown>>((f, t) =>
@@ -164,6 +192,19 @@ export async function loadPeople(
       admin.from("proof_image_fingerprints").select("wallet").eq("status", "accepted").gte("created_at", sinceIso).limit(10000),
     ]);
     const extra = [...new Set([...(cards ?? []), ...(provers ?? [])].map((r) => String(r.wallet).toLowerCase()))].filter((w) => !seen.has(w));
+    for (const c of chunks(extra)) {
+      const { data } = await admin.from("profiles").select("*").in("address", c);
+      profiles.push(...((data ?? []) as Record<string, unknown>[]));
+    }
+  }
+  if (opts.includeReferrers) {
+    // Referrers and their friends, however old or quiet — they're the ones we cheer on.
+    const seen = new Set(profiles.map((p) => String(p.address).toLowerCase()));
+    const want = [
+      ...seasonFriends.flatMap((f) => [String(f.address), String(f.referred_by)]),
+      ...seasonCredits.flatMap((c) => [String(c.referrer_wallet), String(c.referred_wallet)]),
+    ].map((w) => w.toLowerCase());
+    const extra = [...new Set(want)].filter((w) => !seen.has(w));
     for (const c of chunks(extra)) {
       const { data } = await admin.from("profiles").select("*").in("address", c);
       profiles.push(...((data ?? []) as Record<string, unknown>[]));
@@ -233,7 +274,7 @@ export async function loadPeople(
   const filledSlots = new Set((filled ?? []).map((f) => `${f.attempt_id}:${f.slot_index}`));
   const missionsOf = new Map((versions ?? []).map((v) => [v.id as string, (v.missions as { title: string }[]).map((m) => m.title)]));
 
-  return profiles.map((p) => {
+  const people: Person[] = profiles.map((p) => {
     const wallet = String(p.address).toLowerCase();
     const cards = byWallet.get(wallet) ?? [];
     const camp = (a: A) => (Array.isArray(a.bingo_campaigns) ? a.bingo_campaigns[0] : a.bingo_campaigns);
@@ -292,4 +333,60 @@ export async function loadPeople(
       recentMiss: missed ? { attemptId: missed.id, slug: camp(missed).slug, title: camp(missed).title, oneTime: camp(missed).recurrence === "one_time" } : null,
     };
   });
+  if (opts.includeReferrers) attachReferrers(people, seasonFriends, seasonCredits, nowMs);
+  return people;
+}
+
+/** Lagos calendar day (UTC+1). */
+const lagosDay = (ms: number) => new Date(ms + 3_600_000).toISOString().slice(0, 10);
+
+/** Fills `referrer` (friends + where each is stuck) and `referralQualified`. Pure apart from mutating `people`. */
+export function attachReferrers(people: Person[], seasonFriends: Record<string, unknown>[], seasonCredits: Record<string, unknown>[], nowMs: number) {
+  const byWallet = new Map(people.map((p) => [p.wallet, p]));
+  const creditOf = new Map(seasonCredits.map((c) => [String(c.referred_wallet).toLowerCase(), c]));
+  const friendsOf = new Map<string, string[]>();
+  const add = (ref: string, friend: string) => {
+    const list = friendsOf.get(ref) ?? [];
+    if (!list.includes(friend)) friendsOf.set(ref, [...list, friend]);
+  };
+  for (const f of seasonFriends) add(String(f.referred_by).toLowerCase(), String(f.address).toLowerCase());
+  for (const c of seasonCredits) add(String(c.referrer_wallet).toLowerCase(), String(c.referred_wallet).toLowerCase());
+  const today = lagosDay(nowMs);
+
+  for (const [refWallet, friendWallets] of friendsOf) {
+    const referrer = byWallet.get(refWallet);
+    if (!referrer) continue;
+    let earnedG = 0;
+    let latest: { at: number; info: NonNullable<ReferrerInfo["latestPaid"]> } | null = null;
+    const friends: ReferrerInfo["friends"] = [];
+    for (const fw of friendWallets) {
+      const f = byWallet.get(fw);
+      const c = creditOf.get(fw);
+      if (c?.payout_status === "sent") {
+        earnedG += Number(c.gdollars_amount ?? 0);
+        const at = Date.parse(String(c.paid_at ?? c.credited_at));
+        if (nowMs - at <= 2 * DAY_MS && (!latest || at > latest.at))
+          latest = { at, info: { key: `${c.id}:first`, amountG: Number(c.gdollars_amount ?? 0), friend: f?.username ?? null, kind: "first" } };
+      }
+      if (c?.streak_status === "sent") {
+        earnedG += Number(c.streak_amount ?? 0);
+        const at = Date.parse(String(c.streak_paid_at));
+        if (nowMs - at <= 2 * DAY_MS && (!latest || at > latest.at))
+          latest = { at, info: { key: `${c.id}:bonus`, amountG: Number(c.streak_amount ?? 0), friend: f?.username ?? null, kind: "bonus" } };
+      }
+      if (f && c) f.referralQualified = true;
+      if (!f) continue;
+      const step: FriendStep = c
+        ? c.streak_status === "sent" || (c.payout_status === "sent" && Number(c.gdollars_amount ?? 0) >= 5000)
+          ? "done" // paid in full (the early credits paid 5,000 at once)
+          : "streak"
+        : !f.onboardedAt
+          ? "setup"
+          : !f.giftSent
+            ? "verify"
+            : "first_photo";
+      friends.push({ wallet: fw, username: f.username, step, signedUpAt: f.createdAt, postedToday: !!f.lastProofAt && lagosDay(Date.parse(f.lastProofAt)) === today });
+    }
+    referrer.referrer = { earnedG, friends, latestPaid: latest?.info ?? null };
+  }
 }

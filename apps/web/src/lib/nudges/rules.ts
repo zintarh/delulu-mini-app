@@ -3,7 +3,7 @@
  * now (or none). Pure, so every rule is testable. Ordered by urgency — a
  * square closing tonight beats a general "come back".
  */
-import type { Person } from "@/lib/nudges/people";
+import type { FriendStep, Person } from "@/lib/nudges/people";
 import { referralPhase, roundFirstPayment } from "@/lib/referral/campaign";
 import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 import { earnersLine, fmtMoney, type EarnFacts } from "@/lib/earn/format";
@@ -30,12 +30,16 @@ export const NUDGE_RULES = [
   "last_call",
   "square_due",
   "missed_day",
+  "referred_next_step",
+  "referrer_paid",
+  "referrer_friends",
   "setup_unfinished",
   "verify_for_gift",
   "gift_not_played",
   "install_app",
   "level_up",
   "seven_day_start",
+  "referrer_cheer",
   "referral_week",
   "referred_back",
   "come_back",
@@ -46,6 +50,10 @@ export const RULE_LABEL: Record<NudgeRule, string> = {
   last_call: "Last call: ~2h left, stake on the line",
   square_due: "Today's square closing",
   missed_day: "Missed a day",
+  referred_next_step: "Invited friend: today's next step",
+  referrer_paid: "Referrer just got paid",
+  referrer_friends: "Referrer: friends still to finish",
+  referrer_cheer: "Referrer: weekly cheer",
   setup_unfinished: "Setup not finished",
   verify_for_gift: "Not verified (no gift)",
   gift_not_played: "Gift not played",
@@ -221,6 +229,11 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
     };
   }
 
+  // 2b–2d. The referral funnel: invited friends get their next step every day,
+  //        referrers hear when they're paid and where their friends are stuck.
+  const referral = referralNudge(p, nowMs, history, facts);
+  if (referral) return referral;
+
   // 3. Signed up but never finished setup (first 3 days).
   if (!p.onboardedAt && age >= 2 * HOUR && age <= 3 * DAY) {
     return {
@@ -337,6 +350,10 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
       cta: "Start my 7 days",
     };
   }
+
+  // 7c. Referrers whose friends have all finished: a weekly cheer while a round is open.
+  const cheer = referrerCheer(p, nowMs);
+  if (cheer) return { ...cheer, emailBody: withOffers(cheer.emailBody, nowMs, "referral", p) };
 
   // 8. A referral round is open — tell active players once per round.
   const ref = referralPhase(new Date(nowMs));
@@ -465,6 +482,11 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
       return p.giftSent;
     case "install_app":
       return after(p.installedAt);
+    case "referred_next_step":
+      return after(p.lastProofAt) || after(p.onboardedAt) || (!!p.giftClaimedAt && after(p.giftClaimedAt)) || after(p.lastSeenAt);
+    case "referrer_paid":
+    case "referrer_friends":
+    case "referrer_cheer":
     case "come_back":
     case "referral_week":
     case "referred_back":
@@ -473,4 +495,150 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
     case "seven_day_start":
       return !!p.activeCard || after(p.lastProofAt);
   }
+}
+
+// ── Referral funnel ─────────────────────────────────────────────────────────
+
+const g = (n: number) => `${n.toLocaleString("en-US")} G$`;
+const at = (u: string | null) => (u ? `@${u}` : "Your friend");
+
+/** How many of this rule were ignored in a row (newest first). */
+function ignoredRun(history: NudgeHistory, rule: NudgeRule): number {
+  let n = 0;
+  for (const h of history.filter((x) => x.rule === rule).sort((a, b) => b.sentAt.localeCompare(a.sentAt))) {
+    if (h.acted) break;
+    n++;
+  }
+  return n;
+}
+
+/** Daily while they act on it; after 5 ignored in a row, every 3 days. */
+function dailyKey(history: NudgeHistory, rule: NudgeRule, nowMs: number): string {
+  return ignoredRun(history, rule) < 5 ? `d${new Date(nowMs + HOUR).toISOString().slice(0, 10)}` : `r${Math.floor(nowMs / (3 * DAY))}`;
+}
+
+const FRIEND_STEP: Record<FriendStep, (posted: boolean, bonus: string) => string> = {
+  setup: () => "hasn't finished signing up",
+  verify: () => "needs a quick face check",
+  first_photo: () => "needs to post their first photo",
+  streak: (posted, bonus) => (posted ? `posted today ✅ — 3 days in a row unlocks your ${bonus}` : `hasn't posted today — 3 days in a row unlocks your ${bonus}`),
+  done: () => "fully counted 🎉",
+};
+
+/** Invited friends (first 14 days) and referrers — the stage-by-stage referral funnel. */
+export function referralNudge(p: Person, nowMs: number, history: NudgeHistory, facts: EarnFacts | null): Nudge | null {
+  const ref = referralPhase(new Date(nowMs));
+  const round = ref.phase === "live" ? ref.round : null;
+  const fw = facts?.firstWeek ?? null;
+  const fwAmount = fw ? fmtMoney(fw.entry) : null;
+
+  // ── Invited friend: today's one next step, and what it's worth. Once a card
+  //    is running, square_due / last_call carry them day by day. ──
+  const age = nowMs - Date.parse(p.createdAt);
+  if (p.referredBy && age >= 2 * HOUR && age <= 14 * DAY && !p.finishedSlugs.includes(FIRST_WEEK_SLUG)) {
+    const friend = at(p.referredBy.username);
+    const key = dailyKey(history, "referred_next_step", nowMs);
+    const stake = fwAmount ? `Your First Week pays ${fwAmount} for one photo a day.` : "One photo a day, paid for every photo.";
+    let n: Omit<Nudge, "rule" | "dedupeKey"> | null = null;
+    if (!p.onboardedAt) {
+      n = {
+        title: `${friend} is waiting for you 👀`,
+        body: `Finish signing up: 1,000 G$ free, then ${fwAmount ? `${fwAmount} in your first week` : "get paid for every photo"}.`,
+        path: "/home",
+        emailSubject: `${friend} invited you — finish signing up to get 1,000 G$`,
+        emailHeading: `${name(p)}you're one minute away`,
+        emailBody: `${friend} invited you to Delulu and you're almost in.\n\nFinish signing up and you get 1,000 G$ free to start. ${stake}`,
+        cta: "Finish signing up",
+      };
+    } else if (!p.giftSent) {
+      n = {
+        title: "One face check = 1,000 G$ free 🎁",
+        body: `${friend} brought you in. Verify once and your First Week ${fwAmount ? `(${fwAmount}) ` : ""}opens.`,
+        path: "/home",
+        emailSubject: "One quick face check unlocks your 1,000 G$",
+        emailHeading: `${name(p)}unlock your welcome money`,
+        emailBody: `${friend} invited you, and your 1,000 G$ welcome gift is ready. It just needs one quick face check (under a minute, once).\n\nThen ${stake.charAt(0).toLowerCase()}${stake.slice(1)}`,
+        cta: "Verify now",
+      };
+    } else if (!p.activeCard && !p.referralQualified && fw && !p.playedSlugs.includes(FIRST_WEEK_SLUG)) {
+      n = {
+        title: `Start your First Week: ${fwAmount} 💸`,
+        body: `One photo a day for 7 days. ${friend} gets rewarded when you start too.`,
+        path: `/bingo/${fw.slug}`,
+        emailSubject: `Your First Week pays ${fwAmount} — start today`,
+        emailHeading: `${name(p)}your money is waiting`,
+        emailBody: `Your 1,000 G$ gift is in your wallet. Put it into Your First Week: post one photo a day for 7 days (a minute between classes).\n\n📸 +${fw.perPhoto.toLocaleString("en-US")} G$ every day you post\n🏁 Finish all 7: ${fwAmount} in total, plus your stake back\n\n${friend} invited you, and gets rewarded once you get going.`,
+        cta: "Start my First Week",
+      };
+    }
+    if (n) return { rule: "referred_next_step", dedupeKey: key, ...n, emailBody: n.emailBody + stakesBlock(facts, "firstWeek") };
+  }
+
+  // ── Referrer: just got paid → cheer (once per payout). ──
+  const r = p.referrer;
+  if (r?.latestPaid) {
+    const lp = r.latestPaid;
+    const who = at(lp.friend);
+    const counted = r.friends.filter((f) => f.step === "streak" || f.step === "done").length;
+    return {
+      rule: "referrer_paid",
+      dedupeKey: lp.key,
+      title: `💸 +${g(lp.amountG)} — ${lp.kind === "bonus" ? `${who} hit 3 days in a row` : `${who} counted`}!`,
+      body: `You've earned ${g(r.earnedG)} from ${counted} friend${counted === 1 ? "" : "s"} so far. Keep inviting.`,
+      path: "/referrals",
+      emailSubject: `You just earned ${g(lp.amountG)} 🎉`,
+      emailHeading: `${name(p)}you just got paid`,
+      emailBody:
+        `${lp.kind === "bonus" ? `${who} showed up 3 days in a row` : `${who} is verified and posted their first photo`}, so ${g(lp.amountG)} just landed in your wallet.\n\n` +
+        `That's ${g(r.earnedG)} from ${counted} friend${counted === 1 ? "" : "s"} this season.` +
+        (round ? ` Every new friend is worth ${g(round.reward)}, and there's no limit per person.` : ""),
+      cta: "See my friends",
+    };
+  }
+
+  // ── Referrer with friends still in progress → who's stuck where, daily. ──
+  if (r && round) {
+    const bonus = round.reward - roundFirstPayment(round);
+    const open = r.friends.filter((f) => f.step !== "done" && nowMs - Date.parse(f.signedUpAt) >= 2 * HOUR);
+    // Nothing to ask of a streak friend who already posted today.
+    const actionable = open.filter((f) => !(f.step === "streak" && f.postedToday));
+    if (actionable.length) {
+      const waitingG = open.reduce((n, f) => n + (f.step === "streak" ? bonus : round.reward), 0);
+      const lines = open.map((f) => `• ${at(f.username)} ${FRIEND_STEP[f.step](f.postedToday, `+${g(bonus)}`)}`).join("\n");
+      const first = actionable[0];
+      return {
+        rule: "referrer_friends",
+        dedupeKey: dailyKey(history, "referrer_friends", nowMs),
+        title: `${g(waitingG)} waiting on your friends ⏳`,
+        body: `${at(first.username)} ${FRIEND_STEP[first.step](first.postedToday, `+${g(bonus)}`)}. A quick message from you helps.`,
+        path: "/referrals",
+        emailSubject: `${g(waitingG)} is waiting on your friends`,
+        emailHeading: `${name(p)}nudge your friends, get paid`,
+        emailBody:
+          `You've earned ${g(r.earnedG)} so far, and ${g(waitingG)} more is waiting on friends who haven't finished yet:\n\n${lines}\n\n` +
+          `Send them a quick message today. You get ${g(roundFirstPayment(round))} when a friend is verified and posts their first photo, and ${g(bonus)} more when they show up 3 days in a row.`,
+        cta: "See my friends",
+      };
+    }
+  }
+  return null;
+}
+
+/** Weekly while a round is open, for referrers whose friends have all finished: keep going. */
+export function referrerCheer(p: Person, nowMs: number): Nudge | null {
+  const r = p.referrer;
+  const ref = referralPhase(new Date(nowMs));
+  if (!r || ref.phase !== "live" || r.earnedG <= 0) return null;
+  const n = r.friends.length;
+  return {
+    rule: "referrer_cheer",
+    dedupeKey: `w${Math.floor(nowMs / (7 * DAY))}`,
+    title: `You've earned ${g(r.earnedG)} inviting friends 🏆`,
+    body: `${n} friend${n === 1 ? "" : "s"} so far. Every new one is worth ${g(ref.round.reward)} this week.`,
+    path: "/rewards#invite",
+    emailSubject: `${g(r.earnedG)} earned — you're one of our top inviters 🏆`,
+    emailHeading: `${name(p)}you're on a roll`,
+    emailBody: `You've brought ${n} friend${n === 1 ? "" : "s"} to Delulu this season and earned ${g(r.earnedG)}. Thank you 💛\n\nSpots are open this week: every new friend is worth ${g(ref.round.reward)} (${g(roundFirstPayment(ref.round))} when they post their first photo, the rest at 3 days in a row). Your link is in Rewards → Invite friends.`,
+    cta: "Share my link",
+  };
 }

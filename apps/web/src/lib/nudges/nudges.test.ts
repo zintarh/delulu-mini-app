@@ -176,3 +176,51 @@ test("last call: ~2h before the day closes with today's photo missing, naming th
   assert.equal(pickNudge(base({ activeCard: { ...card, dayEndsAt: new Date(now + 5 * H).toISOString() } }), now)?.rule, "square_due");
   assert.notEqual(pickNudge(base({ activeCard: { ...card, todayFilled: true } }), now)?.rule, "last_call");
 });
+
+// ── Referral funnel ──
+const inRound = Date.parse("2026-11-20T14:00:00Z"); // 3pm Lagos, week 1 of Season 2 is live
+const at = (h: number) => new Date(inRound - h * H).toISOString();
+const person = (over: Partial<Person> = {}) => base({ createdAt: at(30), onboardedAt: at(29), giftClaimedAt: at(28), lastSeenAt: at(2), lastProofAt: at(20), ...over });
+
+test("invited friend: a daily next step for each stage", () => {
+  const friend = { wallet: "0xref", username: "phemzy" };
+  const notSetUp = pickNudge(person({ referredBy: friend, onboardedAt: null, giftSent: false, everStartedBingo: false, lastProofAt: null }), inRound);
+  assert.equal(notSetUp?.rule, "referred_next_step");
+  assert.match(notSetUp!.title, /@phemzy/);
+  assert.match(notSetUp!.dedupeKey, /^d2026-11-20$/);
+  const notVerified = pickNudge(person({ referredBy: friend, giftSent: false, everStartedBingo: false, lastProofAt: null }), inRound);
+  assert.equal(notVerified?.rule, "referred_next_step");
+  assert.match(notVerified!.title, /face check/);
+  // After 5 ignored in a row: every 3 days instead of daily.
+  const ignored = Array.from({ length: 5 }, (_, i) => ({ rule: "referred_next_step", sentAt: at(24 * (i + 1)), acted: false }));
+  assert.match(pickNudge(person({ referredBy: friend, giftSent: false }), inRound, ignored)!.dedupeKey, /^r\d+$/);
+  // A running card hands over to the day-closing reminders.
+  const card = { attemptId: "a1", slug: "first-week", title: "Your First Week", days: 7, stake: 1000, startedAt: "", today: 1, todayFilled: false, todayMission: null, dayEndsAt: new Date(inRound + 5 * H).toISOString() };
+  assert.equal(pickNudge(person({ referredBy: friend, activeCard: card }), inRound)?.rule, "square_due");
+});
+
+test("referrer: paid → cheer, friends stuck → daily who's-where", () => {
+  const friends = [
+    { wallet: "0x1", username: "ada", step: "verify" as const, signedUpAt: at(30), postedToday: false },
+    { wallet: "0x2", username: "bola", step: "streak" as const, signedUpAt: at(50), postedToday: false },
+  ];
+  const paid = pickNudge(person({ referrer: { earnedG: 2000, friends, latestPaid: { key: "c1:first", amountG: 2000, friend: "bola", kind: "first" } } }), inRound);
+  assert.equal(paid?.rule, "referrer_paid");
+  assert.equal(paid?.dedupeKey, "c1:first");
+  assert.match(paid!.title, /\+2,000 G\$ — @bola counted/);
+
+  const stuck = pickNudge(person({ referrer: { earnedG: 2000, friends, latestPaid: null } }), inRound);
+  assert.equal(stuck?.rule, "referrer_friends");
+  assert.match(stuck!.title, /8,000 G\$ waiting/); // 5,000 for ada + 3,000 bonus for bola
+  assert.match(stuck!.emailBody, /@ada needs a quick face check/);
+  assert.match(stuck!.emailBody, /@bola hasn't posted today/);
+
+  // Everyone done → weekly cheer instead.
+  const done = friends.map((f) => ({ ...f, step: "done" as const }));
+  // (Someone with nothing running hears "start a 7-day Bingo" first; a player mid-card gets the cheer.)
+  const playing = { attemptId: "a9", slug: "outside-your-bubble", title: "Outside Your Bubble", days: 7, stake: 5000, startedAt: "", today: 2, todayFilled: true, todayMission: null, dayEndsAt: new Date(inRound + 5 * H).toISOString() };
+  const cheer = pickNudge(person({ activeCard: playing, referrer: { earnedG: 10000, friends: done, latestPaid: null } }), inRound);
+  assert.equal(cheer?.rule, "referrer_cheer");
+  // No round open → no referrer nudges.
+  assert.notEqual(pickNudge(base({ referrer: { earnedG: 2000, friends, latestPaid: null } }), now)?.rule, "referrer_friends");
+});
