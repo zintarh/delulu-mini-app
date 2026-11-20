@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
-import { Bolt, CheckDot, Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
+import { CheckDot, Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { compactCount } from "@/lib/rewards/public-stats";
 import { formatUsdFromG } from "@/lib/rewards/summary";
@@ -18,7 +18,8 @@ import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/c
 import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { useBingoList } from "@/hooks/use-bingo";
-import { fmtNgn } from "@/lib/earn/format";
+import { fmtNgn, fmtUsd } from "@/lib/earn/format";
+import { MONTHLY_PRIZE } from "@/lib/leaderboard/windows";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
 import { REFERRAL_ROUNDS, roundFirstPayment } from "@/lib/referral/campaign";
 
@@ -188,17 +189,10 @@ export default function HowToEarnPage() {
               href="/referrals"
             />
             <WayToEarn
-              art={<Bolt size={36} />}
-              title="Season points"
-              sub="Bigger stake, more points a day · climb the board"
-              badge="Season 2"
-              href="/leaderboard"
-            />
-            <WayToEarn
               art={<Trophy size={38} />}
-              title="Monthly top performers"
-              sub="Top and most consistent each month"
-              badge="Monthly"
+              title="Monthly leaderboard"
+              sub={`Top ${MONTHLY_PRIZE.winners} share ${MONTHLY_PRIZE.poolG.toLocaleString("en-US")} G$${facts ? ` ≈ ${fmtUsd(MONTHLY_PRIZE.poolG * facts.gdUsd)}` : ""} every month · bigger stake, more points`}
+              badge="500k G$"
               href="/leaderboard"
             />
           </div>

@@ -2,7 +2,6 @@
 
 import { useState, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useMonthlyCampaignLeaderboard } from "@/hooks/graph/useMonthlyCampaignLeaderboard";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useEarnedTotalsByAddresses, formatEarnedUsdt } from "@/hooks/use-earned-totals";
 import { cn } from "@/lib/utils";
@@ -10,13 +9,9 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Flame, Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
-import {
-  LOW_STAKE_POINTS,
-  SEASON_2_START_LABEL,
-  STAKE_PRESETS_REGULAR,
-  isSeason2Live,
-  seasonPointsForStake,
-} from "@/lib/season/rules";
+import { MONTHLY_PRIZE, boardWindow, weekWindow, type BoardWindow } from "@/lib/leaderboard/windows";
+import { useEarnFacts } from "@/hooks/use-earn-facts";
+import { fmtUsd } from "@/lib/earn/format";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCompact } from "@/lib/levels";
@@ -24,7 +19,7 @@ import Link from "next/link";
 
 const PAGE_SIZE = 10;
 
-type Tab = "season" | "monthly" | "global";
+type Tab = BoardWindow;
 
 type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number };
 
@@ -195,92 +190,61 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function MonthlyLeaderboard() {
-  const [page, setPage] = useState(0);
-  const { address } = useAuth();
-  const { entries: raw, hasNextPage, isLoading, totalCount, error, refetch } = useMonthlyCampaignLeaderboard(page, address);
-  const entries: Entry[] = raw.map((e) => ({ address: e.wallet_address, username: e.username, points: e.points_total, rank: e.rank, streak: e.streak }));
-  const pfpMap = usePfps(entries.map((e) => e.address.toLowerCase()));
-  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses(entries.map((e) => e.address));
-
-  if (isLoading && entries.length === 0) return <SkeletonRows />;
-  if (error) return <ErrorState onRetry={refetch} />;
-  if (entries.length === 0) return <EmptyState message="No one has joined a mission this month yet." />;
-
-  const me = address?.toLowerCase();
-  return (
-    <div>
-      <div className="flex items-center gap-3 pt-[18px]">
-        <span className="animate-bounce-in">
-          <TrophyArt size={44} />
-        </span>
-        <div>
-          <div className="text-lg font-extrabold">This month</div>
-          <div className="label-mono mt-[3px] text-[10px] text-muted-foreground">Mission points · resets monthly</div>
+/** What this board is playing for, and when it resets. */
+function BoardBanner({ win }: { win: BoardWindow }) {
+  const facts = useEarnFacts();
+  const range = boardWindow(win);
+  const daysLeft = Math.max(0, Math.ceil((range.endMs - Date.now()) / 86_400_000));
+  const ends = daysLeft <= 1 ? "ends today" : `${daysLeft} days left`;
+  if (win === "month") {
+    const usd = facts ? MONTHLY_PRIZE.poolG * facts.gdUsd : null;
+    return (
+      <div className="relative mt-4 overflow-hidden rounded-[22px] border-2 border-ink bg-ink p-4 text-white shadow-[0_4px_0_#000]">
+        <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-yellow/35 blur-3xl" aria-hidden />
+        <div className="relative flex items-center gap-3">
+          <span className="animate-bounce-in">
+            <TrophyArt size={48} />
+          </span>
+          <div className="min-w-0">
+            <p className="m-0 text-[13px] font-bold text-white/70">Top {MONTHLY_PRIZE.winners} share every month</p>
+            <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">
+              {MONTHLY_PRIZE.poolG.toLocaleString("en-US")} G$
+              {usd ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtUsd(usd)}</span> : null}
+            </p>
+            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Bigger stake, more points · {ends}</p>
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-1 pt-3">
-        {entries.map((e) => (
-          <Row
-            key={e.address}
-            entry={e}
-            isMe={e.address.toLowerCase() === me}
-            pfp={pfpMap[e.address.toLowerCase()]}
-            compact={false}
-            earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0}
-          />
-        ))}
-      </div>
-      <LeaderboardPagination
-        page={page}
-        rangeStart={page * PAGE_SIZE + 1}
-        rangeEnd={page * PAGE_SIZE + entries.length}
-        total={totalCount ?? undefined}
-        hasNextPage={hasNextPage}
-        onPrev={() => setPage((p) => Math.max(0, p - 1))}
-        onNext={() => setPage((p) => p + 1)}
-      />
-    </div>
-  );
-}
-
-function SeasonStartsCard() {
+    );
+  }
+  const w = weekWindow();
+  const endDay = new Date(w.endMs - 1).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Africa/Lagos" });
   return (
-    <div className="flex flex-col items-center py-10 text-center">
-      <Lulu size={64} mood="dream" />
-      <p className="mt-3 text-lg font-extrabold">Season 2 starts {SEASON_2_START_LABEL}</p>
-      <div className="mt-4 grid w-full max-w-xs grid-cols-3 gap-2">
-        {STAKE_PRESETS_REGULAR.map((stake) => (
-          <div key={stake} className="rounded-2xl border-2 border-line bg-white px-2 py-3 shadow-edge-sm">
-            <div className="font-display text-lg font-extrabold leading-none">{(stake / 1000).toFixed(0)}k G$</div>
-            <div className="label-mono mt-1 text-[10px] text-green-edge">+{seasonPointsForStake(stake).toLocaleString()} pts</div>
-          </div>
-        ))}
+    <div className="mt-4 flex items-center gap-3 rounded-[22px] border-2 border-line bg-white p-3.5 shadow-edge-sm">
+      <span className="animate-bounce-in">
+        <TrophyArt size={40} />
+      </span>
+      <div className="min-w-0">
+        <p className="m-0 text-[16px] font-extrabold">Week {w.index}</p>
+        <p className="label-mono m-0 mt-0.5 text-[10px] text-muted-foreground">
+          Bigger stake, more points · until {endDay} · {ends}
+        </p>
       </div>
-      <p className="label-mono mt-3 text-[10px] text-muted-foreground">Per proof · under 5k = {LOW_STAKE_POINTS} pts</p>
-      <Link href="/forfeit" className={gameButtonClass({ size: "sm", className: "mt-4" })}>
-        Start a goal
-      </Link>
     </div>
   );
 }
 
-function GlobalLeaderboard({ season }: { season: 1 | 2 }) {
+function Board({ win }: { win: BoardWindow }) {
   const [page, setPage] = useState(0);
   const { address } = useAuth();
-  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } = useAllUsersLeaderboard(page, address, season);
+  const { entries, hasNextPage, isLoading, totalCount, myRankEntry, myPageEntry, error, refetch } = useAllUsersLeaderboard(page, address, undefined, win);
   const me = address?.toLowerCase();
   const pfpMap = usePfps([...entries.map((e) => e.address.toLowerCase()), ...(me ? [me] : [])]);
-  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses([
-    ...entries.map((e) => e.address),
-    ...(me ? [me] : []),
-  ]);
+  const { totalsByAddress: earnedByAddress } = useEarnedTotalsByAddresses([...entries.map((e) => e.address), ...(me ? [me] : [])]);
 
   if (isLoading && entries.length === 0) return <SkeletonRows />;
   if (error) return <ErrorState onRetry={refetch} />;
-  if (entries.length === 0) {
-    return season === 2 ? <SeasonStartsCard /> : <EmptyState message="No one on the board yet." />;
-  }
+  if (entries.length === 0) return <EmptyState message={win === "week" ? "The week just started — your next photo puts you on the board." : "No one on the board yet this month."} />;
 
   const isOnCurrentPage = !!me && entries.some((e) => e.address.toLowerCase() === me);
   const pinnedMe: Entry | null =
@@ -292,24 +256,12 @@ function GlobalLeaderboard({ season }: { season: 1 | 2 }) {
 
   return (
     <div>
-      <div className="label-mono pt-3.5 text-[10px] text-muted-foreground">
-        {season === 2 ? "Season 2 · bigger stake, more points" : "Season 1 · all-time points"}
-      </div>
       {showPodium ? <Podium top={entries.slice(0, 3)} pfpMap={pfpMap} earnedByAddress={earnedByAddress} /> : null}
       <div className="flex flex-col gap-1 pt-1.5">
         {rows.map((e) => (
-          <Row
-            key={e.address}
-            entry={e}
-            isMe={e.address.toLowerCase() === me}
-            pfp={pfpMap[e.address.toLowerCase()]}
-            compact
-            earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0}
-          />
+          <Row key={e.address} entry={e} isMe={e.address.toLowerCase() === me} pfp={pfpMap[e.address.toLowerCase()]} compact earnedUsd={earnedByAddress[e.address.toLowerCase()] ?? 0} />
         ))}
-        {pinnedMe ? (
-          <Row entry={pinnedMe} isMe pfp={pfpMap[me!]} compact earnedUsd={earnedByAddress[me!] ?? 0} />
-        ) : null}
+        {pinnedMe ? <Row entry={pinnedMe} isMe pfp={pfpMap[me!]} compact earnedUsd={earnedByAddress[me!] ?? 0} /> : null}
       </div>
       <LeaderboardPagination
         page={page}
@@ -324,10 +276,9 @@ function GlobalLeaderboard({ season }: { season: 1 | 2 }) {
   );
 }
 
-/** Leaderboard (design: docs/redesign/screens/Leaderboard.dc.html). */
+/** Leaderboard: this week and this month — both scored on Season points (bigger stake, more points). */
 export default function LeaderboardPage() {
-  // Before Season 2 starts its board is empty — open on this month's instead.
-  const [activeTab, setActiveTab] = useState<Tab>(() => (isSeason2Live() ? "season" : "monthly"));
+  const [activeTab, setActiveTab] = useState<Tab>("month");
 
   return (
     <MainPage>
@@ -338,19 +289,13 @@ export default function LeaderboardPage() {
           value={activeTab}
           onChange={setActiveTab}
           options={[
-            { value: "season", label: "Season 2" },
-            { value: "monthly", label: "This month" },
-            { value: "global", label: "Season 1" },
+            { value: "week", label: "This week" },
+            { value: "month", label: "This month" },
           ]}
         />
+        <BoardBanner win={activeTab} />
         <Suspense fallback={<SkeletonRows />}>
-          {activeTab === "monthly" ? (
-            <MonthlyLeaderboard />
-          ) : activeTab === "season" ? (
-            isSeason2Live() ? <GlobalLeaderboard key="s2" season={2} /> : <SeasonStartsCard />
-          ) : (
-            <GlobalLeaderboard key="s1" season={1} />
-          )}
+          <Board key={activeTab} win={activeTab} />
         </Suspense>
       </div>
     </MainPage>

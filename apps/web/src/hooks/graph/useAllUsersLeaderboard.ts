@@ -37,7 +37,7 @@ type ApiResponse = {
  * (same total as home useUserTotalPoints).
  */
 /** `season` 1 = all-time totals, 2 = Season 2 (stake-scaled); omitted = the current season. */
-export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string, season?: 1 | 2) {
+export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: string, season?: 1 | 2, timeWindow?: "week" | "month") {
   const [entries, setEntries] = useState<UserLeaderboardEntry[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState<number | string | null>(null);
@@ -61,6 +61,7 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
         const qs = new URLSearchParams({ page: String(page) });
         if (currentUserAddress) qs.set("address", currentUserAddress);
         if (season) qs.set("season", String(season));
+        if (timeWindow) qs.set("window", timeWindow);
         const res = await fetch(`/api/leaderboard/global?${qs}`);
         const json = (await res.json()) as ApiResponse;
         if (cancelled) return;
@@ -101,7 +102,7 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
     return () => {
       cancelled = true;
     };
-  }, [page, currentUserAddress, reloadToken, season]);
+  }, [page, currentUserAddress, reloadToken, season, timeWindow]);
 
   const myPageEntry = useMemo(() => {
     if (!currentUserAddress) return null;

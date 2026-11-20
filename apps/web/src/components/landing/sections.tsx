@@ -261,7 +261,7 @@ export function TwoWaysSection() {
                 </div>
               ))}
             </div>
-            <span className="text-[12px] text-muted-foreground">Bigger stakes earn more points too — and climb the Season leaderboard.</span>
+            <span className="text-[12px] text-muted-foreground">Bigger stakes earn more points too — and climb the monthly leaderboard (top 10 share 500,000 G$).</span>
           </div>
 
           <div data-reveal="left" style={revealDelay(0.15)} className={card}>
@@ -314,7 +314,7 @@ export function FeaturesSection() {
     <section id="game" className="mx-auto flex max-w-[1240px] flex-col gap-12 px-6 py-[110px]">
       <SectionHead title="Every kept day counts." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
-        <Feature title="Leaderboards" line="Weekly rankings and an all-time board.">
+        <Feature title="Leaderboards" line="Weekly and monthly boards — the top 10 share 500,000 G$ every month.">
           <div className="flex w-full flex-col gap-1">
             <div className="mb-1 flex items-center gap-2">
               <Trophy size={32} />
