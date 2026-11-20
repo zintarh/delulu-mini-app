@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
-import { fetchGlobalAppPointsFromGraph, fetchSeasonPointsFromGraph } from "@/lib/community/campaign-subgraph";
+import { fetchBoardScoresFromGraph, fetchGlobalAppPointsFromGraph, fetchSeasonPointsFromGraph } from "@/lib/community/campaign-subgraph";
 import { SEASON_2_START_MS, isSeason2Live } from "@/lib/season/rules";
 import { boardWindow, type BoardWindow } from "@/lib/leaderboard/windows";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const range = win ? boardWindow(win) : null;
   const season = seasonParam === "1" ? 1 : seasonParam === "2" || isSeason2Live() ? 2 : 1;
   const rows = range
-    ? await fetchSeasonPointsFromGraph(Math.floor(range.startMs / 1000))
+    ? await fetchBoardScoresFromGraph(Math.floor(range.startMs / 1000))
     : season === 2
       ? await fetchSeasonPointsFromGraph(Math.floor(SEASON_2_START_MS / 1000))
       : await fetchGlobalAppPointsFromGraph();
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     username: row.username,
     delulu_points: row.delulu_points,
     campaign_points: row.campaign_points,
+    days_kept: row.days_kept ?? null,
   }));
   const streaks = await fetchLiveStreaks(admin, pageRows.map((r) => r.wallet_address));
   const pageWithStreaks = pageRows.map((r) => ({ ...r, streak: streaks[r.wallet_address.toLowerCase()] ?? 0 }));

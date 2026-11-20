@@ -11,6 +11,13 @@ export const WEEKLY_ANCHOR_MS = Date.UTC(2026, 10, 20) - LAGOS_OFFSET_MS;
 
 export type BoardWindow = "week" | "fortnight" | "month";
 
+/** Each day kept this round adds 10% to your stake points: 14 days kept = × 2.4. */
+export const CONSISTENCY_BOOST_PER_DAY = 0.1;
+/** Board score: stake points (stake ÷ 10 per kept day) × the consistency boost. */
+export function boardScore(stakePoints: number, daysKept: number): number {
+  return Math.round(stakePoints * (1 + CONSISTENCY_BOOST_PER_DAY * Math.max(0, daysKept)));
+}
+
 /** The top of the 2-week board share this pool every two weeks (500,000 G$ a month, split in two). */
 export const PRIZE = { poolG: 250_000, winners: 10, everyDays: 14 };
 

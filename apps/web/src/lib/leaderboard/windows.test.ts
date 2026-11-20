@@ -26,3 +26,14 @@ test("monthly board: the Lagos calendar month", () => {
   assert.equal(new Date(n.startMs).toISOString(), "2026-10-31T23:00:00.000Z");
   assert.equal(new Date(n.endMs).toISOString(), "2026-11-30T23:00:00.000Z");
 });
+
+test("board score: consistency and stake both climb — 7 days at 5k beats one day at 50k", async () => {
+  const { boardScore } = await import("@/lib/leaderboard/windows");
+  const steady = boardScore(7 * 500, 7); // 5k stake, 7 days → 3,500 × 1.7
+  const oneDay = boardScore(5_000, 1); // 50k stake, 1 day → 5,000 × 1.1
+  assert.equal(steady, 5950);
+  assert.equal(oneDay, 5500);
+  assert.ok(steady > oneDay);
+  // Same days: the bigger stake wins.
+  assert.ok(boardScore(7 * 1000, 7) > boardScore(7 * 500, 7));
+});

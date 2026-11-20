@@ -1,3 +1,4 @@
+import { boardScore } from "@/lib/leaderboard/windows";
 import { getSubgraphUrlForChain } from "@/lib/constant";
 import { CELO_MAINNET_ID, isGoodDollarToken, isLeaderboardBlacklisted } from "@/lib/constant";
 import { seasonPointsForStake } from "@/lib/season/rules";
@@ -954,6 +955,9 @@ export type GlobalAppPointsRow = {
   username: string | null;
   delulu_points: number;
   campaign_points: number;
+  /** Board windows only: distinct days (Lagos) with a kept proof, and the stake points before the consistency boost. */
+  days_kept?: number;
+  stake_points?: number;
 };
 
 const GLOBAL_USERS_POINTS_QUERY = `
@@ -1111,6 +1115,7 @@ const SEASON_FORFEIT_PROOFS_QUERY = `
     ) {
       id
       creatorAddress
+      createdAt
       commitment { stakeAmount token }
     }
   }
@@ -1125,6 +1130,7 @@ const SEASON_CAMPAIGN_PROOFS_QUERY = `
     ) {
       id
       participantAddress
+      createdAt
       participant { username }
       challenge { joinAmount joinToken isPaid }
     }
@@ -1164,6 +1170,62 @@ async function pageAll<T extends { id: string }>(
  * seasonPointsForStake(stake) — Forfeit goals and 3-day Bingos by their
  * stake, campaigns and weekly Bingos by the join stake.
  */
+/**
+ * Weekly / 2-week board: stake points (stake ÷ 10 per kept day, cap 100k —
+ * Forfeit goals, Bingos and missions alike) boosted by consistency: × (1 +
+ * 0.1 × days kept this round). Bigger stake and more days both climb.
+ */
+export async function fetchBoardScoresFromGraph(sinceUnix: number): Promise<GlobalAppPointsRow[]> {
+  const byWallet = new Map<string, { delulu: number; campaign: number; days: Set<string>; username: string | null }>();
+  const lagosDay = (createdAt: string | number | undefined) => new Date(Number(createdAt ?? 0) * 1000 + 3_600_000).toISOString().slice(0, 10);
+  const add = (wallet: string, field: "delulu" | "campaign", pts: number, createdAt: string | undefined, username: string | null = null) => {
+    const w = wallet.toLowerCase();
+    const row = byWallet.get(w) ?? { delulu: 0, campaign: 0, days: new Set<string>(), username: null };
+    row[field] += pts;
+    row.days.add(lagosDay(createdAt));
+    if (!row.username && username) row.username = username;
+    byWallet.set(w, row);
+  };
+  try {
+    const [forfeits, campaigns] = await Promise.all([
+      pageAll<{ id: string; creatorAddress: string; createdAt: string; commitment: { stakeAmount: string; token: string } | null }>(
+        SEASON_FORFEIT_PROOFS_QUERY,
+        "forfeitPeriodResolutions",
+        sinceUnix,
+      ),
+      pageAll<{
+        id: string;
+        participantAddress: string;
+        createdAt: string;
+        participant: { username: string | null } | null;
+        challenge: { joinAmount: string; joinToken: string | null; isPaid: boolean } | null;
+      }>(SEASON_CAMPAIGN_PROOFS_QUERY, "communityCampaignMilestoneCompletions", sinceUnix),
+    ]);
+    for (const r of forfeits) add(r.creatorAddress, "delulu", seasonPointsForStake(gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token)), r.createdAt);
+    for (const r of campaigns) {
+      const stake = r.challenge?.isPaid ? gDollarWhole(r.challenge.joinAmount, r.challenge.joinToken) : 0;
+      add(r.participantAddress, "campaign", seasonPointsForStake(stake), r.createdAt, r.participant?.username ?? null);
+    }
+  } catch {
+    return [];
+  }
+  return Array.from(byWallet.entries())
+    .map(([wallet_address, v]) => {
+      const stakePoints = v.delulu + v.campaign;
+      return {
+        wallet_address,
+        points_total: boardScore(stakePoints, v.days.size),
+        username: v.username,
+        delulu_points: v.delulu,
+        campaign_points: v.campaign,
+        days_kept: v.days.size,
+        stake_points: stakePoints,
+      };
+    })
+    .filter((r) => r.points_total > 0 && !isLeaderboardBlacklisted(r.wallet_address))
+    .sort((a, b) => b.points_total - a.points_total || (b.days_kept ?? 0) - (a.days_kept ?? 0));
+}
+
 export async function fetchSeasonPointsFromGraph(sinceUnix: number): Promise<GlobalAppPointsRow[]> {
   const byWallet = new Map<string, { delulu: number; campaign: number; username: string | null }>();
   const add = (wallet: string, field: "delulu" | "campaign", pts: number, username: string | null = null) => {

@@ -21,7 +21,7 @@ const PAGE_SIZE = 10;
 
 type Tab = BoardWindow;
 
-type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number };
+type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number; daysKept?: number };
 
 /** Days in a row — what we reward. Shown next to points so consistency is visible, not just volume. */
 function StreakFlame({ days, className }: { days?: number; className?: string }) {
@@ -98,6 +98,7 @@ function Row({
         <span className="label-mono text-xs font-semibold text-ink">
           {entry.points > 0 ? `${compact ? formatCompact(entry.points) : entry.points.toLocaleString()} pts` : "—"}
         </span>
+        {entry.daysKept ? <span className="label-mono text-[10px] text-green-edge">{entry.daysKept} {entry.daysKept === 1 ? "day" : "days"} kept</span> : null}
         {earnedUsd > 0 ? (
           <span className="label-mono text-[10px] text-muted-foreground">{formatEarnedUsdt(earnedUsd)} earned</span>
         ) : null}
@@ -212,7 +213,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
               {PRIZE.poolG.toLocaleString("en-US")} G$
               {usd ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtUsd(usd)}</span> : null}
             </p>
-            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Bigger stake, more points · {ends}</p>
+            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Bigger stake + more days kept = higher rank · {ends}</p>
           </div>
         </div>
       </div>
@@ -228,7 +229,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
       <div className="min-w-0">
         <p className="m-0 text-[16px] font-extrabold">Week {w.index}</p>
         <p className="label-mono m-0 mt-0.5 text-[10px] text-muted-foreground">
-          Bigger stake, more points · until {endDay} · {ends}
+          Bigger stake + more days kept = higher rank · until {endDay} · {ends}
         </p>
       </div>
     </div>
