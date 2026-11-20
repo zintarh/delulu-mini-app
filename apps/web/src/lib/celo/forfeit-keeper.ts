@@ -68,3 +68,52 @@ export async function resolveCommitmentForfeitedAsKeeper(
   }
   return hash;
 }
+
+/**
+ * Delulu's server as a Bingo card's verifier: the card is created naming this
+ * wallet, so once the AI approves a photo the server marks the day done itself
+ * — the player signs nothing after the photo, so nothing can strand it.
+ */
+export function keeperAddress(): `0x${string}` | null {
+  try {
+    return getKeeperAccount().address.toLowerCase() as `0x${string}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Marks the commitment's current period successful as its verifier. Retries a
+ * couple of times when another server call from this wallet raced it for the
+ * nonce. Returns the tx hash once mined.
+ */
+export async function resolveCommitmentSuccessAsKeeper(commitmentId: bigint): Promise<`0x${string}`> {
+  const account = getKeeperAccount();
+  const rpc = getRpcUrl();
+  const address = getForfeitMarketAddress(DELULU_CHAIN_ID);
+  const publicClient = createPublicClient({ chain: celo, transport: http(rpc) });
+  const walletClient = createWalletClient({ account, chain: celo, transport: http(rpc) });
+
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const nonce = await publicClient.getTransactionCount({ address: account.address, blockTag: "pending" });
+      const hash = await walletClient.writeContract({
+        address,
+        abi: FORFEIT_MARKET_ABI,
+        functionName: "resolveCommitmentSuccess",
+        args: [commitmentId],
+        nonce,
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, timeout: 30_000 });
+      if (receipt.status !== "success") throw new Error(`resolveCommitmentSuccess reverted for commitment ${commitmentId}`);
+      return hash;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/nonce|replacement|underpriced|already known/i.test(msg)) break;
+      await new Promise((r) => setTimeout(r, 800 + attempt * 700));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}

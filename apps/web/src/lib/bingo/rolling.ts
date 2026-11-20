@@ -1,3 +1,4 @@
+import { keeperAddress } from "@/lib/celo/forfeit-keeper";
 import { isFirstWeekEligible, isFirstWeekSlug } from "@/lib/bingo/first-week";
 import { createPublicClient, http, parseUnits } from "viem";
 import { celo } from "viem/chains";
@@ -105,7 +106,8 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
     c.cadence === DAILY_CADENCE &&
     c.periodSeconds === DAY_MS / 1000 &&
     c.totalPeriods === campaign.duration_days &&
-    c.verifier === "0x0000000000000000000000000000000000000000" &&
+    // No verifier (older cards: the player resolves each day) or Delulu's server (new cards: it resolves after the AI approves).
+    (c.verifier === "0x0000000000000000000000000000000000000000" || c.verifier === keeperAddress()) &&
     c.active;
   if (!ok || !tier) throw new Error("That stake doesn't match this Bingo's terms.");
 

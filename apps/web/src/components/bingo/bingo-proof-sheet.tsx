@@ -118,7 +118,9 @@ export function BingoProofSheet({
         });
       }
 
-      if (json.requiresOnChain && json.kind === "forfeit") {
+      if (json.filled) {
+        // Server-verified card: Delulu already marked the day done — nothing to sign.
+      } else if (json.requiresOnChain && json.kind === "forfeit") {
         // 3-day card = the player's own goal: prove today, resolve today, exactly like a personal delulu.
         setStep("signing");
         const proofTx = await submitProofAndWait(json.onChainCommitmentId, json.proofUrl);

@@ -12,7 +12,8 @@ import {
 } from "@/lib/constant";
 import { isCampaignExpired } from "@/lib/community/campaign-types";
 import { parseCommunityMilestoneProofSubmittedFromTx } from "@/lib/dashboard/parse-challenge-tx";
-import { parseProofSubmittedFromTx } from "@/lib/dashboard/parse-forfeit-tx";
+import { parsePeriodResolvedSuccessFromTx, parseProofSubmittedFromTx } from "@/lib/dashboard/parse-forfeit-tx";
+import { keeperAddress } from "@/lib/celo/forfeit-keeper";
 import { engineRewardId } from "@/lib/celo/reward-vault-payout";
 import { recordApprovedProof } from "@/lib/proof-reward/grant";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
@@ -137,7 +138,9 @@ async function resolveVerifiedProof(
     };
   }
 
-  const event = await parseProofSubmittedFromTx(proofTxHash);
+  // Server-verified Bingo cards have no player proof tx: Delulu's verifier resolves the day
+  // after the AI approves, and that resolve tx stands in for the proof.
+  const event = (await parseProofSubmittedFromTx(proofTxHash).catch(() => null)) ?? (await serverVerifiedProof(admin, proofTxHash));
   if (!event) return { status: "not_eligible", reason: "proof_not_found" };
 
   const { data: commitment } = await admin
@@ -180,6 +183,29 @@ async function resolveVerifiedProof(
     goalKind: "forfeit",
     goalRef: commitment.id as string,
   };
+}
+
+/**
+ * A Bingo day resolved by Delulu's verifier, read as a proof: the resolve tx
+ * must come from our verifier wallet, and the square it finished (recorded
+ * with this tx) gives the creator, the day and the exact approved photo.
+ */
+async function serverVerifiedProof(
+  admin: SupabaseAdmin,
+  txHash: `0x${string}`,
+): Promise<{ commitmentId: bigint; periodIndex: number; creator: string; proofLink: string } | null> {
+  const keeper = keeperAddress();
+  if (!keeper) return null;
+  const resolved = await parsePeriodResolvedSuccessFromTx(txHash).catch(() => null);
+  if (!resolved || resolved.resolver !== keeper) return null;
+  const { data: sq } = await admin
+    .from("bingo_squares")
+    .select("slot_index, proof_url, bingo_attempts!inner(wallet, forfeit_commitment_id)")
+    .eq("proof_tx", txHash.toLowerCase())
+    .maybeSingle();
+  const att = sq ? ((Array.isArray(sq.bingo_attempts) ? sq.bingo_attempts[0] : sq.bingo_attempts) as { wallet: string; forfeit_commitment_id: number | null }) : null;
+  if (!sq || !att || String(att.forfeit_commitment_id) !== resolved.commitmentId.toString()) return null;
+  return { commitmentId: resolved.commitmentId, periodIndex: Number(sq.slot_index), creator: String(att.wallet).toLowerCase(), proofLink: String(sq.proof_url) };
 }
 
 /**

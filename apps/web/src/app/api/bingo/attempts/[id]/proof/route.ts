@@ -9,6 +9,7 @@ import { readPeriodOutcome } from "@/lib/bingo/rolling";
 import { parseTzOffset } from "@/lib/proof-integrity/check";
 import { reviewProof } from "@/lib/proof-integrity/review";
 import { recordApprovedProof } from "@/lib/proof-reward/grant";
+import { finishDayAsVerifier, isServerVerified } from "@/lib/bingo/server-verify";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -233,6 +234,19 @@ async function rollingProof(
   }
   if (outcome === 2) return err("A day was missed, so this card has ended. Start a fresh one.", 400, { code: "missed_day" });
 
+  // Server-verified card (Delulu's server is its verifier): Delulu marks the day done itself.
+  const serverVerified = await isServerVerified(onChainId).catch(() => false);
+  // Photo already approved, day not finished (a timeout): finish it now — no second review.
+  if (serverVerified && existing?.status === "confirming") {
+    try {
+      await finishDayAsVerifier(admin, { attemptId: attempt.id, squareIndex });
+      return NextResponse.json({ verified: true, filled: true });
+    } catch (e) {
+      console.error("[bingo/proof] server finish failed", e);
+      return err("Your photo is approved — we're saving your day. Tap again in a moment.", 503, { code: "finishing" });
+    }
+  }
+
   const { data: goal } = await admin.from("forfeit_commitments").select("id").eq("on_chain_commitment_id", onChainId).maybeSingle();
   if (!goal) return err("Your card is still syncing. Try again in a moment.", 503);
 
@@ -272,6 +286,18 @@ async function rollingProof(
 
   // Same reward path as a personal goal: this exact photo, proven on-chain, earns.
   await recordApprovedProof(admin, { wallet, kind: "forfeit", proofUrl: proofUrls[0], refId: goal.id as string });
+
+  if (serverVerified) {
+    // Approved → done: Delulu's server marks the day on-chain, fills the square and runs the reward.
+    // If this times out, the photo stays approved and the 5-minute keeper finishes it.
+    try {
+      await finishDayAsVerifier(admin, { attemptId: attempt.id, squareIndex });
+      return NextResponse.json({ verified: true, filled: true, reason: review.reason });
+    } catch (e) {
+      console.error("[bingo/proof] server finish failed", e);
+      return err("Your photo is approved — we're saving your day. It'll show in a few minutes.", 503, { code: "finishing" });
+    }
+  }
 
   return NextResponse.json({
     verified: true,

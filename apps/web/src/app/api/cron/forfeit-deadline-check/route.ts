@@ -7,6 +7,7 @@ import { isCronAuthorized } from "@/lib/cron-auth";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { getSubgraphUrlForChain, CELO_MAINNET_ID } from "@/lib/constant";
 import { getKeeperStatus, resolveCommitmentForfeitedAsKeeper } from "@/lib/celo/forfeit-keeper";
+import { sweepUnfinishedDays } from "@/lib/bingo/server-verify";
 import { notifyManyRecipients } from "@/lib/push/notify-recipients";
 import { getTokenSymbol, weiToTokenAmount } from "@/lib/token-amounts";
 import { creditProfileEarnedFromToken } from "@/lib/profile-earned";
@@ -113,6 +114,13 @@ export async function GET(req: NextRequest) {
     if (!subgraphUrl) return errorResponse("Missing subgraph URL.", 500);
 
     const nowSec = Math.floor(Date.now() / 1000);
+
+    // ── 0) Finish approved Bingo days first: a server-verified card's photo that was approved
+    //       but never marked done on-chain (a timeout) is finished before anything is forfeited.
+    const unfinished = await sweepUnfinishedDays(supabase).catch((err) => {
+      console.error("[forfeit-deadline-check] unfinished-days sweep failed", err);
+      return null;
+    });
 
     // ── 1) Backstop-resolve overdue commitments ──
     const overdueResp = await fetchGraph(subgraphUrl, OVERDUE_QUERY, { now: String(nowSec) });
@@ -297,6 +305,7 @@ export async function GET(req: NextRequest) {
     return jsonResponse({
       ok: true,
       nowSec,
+      unfinishedDays: unfinished ?? undefined,
       overdueFound: overdue.length,
       resolved,
       resolveFailed,
