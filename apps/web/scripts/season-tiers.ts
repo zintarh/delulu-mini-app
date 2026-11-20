@@ -9,7 +9,10 @@ import { createClient } from "@supabase/supabase-js";
 import { versionSchemaFor, type BingoTier } from "@/lib/bingo/types";
 
 const APPLY = process.argv.includes("--apply");
+/** 3-day Bingos: half of these (2k/3k/5k → +80/+120/+200). */
 const pct = (stake: number) => (stake >= 200_000 ? 0.15 : stake >= 50_000 ? 0.12 : stake >= 20_000 ? 0.1 : 0.08);
+/** 7-day Bingos, juicier from 20 Nov 2026: 10% (10k), 12% (20–30k), 15% (50k+). Running cards keep theirs. */
+const pct7 = (stake: number) => (stake >= 50_000 ? 0.15 : stake >= 20_000 ? 0.12 : 0.1);
 const LABEL: Record<number, string> = { 2_000: "Light", 3_000: "Easy", 5_000: "Starter", 10_000: "Committed", 20_000: "Pro", 30_000: "Pro+", 50_000: "Gold", 100_000: "Gold+", 200_000: "Diamond", 300_000: "Diamond+" };
 const tiers = (days: 3 | 7, stakes: number[]): BingoTier[] =>
   stakes.map((stake) => ({
@@ -17,7 +20,7 @@ const tiers = (days: 3 | 7, stakes: number[]): BingoTier[] =>
     label: LABEL[stake],
     stake,
     forfeitPct: 0,
-    completionReward: Math.round((stake * pct(stake) * (days === 7 ? 1 : 0.5)) / 10) * 10,
+    completionReward: Math.round((stake * (days === 7 ? pct7(stake) : pct(stake) * 0.5)) / 10) * 10,
   }));
 
 const SEVEN_DAY = [10_000, 20_000, 30_000, 50_000, 100_000];
