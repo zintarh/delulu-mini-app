@@ -11,7 +11,6 @@ import { DailyMoneyCard } from "@/components/home/daily-money-card";
 import { HomeCampaigns, useHomeCampaignLists } from "@/components/home/home-campaigns";
 import { HomeBingo } from "@/components/home/home-bingo";
 import { HomeNextStep, useHomeNextStep } from "@/components/home/home-next-step";
-import { FlowStateCard } from "@/components/home/flow-state-card";
 import { ReferralBanner } from "@/components/referral-banner";
 import { AtStakeCard } from "@/components/home/at-stake-card";
 import { HomeFirstWeek } from "@/components/home/home-first-week";
@@ -86,7 +85,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
               <HomeNextStep />
               <AtStakeCard />
               {/* Slim rows: the two things everyone should see right now. */}
-              <FlowStateCard />
               <ReferralBanner address={address} />
               <DailyMoneyCard />
             </div>

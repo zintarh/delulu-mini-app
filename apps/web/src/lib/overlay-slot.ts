@@ -39,9 +39,10 @@ export function setBlockingOverlay(name: string, open: boolean) {
  * May an automatic prompt `name` show now? Only one per visit, never over a
  * must-see modal, and not on the first visit.
  */
-export function canAutoShow(name: string): boolean {
+export function canAutoShow(name: string, opts: { firstVisit?: boolean } = {}): boolean {
   if (blocking.size > 0) return false;
-  if (visitNumber() < 2) return false;
+  // `firstVisit`: important enough for a newcomer's first visit too (the Flow State vote) — still after the intro and gift.
+  if (!opts.firstVisit && visitNumber() < 2) return false;
   try {
     const taken = sessionStorage.getItem(SLOT_SESSION_KEY);
     return !taken || taken === name;

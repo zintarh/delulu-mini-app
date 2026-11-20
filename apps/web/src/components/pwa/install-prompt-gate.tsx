@@ -4,27 +4,11 @@ import { useEffect, useState } from "react";
 import { AddToHomeSheet } from "@/components/pwa/add-to-home-sheet";
 import { isMobileDevice, isStandalone } from "@/hooks/use-install-prompt";
 import { useAuth } from "@/hooks/use-auth";
-import { canAutoShow, takeAutoSlot } from "@/lib/overlay-slot";
+import { canAutoShow, takeAutoSlot, visitNumber } from "@/lib/overlay-slot";
 
 const DISMISSED_KEY = "delulu:install-prompt-dismissed-at";
 const WAIT_MS = 2 * 24 * 60 * 60 * 1000;
-const VISITS_KEY = "delulu:visits";
-const VISIT_SESSION_KEY = "delulu:visit-counted";
 
-/** Counts visits (one per browser session) and returns the total, this one included. */
-function countVisit(): number {
-  try {
-    let n = Number(localStorage.getItem(VISITS_KEY) ?? 0) || 0;
-    if (!sessionStorage.getItem(VISIT_SESSION_KEY)) {
-      n += 1;
-      localStorage.setItem(VISITS_KEY, String(n));
-      sessionStorage.setItem(VISIT_SESSION_KEY, "1");
-    }
-    return n;
-  } catch {
-    return 2; // storage blocked: don't hold the prompt back forever
-  }
-}
 /** Fire this anywhere a reminder would matter now (e.g. right after joining a Bingo). */
 export const SUGGEST_INSTALL_EVENT = "delulu:suggest-install";
 
@@ -58,14 +42,14 @@ export function InstallPromptGate() {
       /* storage blocked */
     }
     // Automatic: from the 2nd visit, at most one prompt a visit, never over the intro or gift.
-    const visits = countVisit();
+    const visits = visitNumber();
     const t =
       visits >= 2 && Date.now() - dismissedAt > WAIT_MS
         ? window.setTimeout(() => {
             if (!canAutoShow("install")) return;
             takeAutoSlot("install");
             setOpen(true);
-          }, 2500)
+          }, 6000) // after the vote prompt has had its turn
         : undefined;
     const onSuggest = (e: Event) => {
       const reason = (e as CustomEvent<{ reason?: "joined" | "proof" }>).detail?.reason ?? "joined";

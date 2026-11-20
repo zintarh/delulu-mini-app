@@ -68,6 +68,10 @@ const NoGasBanner = dynamic(
   () => import("@/components/no-gas-banner").then((m) => m.NoGasBanner),
   { ssr: false },
 );
+const VotePrompt = dynamic(
+  () => import("@/components/flow-state/vote-prompt").then((m) => m.VotePrompt),
+  { ssr: false },
+);
 const InstallPromptGate = dynamic(
   () => import("@/components/pwa/install-prompt-gate").then((m) => m.InstallPromptGate),
   { ssr: false },
@@ -284,6 +288,8 @@ function MainLayoutShell({ children }: { children: React.ReactNode }) {
           <AppToast />
           <NoGasBanner />
           <EnableNotificationsBanner />
+          {/* The Flow State vote takes the visit's pop-up first — voting matters most right now. */}
+          <VotePrompt />
           <InstallPromptGate />
           <RewardsClaimBanner />
           {/* First-run intro goes first; the gift and email modals wait for it. */}
