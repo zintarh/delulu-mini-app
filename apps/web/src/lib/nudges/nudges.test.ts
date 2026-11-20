@@ -224,3 +224,16 @@ test("referrer: paid → cheer, friends stuck → daily who's-where", () => {
   // No round open → no referrer nudges.
   assert.notEqual(pickNudge(base({ referrer: { earnedG: 2000, friends, latestPaid: null } }), now)?.rule, "referrer_friends");
 });
+
+test("flow vote: verified non-voters every 2 days, stops on vote or after 4 ignored", () => {
+  const playing = { attemptId: "a9", slug: "outside-your-bubble", title: "Outside Your Bubble", days: 7, stake: 5000, startedAt: "", today: 2, todayFilled: true, todayMission: null, dayEndsAt: new Date(inRound + 5 * H).toISOString() };
+  const n = pickNudge(person({ activeCard: playing, flowVote: "todo" }), inRound);
+  assert.equal(n?.rule, "flow_vote");
+  assert.equal(n?.path, "/flow-state");
+  assert.notEqual(pickNudge(person({ activeCard: playing, flowVote: "voted" }), inRound)?.rule, "flow_vote");
+  assert.notEqual(pickNudge(person({ activeCard: playing, flowVote: "unverified" }), inRound)?.rule, "flow_vote");
+  // The one-off vote email yesterday → wait.
+  assert.notEqual(pickNudge(person({ activeCard: playing, flowVote: "todo" }), inRound, [{ rule: "flow_vote_ask", sentAt: at(20), acted: false }])?.rule, "flow_vote");
+  const ignored = Array.from({ length: 4 }, (_, i) => ({ rule: "flow_vote", sentAt: at(48 * (i + 1) + 1), acted: false }));
+  assert.notEqual(pickNudge(person({ activeCard: playing, flowVote: "todo" }), inRound, ignored)?.rule, "flow_vote");
+});

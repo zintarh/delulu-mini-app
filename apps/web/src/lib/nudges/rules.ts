@@ -8,6 +8,7 @@ import { referralPhase, roundFirstPayment } from "@/lib/referral/campaign";
 import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 import { earnersLine, fmtMoney, type EarnFacts } from "@/lib/earn/format";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
+import { flowStateLive } from "@/lib/flow-state";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -33,6 +34,7 @@ export const NUDGE_RULES = [
   "referred_next_step",
   "referrer_paid",
   "referrer_friends",
+  "flow_vote",
   "setup_unfinished",
   "verify_for_gift",
   "gift_not_played",
@@ -54,6 +56,7 @@ export const RULE_LABEL: Record<NudgeRule, string> = {
   referrer_paid: "Referrer just got paid",
   referrer_friends: "Referrer: friends still to finish",
   referrer_cheer: "Referrer: weekly cheer",
+  flow_vote: "Verified, hasn't voted for Delulu on Flow State",
   setup_unfinished: "Setup not finished",
   verify_for_gift: "Not verified (no gift)",
   gift_not_played: "Gift not played",
@@ -233,6 +236,8 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
   //        referrers hear when they're paid and where their friends are stuck.
   const referral = referralNudge(p, nowMs, history, facts);
   if (referral) return referral;
+  const vote = flowVoteNudge(p, nowMs, history);
+  if (vote) return vote;
 
   // 3. Signed up but never finished setup (first 3 days).
   if (!p.onboardedAt && age >= 2 * HOUR && age <= 3 * DAY) {
@@ -484,6 +489,8 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
       return after(p.installedAt);
     case "referred_next_step":
       return after(p.lastProofAt) || after(p.onboardedAt) || (!!p.giftClaimedAt && after(p.giftClaimedAt)) || after(p.lastSeenAt);
+    case "flow_vote":
+      return p.flowVote === "voted";
     case "referrer_paid":
     case "referrer_friends":
     case "referrer_cheer":
@@ -591,7 +598,8 @@ export function referralNudge(p: Person, nowMs: number, history: NudgeHistory, f
       emailBody:
         `${lp.kind === "bonus" ? `${who} showed up 3 days in a row` : `${who} is verified and posted their first photo`}, so ${g(lp.amountG)} just landed in your wallet.\n\n` +
         `That's ${g(r.earnedG)} from ${counted} friend${counted === 1 ? "" : "s"} this season.` +
-        (round ? ` Every new friend is worth ${g(round.reward)}, and there's no limit per person.` : ""),
+        (round ? ` Every new friend is worth ${g(round.reward)}, and there's no limit per person.` : "") +
+        VOTE_FAVOUR(),
       cta: "See my friends",
     };
   }
@@ -616,7 +624,8 @@ export function referralNudge(p: Person, nowMs: number, history: NudgeHistory, f
         emailHeading: `${name(p)}nudge your friends, get paid`,
         emailBody:
           `You've earned ${g(r.earnedG)} so far, and ${g(waitingG)} more is waiting on friends who haven't finished yet:\n\n${lines}\n\n` +
-          `Send them a quick message today. You get ${g(roundFirstPayment(round))} when a friend is verified and posts their first photo, and ${g(bonus)} more when they show up 3 days in a row.`,
+          `Send them a quick message today. You get ${g(roundFirstPayment(round))} when a friend is verified and posts their first photo, and ${g(bonus)} more when they show up 3 days in a row.` +
+          VOTE_FAVOUR(),
         cta: "See my friends",
       };
     }
@@ -640,5 +649,37 @@ export function referrerCheer(p: Person, nowMs: number): Nudge | null {
     emailHeading: `${name(p)}you're on a roll`,
     emailBody: `You've brought ${n} friend${n === 1 ? "" : "s"} to Delulu this season and earned ${g(r.earnedG)}. Thank you 💛\n\nSpots are open this week: every new friend is worth ${g(ref.round.reward)} (${g(roundFirstPayment(ref.round))} when they post their first photo, the rest at 3 days in a row). Your link is in Rewards → Invite friends.`,
     cta: "Share my link",
+  };
+}
+
+// ── Flow State vote ─────────────────────────────────────────────────────────
+
+/** One extra line on referrer emails while voting is open: their verified friends can vote too. */
+const VOTE_FAVOUR = () =>
+  flowStateLive() ? "\n\n🗳️ One favour: Delulu is up for GoodBuilders funding on Flow State. Ask your friends to tap Vote for Delulu in the app. It's free and takes one tap, and it keeps the rewards flowing." : "";
+
+/** Face-verified and not voting for Delulu yet: every 2 days, stops once they vote or after 4 ignored. */
+export function flowVoteNudge(p: Person, nowMs: number, history: NudgeHistory): Nudge | null {
+  if (!flowStateLive() || p.flowVote !== "todo") return null;
+  const asks = history.filter((h) => h.rule === "flow_vote" || h.rule === "flow_vote_ask");
+  if (asks.some((h) => nowMs - Date.parse(h.sentAt) < 2 * DAY)) return null;
+  if (ignoredRun(history, "flow_vote") >= 4) return null;
+  const variant = history.filter((h) => h.rule === "flow_vote").length % 3;
+  const copy = [
+    { title: "🗳️ Delulu needs your vote", body: "Free, one tap in the app. Your vote keeps the rewards flowing." },
+    { title: "One tap for Delulu? 🗳️", body: "You're verified, so you can vote on Flow State right inside Delulu. Free." },
+    { title: "Your vote = more rewards 💛", body: "Delulu is up for GoodBuilders funding. Tap Vote in the app, it takes seconds." },
+  ][variant];
+  return {
+    rule: "flow_vote",
+    dedupeKey: `v${Math.floor(nowMs / (2 * DAY))}`,
+    ...copy,
+    path: "/flow-state",
+    emailSubject: variant === 0 ? "Delulu needs your vote 🗳️" : variant === 1 ? "Can you give Delulu one tap? 🗳️" : "Your vote keeps Delulu's rewards flowing",
+    emailHeading: `${name(p)}can you vote for Delulu?`,
+    emailBody:
+      "Delulu is up for GoodBuilders funding on Flow State, and the votes decide how much flows to us — and so how much we can pay out to you.\n\n" +
+      "You've done your face check, so you can vote. Open Delulu and tap Vote: it's free, no fee, and takes a few seconds right in the app.\n\nThank you for being part of this 💛",
+    cta: "Vote for Delulu",
   };
 }
