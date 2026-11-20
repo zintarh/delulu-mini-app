@@ -26,7 +26,7 @@ test("round 1 starts Tue 17 Nov at Lagos midnight and pays 10,000 G$ up to its s
   assert.equal(currentReferralRound(new Date("2026-11-16T22:59:59Z")), null);
   const r1 = currentReferralRound(new Date("2026-11-16T23:00:00Z"));
   assert.ok(r1);
-  assert.equal(r1.reward, 10_000);
+  assert.equal(r1.reward, 7_000);
   assert.equal(roundCapacity(r1), r1.slots);
   assert.equal(currentReferralRound(new Date("2026-11-23T22:59:59Z")), r1);
   assert.equal(currentReferralRound(new Date("2026-11-23T23:00:00Z")), REFERRAL_ROUNDS[1]);
@@ -39,5 +39,5 @@ test("a credit pays at its own round's reward, also after that round ends", () =
   assert.equal(isInCurrentReferralCampaign("2026-11-01T00:00:00Z"), false);
   assert.equal(isInCurrentReferralCampaign("2026-11-17T09:00:00+01:00"), true);
   assert.equal(isInCurrentReferralCampaign("2026-11-18T09:00:00+01:00"), true);
-  assert.equal(referralRewardNow(new Date("2026-11-17T12:00:00Z")), 10_000);
+  assert.equal(referralRewardNow(new Date("2026-11-17T12:00:00Z")), 7_000);
 });

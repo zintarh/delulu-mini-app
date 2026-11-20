@@ -14,10 +14,10 @@ test("3 days in a row, by Lagos day", () => {
   assert.equal(hasConsecutiveDays([]), false);
 });
 
-test("10,000 per friend: 7,000 first, 3,000 bonus; budget counts whole friends", () => {
+test("7,000 per friend: 4,000 first, 3,000 bonus; budget counts whole friends", () => {
   const r = REFERRAL_ROUNDS[0];
-  assert.equal(r.reward, 10_000);
-  assert.equal(roundFirstPayment(r), 7000);
+  assert.equal(r.reward, 7_000);
+  assert.equal(roundFirstPayment(r), 4000);
   assert.equal(r.reward - roundFirstPayment(r), 3000);
   assert.equal(roundCapacity(r), r.slots);
 });
