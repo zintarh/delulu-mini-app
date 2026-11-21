@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fetchBoardScoresFromGraph, fetchGlobalAppPointsFromGraph, fetchSeasonPointsFromGraph } from "@/lib/community/campaign-subgraph";
-import { SEASON_2_START_MS, isSeason2Live } from "@/lib/season/rules";
+import { SEASON_2_POINTS_START_MS, isSeason2PointsLive } from "@/lib/season/rules";
 import { FIRST_WEEK_BOARD_STAKE, boardWindow, type BoardWindow } from "@/lib/leaderboard/windows";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { enrichLeaderboardWithUsernames } from "@/lib/community/enrich-leaderboard-usernames";
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const windowParam = request.nextUrl.searchParams.get("window");
   const win: BoardWindow | null = windowParam === "week" || windowParam === "fortnight" || windowParam === "month" ? windowParam : null;
   const range = win ? boardWindow(win) : null;
-  const season = seasonParam === "1" ? 1 : seasonParam === "2" || isSeason2Live() ? 2 : 1;
+  const season = seasonParam === "1" ? 1 : seasonParam === "2" || isSeason2PointsLive() ? 2 : 1;
   // New players: First Week cards score like a 10k stake, so a kept week can rank.
   const firstWeekOverride = new Map<string, number>();
   if (range) {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   const rows = range
     ? await fetchBoardScoresFromGraph(Math.floor(range.startMs / 1000), firstWeekOverride)
     : season === 2
-      ? await fetchSeasonPointsFromGraph(Math.floor(SEASON_2_START_MS / 1000))
+      ? await fetchSeasonPointsFromGraph(Math.floor(SEASON_2_POINTS_START_MS / 1000))
       : await fetchGlobalAppPointsFromGraph();
   const enriched = await enrichLeaderboardWithUsernames(admin, rows);
 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     season,
-    seasonStartsAt: SEASON_2_START_MS,
+    seasonStartsAt: SEASON_2_POINTS_START_MS,
     window: win,
     startsAt: range?.startMs ?? null,
     endsAt: range?.endMs ?? null,

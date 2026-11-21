@@ -8,6 +8,7 @@ import {
   SEASON_2_START_LABEL,
   STAKE_PRESETS_REGULAR,
   isSeason2Live,
+  isSeason2PointsLive,
   seasonPointsForStake,
 } from "@/lib/season/rules";
 
@@ -24,8 +25,10 @@ export function SeasonNotice({
   className?: string;
   force?: boolean;
 }) {
-  const live = isSeason2Live();
-  if (live && !force) return null;
+  // Points switched on before the stake rules (Sat 21 → Mon 23 Nov).
+  const live = isSeason2PointsLive();
+  const rulesLive = isSeason2Live();
+  if (rulesLive && !force) return null;
   return (
     <Link
       href="/forfeit"
@@ -46,8 +49,10 @@ export function SeasonNotice({
             </span>
           ))}
         </div>
-        {!live ? (
-          <p className="label-mono m-0 mt-1.5 text-[10px] text-muted-foreground">Min stake 5k · 7 days max · new board</p>
+        {!rulesLive ? (
+          <p className="label-mono m-0 mt-1.5 text-[10px] text-muted-foreground">
+            {live ? `Points on now · min stake 5k from ${SEASON_2_START_LABEL}` : "Min stake 5k · 7 days max · new board"}
+          </p>
         ) : null}
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

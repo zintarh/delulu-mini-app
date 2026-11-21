@@ -10,13 +10,21 @@
  *    word pledges; regulars can't.
  *  - Nothing new runs longer than 7 days.
  *  - Points per verified proof scale with the stake behind it; under 5k is
- *    a token amount. Only proofs on/after the start count toward Season 2;
- *    everything earlier is archived as Season 1 (all-time points stay).
+ *    a token amount. Season 2 points count from SEASON_2_POINTS_START (Sat
+ *    21 Nov, two days before the stake rules); everything earlier is archived
+ *    as Season 1 (all-time points stay).
  */
 
 /** Monday 23 Nov 2026, 00:00 WAT (UTC+1). */
 export const SEASON_2_START_MS = Date.UTC(2026, 10, 22, 23, 0, 0);
 export const SEASON_2_START_LABEL = "Monday 23 Nov";
+
+/** Season 2 points (stake ÷ 10, the new board) count from Saturday 21 Nov, 00:00 WAT — before the stake rules. */
+export const SEASON_2_POINTS_START_MS = Date.UTC(2026, 10, 20, 23, 0, 0);
+
+export function isSeason2PointsLive(now: number = Date.now()): boolean {
+  return now >= SEASON_2_POINTS_START_MS;
+}
 
 export const NEWCOMER_WINDOW_DAYS = 14;
 export const VETERAN_PROOF_COUNT = 20;

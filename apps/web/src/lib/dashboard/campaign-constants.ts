@@ -1,4 +1,4 @@
-import { isSeason2Live, seasonPointsForStake } from "@/lib/season/rules";
+import { isSeason2PointsLive, seasonPointsForStake } from "@/lib/season/rules";
 /** Admin may delete campaigns that have not been funded on-chain yet. */
 export function canDeleteDashboardCampaign(status: string): boolean {
   return status !== "active" && status !== "funding" && status !== "ended";
@@ -44,7 +44,7 @@ export const REDUCED_PROOF_POINTS = 100;
 /** Points awarded per completed milestone for a campaign with this join amount (whole G$). */
 export function pointsPerMilestoneForJoinAmount(joinAmount: number): number {
   // Season 2: the leaderboard scores proofs by stake (see lib/season/rules).
-  if (isSeason2Live()) return seasonPointsForStake(joinAmount);
+  if (isSeason2PointsLive()) return seasonPointsForStake(joinAmount);
   return joinAmount >= LOW_STAKE_JOIN_THRESHOLD_WHOLE ? BASE_PROOF_POINTS : REDUCED_PROOF_POINTS;
 }
 
@@ -85,7 +85,7 @@ export function forfeitProofPointsForStake(stakeAmount: string | bigint | null |
   } catch {
     // Unparseable → treat as no stake.
   }
-  if (isSeason2Live()) return seasonPointsForStake(Number(stake / BigInt("1000000000000000000")));
+  if (isSeason2PointsLive()) return seasonPointsForStake(Number(stake / BigInt("1000000000000000000")));
   if (stake >= FORFEIT_HIGH_STAKE_THRESHOLD) return 5_000;
   if (stake >= FORFEIT_LOW_STAKE_THRESHOLD) return BASE_PROOF_POINTS;
   return FORFEIT_PROOF_POINTS_LOW;

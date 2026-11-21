@@ -47,3 +47,13 @@ test("7-day cap", () => {
   assert.equal(isDurationAllowed(8, live), false);
   assert.equal(isDurationAllowed(30, before), true);
 });
+
+test("Season 2 points start Sat 21 Nov (WAT), two days before the stake rules", async () => {
+  const { SEASON_2_POINTS_START_MS, isSeason2PointsLive } = await import("@/lib/season/rules");
+  assert.equal(new Date(SEASON_2_POINTS_START_MS).toISOString(), "2026-11-20T23:00:00.000Z");
+  assert.equal(SEASON_2_START_MS - SEASON_2_POINTS_START_MS, 2 * DAY);
+  assert.equal(isSeason2PointsLive(SEASON_2_POINTS_START_MS), true);
+  assert.equal(isSeason2PointsLive(SEASON_2_POINTS_START_MS - 1), false);
+  // Stake minimum still waits for Monday.
+  assert.equal(minStakeFor("regular", SEASON_2_POINTS_START_MS + DAY), 0);
+});

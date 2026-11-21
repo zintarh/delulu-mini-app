@@ -8,7 +8,7 @@ import { ProofRewardRow } from "@/components/proof-reward-row";
 import { ProofNextStep } from "@/components/next-step-card";
 import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { SeasonNotice } from "@/components/season-notice";
-import { LOW_STAKE_POINTS, isSeason2Live } from "@/lib/season/rules";
+import { LOW_STAKE_POINTS, isSeason2PointsLive } from "@/lib/season/rules";
 
 export async function fireConfetti() {
   try {
@@ -150,7 +150,7 @@ export function ProofSuccessCard({
       <ProofRewardRow />
 
       {/* Season 2: before it starts everyone sees what's coming; after, anyone on token points. */}
-      {!isSeason2Live() || showStakeUpsell || pointsAwarded <= LOW_STAKE_POINTS ? (
+      {!isSeason2PointsLive() || showStakeUpsell || pointsAwarded <= LOW_STAKE_POINTS ? (
         <SeasonNotice force className="mt-4 animate-rise [animation-delay:.6s]" />
       ) : null}
 
