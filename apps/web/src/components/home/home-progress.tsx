@@ -13,20 +13,16 @@ import { HowToEarnLink } from "@/components/home/how-to-earn-link";
 import { useDaypart } from "@/hooks/use-daypart";
 import type { Daypart } from "@/lib/daypart/daypart";
 
-/** Today's quest tally from the user's active contracts. */
 export function useTodayQuests(address: string | undefined) {
   const { data, isLoading } = useCreatorForfeits(address);
   return useMemo(() => {
     const active = (data ?? []).filter((f) => isActiveForfeit(f) && f.onChain?.active);
-    // Kept today = the current period already has a proof, or the previous
-    // one was proven today (proving a day moves the contract to the next
-    // period straight away).
+  
     const ok = (p: { proofUrl: string | null; verifierAction: string | null } | null | undefined) =>
       Boolean(p?.proofUrl) && p?.verifierAction !== "rejected" && p?.verifierAction !== "timed_out";
     const today = new Date().toDateString();
     const isKept = (f: (typeof active)[number]) => {
       const idx = f.onChain?.currentPeriodIndex ?? 0;
-      // Next day not open yet — nothing to prove right now.
       if (f.onChain && periodOpensAt(f.onChain) != null) return true;
       const current = f.periods?.find((x) => x.periodIndex === idx) ?? f.currentPeriod;
       if (ok(current)) return true;
@@ -34,10 +30,7 @@ export function useTodayQuests(address: string | undefined) {
       return ok(previous) && !!previous?.resolvedAt && new Date(previous.resolvedAt).toDateString() === today;
     };
     const kept = active.filter(isKept).length;
-    /** Still to prove today — Lulu counts these down. */
     const pendingItems = active.filter((f) => !isKept(f));
-    // isLoading: no answer yet — callers hold their spot rather than show the
-    // "no contracts" version and then swap it out a moment later.
     return { total: active.length, kept, left: active.length - kept, pendingItems, isLoading };
   }, [data, isLoading]);
 }
@@ -74,12 +67,10 @@ export function HomeGreeting({ name, address }: { name: string; address: string 
     <div className="animate-rise">
       <div className="flex items-start justify-between gap-3">
         <h1 className="m-0 min-w-0 text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
-          {/* No name yet (guest / new account): just the greeting, never "Morning, There". */}
           {greetingFor(daypart, name || null)}
         </h1>
         <HowToEarnLink className="mt-1.5" />
       </div>
-      {/* Same height while loading, so nothing below jumps when the line arrives. */}
       <div className="mt-1 flex min-h-5 items-center justify-between gap-3">
         <p className="m-0 min-w-0 text-sm text-muted-foreground">{sub}</p>
         <Link
