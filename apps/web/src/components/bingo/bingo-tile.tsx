@@ -6,6 +6,7 @@ import { BingoBoardBackground } from "@/components/bingo/bingo-board";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
 import { fmtDay, fmtG, fmtRange, fmtUntil } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
+import { AvatarStack } from "@/components/ui/avatar-stack";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtNgn } from "@/lib/earn/format";
 
@@ -154,12 +155,19 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         {bingo.players > 0 ? (
           <Link
             href={`/bingo/${bingo.slug}#players`}
+            aria-label={`See the ${bingo.players.toLocaleString()} ${bingo.players === 1 ? "player" : "players"}`}
             className={cn(
-              "pointer-events-auto relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/15 font-bold text-white no-underline backdrop-blur-sm hover:bg-white/25",
-              pin ? "mt-1.5 px-2 py-0.5 text-[11px]" : "mt-2 px-2.5 py-1 text-[12px]",
+              "pointer-events-auto relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/15 font-bold transition-transform active:scale-95 text-white no-underline backdrop-blur-sm hover:bg-white/25",
+              pin ? "mt-1.5 py-0.5 pl-0.5 pr-1.5 text-[11px]" : "mt-2 py-1 pl-1 pr-2 text-[12px]",
             )}
           >
-            <Users className="h-3.5 w-3.5" /> {bingo.players.toLocaleString()} playing · View
+            {bingo.faces?.length ? (
+              <AvatarStack participants={bingo.faces} total={bingo.players} max={3} size={pin ? 18 : 22} className="[&>*]:ring-ink" />
+            ) : (
+              <Users className="ml-1 h-3.5 w-3.5" />
+            )}
+            {bingo.faces?.length ? null : <span>{bingo.players.toLocaleString()}</span>}
+            <ChevronRight className="-ml-0.5 h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />
           </Link>
         ) : null}
       </div>

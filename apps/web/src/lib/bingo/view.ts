@@ -68,6 +68,8 @@ export type BingoView = {
   /** Shown in lists: running, or starting within a day (announced). */
   visible: boolean;
   players: number;
+  /** A few players' faces for the card's facepile (people with a photo first). */
+  faces?: { address: string; username: string | null; pfpUrl: string | null }[];
   /** Latest approved photos across players — the card art in lists. */
   photos: string[];
   /** Real engine amounts for verified players; 0 = category off. */

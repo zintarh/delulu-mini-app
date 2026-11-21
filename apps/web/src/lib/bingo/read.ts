@@ -223,6 +223,23 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
   }
   const photos: string[] = [];
 
+  // A few faces for the facepile: the latest players, people with a profile photo first.
+  let faces: NonNullable<BingoView["faces"]> = [];
+  if (players > 0) {
+    const base = admin.from("bingo_attempts").select("wallet").order("started_at", { ascending: false }).limit(12);
+    const { data: recent } = rolling
+      ? await base.eq("campaign_id", campaign.id).is("cycle_id", null).gt("ends_at", nowIso)
+      : cycle
+        ? await base.eq("cycle_id", cycle.id)
+        : { data: [] };
+    const wallets = [...new Set((recent ?? []).map((r) => String(r.wallet).toLowerCase()))];
+    const profiles = await profilesFor(admin, wallets);
+    faces = wallets
+      .map((w) => ({ address: w, username: profiles.get(w)?.username ?? null, pfpUrl: profiles.get(w)?.avatar ?? null }))
+      .sort((a, b) => Number(!!b.pfpUrl) - Number(!!a.pfpUrl))
+      .slice(0, 3);
+  }
+
   const completionTiers = rolling ? config.goalCompletion : config.campaignCompletion;
   return {
     id: campaign.id,
@@ -276,6 +293,7 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
       (!!me && me.phase !== "ended" && !me.missedDay) ||
       (campaign.status === "live" && ((rolling && firstWeekOk) || (cycle != null && cyclePhase(cycle) !== "ended" && announced(cycle)))),
     players,
+    faces,
     photos,
     rewards: {
       perProof: isCategoryEnabled(config, "daily_proof") ? perSquareFor(v.tiers, me?.tierKey ?? null, config.dailyProof.amount) : 0,
