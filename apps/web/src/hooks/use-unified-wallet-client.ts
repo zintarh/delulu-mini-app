@@ -7,6 +7,7 @@ import { celo } from "wagmi/chains";
 import { useEffect, useMemo, useState } from "react";
 import { useWeb3Auth } from "@web3auth/modal/react";
 import { useWallets } from "@privy-io/react-auth";
+import { pickPrivyWallet } from "@/lib/auth/pick-privy-wallet";
 
 /**
  * Returns a viem WalletClient for whichever auth method is active:
@@ -49,7 +50,7 @@ export function useUnifiedWalletClient() {
 
   // Resolve Privy wallet provider — embedded or externally connected via
   // Privy's "wallet" login method (wagmi has no connector for either).
-  const privyWallet = wallets[0];
+  const privyWallet = pickPrivyWallet(wallets);
   useEffect(() => {
     if (!privyWallet) {
       setPrivyProvider(null);

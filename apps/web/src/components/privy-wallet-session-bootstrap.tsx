@@ -13,6 +13,7 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import type { EIP1193Provider } from "viem";
 import { setWeb3AuthProvider } from "@/lib/web3auth-bridge";
 import { establishWalletSession } from "@/lib/auth/establish-wallet-session-client";
+import { pickPrivyWallet } from "@/lib/auth/pick-privy-wallet";
 
 export function PrivyWalletSessionBootstrap() {
   const { authenticated } = usePrivy();
@@ -29,7 +30,8 @@ export function PrivyWalletSessionBootstrap() {
     // externally-connected one (MetaMask, WalletConnect, etc. via Privy's
     // "wallet" login method) — needs this bridge, since wagmi never
     // registers a connector for wallets connected through Privy.
-    const privyWallet = wallets[0];
+    // The account's own Privy wallet, not a browser wallet that happens to be listed first.
+    const privyWallet = pickPrivyWallet(wallets);
     if (!privyWallet) return;
     if (establishedRef.current === privyWallet.address) return;
 

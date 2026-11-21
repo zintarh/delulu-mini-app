@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth/establish-wallet-session-client";
 import { consumeCommunityReferral, consumeSignInRedirect } from "@/lib/auth-redirect";
 import { clearGatePassed } from "@/lib/app-gate-pass";
+import { pickPrivyWallet } from "@/lib/auth/pick-privy-wallet";
 
 export type AuthProvider = "web3auth" | "privy" | null;
 
@@ -76,7 +77,8 @@ export function useAuth(): UseAuthReturn {
   // connected wallet linked via Privy's "wallet" login method. Wagmi never
   // registers a connector for either, so we read the address straight from
   // Privy's own wallet list.
-  const privyAddress = wallets[0]?.address as `0x${string}` | undefined;
+  // Never a browser wallet that happens to be listed first (lib/auth/pick-privy-wallet).
+  const privyAddress = pickPrivyWallet(wallets)?.address as `0x${string}` | undefined;
 
   // Persist provider hint in localStorage for eager auth loading on return visits
   useEffect(() => {
