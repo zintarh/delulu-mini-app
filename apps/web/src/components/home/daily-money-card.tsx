@@ -1,5 +1,6 @@
 "use client";
 
+import { afterVote } from "@/lib/vote-gate";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useReportHomeReady } from "@/components/home/home-ready";
 import { formatUnits } from "viem";
@@ -232,7 +233,7 @@ export function DailyMoneyCard() {
       nextClaim={nextClaim}
       // The claim itself needs the wallet; until it connects the button waits.
       claiming={isClaiming || !sdkReady}
-      onClaim={() => void claim()}
+      onClaim={() => void afterVote(claim)}
       onVerify={startFaceCheck}
     />
   );
@@ -300,7 +301,7 @@ export function RewardsDailyCard() {
           </div>
         </div>
         {canClaim ? (
-          <GameButton variant="ink" size="sm" className="self-start" onClick={() => void claim()} disabled={isClaiming || !sdkReady}>
+          <GameButton variant="ink" size="sm" className="self-start" onClick={() => void afterVote(claim)} disabled={isClaiming || !sdkReady}>
             {isClaiming || !sdkReady ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Open
           </GameButton>

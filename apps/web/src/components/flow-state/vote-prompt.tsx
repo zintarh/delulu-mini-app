@@ -11,6 +11,7 @@ import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { fireConfetti } from "@/lib/celebrate";
 import { FLOW_STATE, flowStateLive } from "@/lib/flow-state";
 import { canAutoShow, takeAutoSlot } from "@/lib/overlay-slot";
+import { registerVoteGate } from "@/lib/vote-gate";
 
 const SNOOZE_KEY = "delulu:vote-prompt-snoozed-at";
 /** "Not now" holds it back this long, then it asks again. */
@@ -21,6 +22,11 @@ const SNOOZE_MS = 4 * 60 * 60 * 1000;
  * voted yet (even on a first visit, after the intro and gift), takes the
  * visit's one automatic pop-up ahead of the others, and comes back 4 hours
  * after "Not now". The vote itself happens right here, in one tap.
+ *
+ * It is also the vote gate (lib/vote-gate.ts): before a Bingo photo or a daily
+ * claim, a player who can vote and hasn't gets this screen with no "Not now";
+ * once they've voted the action carries on. If the vote itself fails they can
+ * continue, so a broken vote never locks anyone out of the app.
  */
 export function VotePrompt() {
   const { address } = useAuth();
@@ -35,6 +41,36 @@ function VotePromptInner() {
   const [open, setOpen] = useState(false);
   const shown = useRef(false);
   const needsVote = vote.status === "vote" || vote.status === "verify";
+  // Gate mode: opened by an action, which waits on this promise.
+  const [gate, setGate] = useState(false);
+  const release = useRef<(() => void) | null>(null);
+  const live = useRef({ status: vote.status, pending: !!vote.pending });
+  live.current = { status: vote.status, pending: !!vote.pending };
+  const letThrough = () => {
+    release.current?.();
+    release.current = null;
+    setGate(false);
+    setOpen(false);
+  };
+
+  useEffect(() => {
+    registerVoteGate(() => {
+      // Only players who can vote right now and haven't (verified, votes to give, nothing in flight).
+      if (live.current.status !== "vote" || live.current.pending) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        release.current?.();
+        release.current = resolve;
+        shown.current = true;
+        setGate(true);
+        setOpen(true);
+      });
+    });
+    return () => {
+      registerVoteGate(null);
+      release.current?.();
+      release.current = null;
+    };
+  }, []);
 
   // Open once we know they haven't voted — waiting out the intro / gift modals (up to ~40s).
   useEffect(() => {
@@ -64,9 +100,11 @@ function VotePromptInner() {
   useEffect(() => {
     if (!open || !voted) return;
     void fireConfetti();
-    const t = window.setTimeout(() => setOpen(false), 2600);
+    // From an action: a short thank-you, then the action carries on.
+    const t = window.setTimeout(() => (gate ? letThrough() : setOpen(false)), gate ? 1400 : 2600);
     return () => window.clearTimeout(t);
-  }, [open, voted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, voted, gate]);
 
   const snooze = () => {
     setOpen(false);
@@ -81,7 +119,16 @@ function VotePromptInner() {
   return (
     <ResponsiveSheet
       open={open}
-      onOpenChange={(o) => (o ? setOpen(true) : voted ? setOpen(false) : snooze())}
+      onOpenChange={(o) => {
+        if (o) return setOpen(true);
+        if (gate) {
+          // Required: it only closes once they've voted, or if voting failed.
+          if (voted || vote.error) letThrough();
+          return;
+        }
+        if (voted) setOpen(false);
+        else snooze();
+      }}
       title="Vote for Delulu"
       hideTitleVisually
       sheetClassName="rounded-t-3xl pb-10"
@@ -101,7 +148,9 @@ function VotePromptInner() {
             <p className="m-0 mt-2 max-w-[260px] text-[14px] font-semibold leading-snug text-white/75">
               {voted
                 ? `${vote.votes} votes for Delulu — that keeps the rewards flowing.`
-                : vote.status === "verify"
+                : gate
+                  ? "Free · one tap · then you carry on."
+                  : vote.status === "verify"
                   ? "A quick face check gives you votes. Then one tap."
                   : "Free · one tap · it keeps the rewards flowing to you."}
             </p>
@@ -131,11 +180,18 @@ function VotePromptInner() {
             )}
           </div>
         </div>
-        {!voted ? (
+        {voted ? null : gate ? (
+          // Required step: the only way past without voting is a vote that failed.
+          vote.error ? (
+            <button type="button" onClick={letThrough} disabled={!!vote.busy} className="mt-2 h-10 w-full text-[13px] font-bold text-muted-foreground">
+              Continue for now
+            </button>
+          ) : null
+        ) : (
           <button type="button" onClick={snooze} disabled={!!vote.busy} className="mt-2 h-10 w-full text-[13px] font-bold text-muted-foreground">
             Not now
           </button>
-        ) : null}
+        )}
       </div>
     </ResponsiveSheet>
   );

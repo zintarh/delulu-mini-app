@@ -1,5 +1,6 @@
 "use client";
 
+import { afterVote } from "@/lib/vote-gate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Camera, ChevronLeft, Share2, Sparkles, Users } from "lucide-react";
@@ -57,6 +58,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
   const faceCheck = useFaceCheckOptional();
   const [joinOpen, setJoinOpen] = useState(false);
   const [picked, setPicked] = useState<BingoSquareView | null>(null);
+  // Opening a square to post a photo goes through the vote gate first (lib/vote-gate.ts).
+  const pickSquare = (sq: BingoSquareView | null) => void afterVote(() => setPicked(sq));
   const [finishOpen, setFinishOpen] = useState(false);
 
   const me = bingo?.me ?? null;
@@ -220,7 +223,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
     const target = me.dayOrdered
       ? me.squares[me.today ?? 0]
       : me.squares.find((sq) => sq.state === "empty" && !sq.bonus) ?? me.squares.find((sq) => sq.state === "confirming");
-    if (target) setPicked(target);
+    if (target) pickSquare(target);
   };
 
   return (
@@ -277,14 +280,14 @@ export function BingoPageClient({ slug }: { slug: string }) {
                 }}
                 onPick={(i) => {
                   const sq = me.squares.find((x) => x.index === i);
-                  if (sq) setPicked(sq);
+                  if (sq) pickSquare(sq);
                 }}
               />
             </section>
 
             {/* Right under it: the one thing to do now. */}
             {addTarget ? (
-              <GameButton variant="yellow" full size="lg" className="mt-4" onClick={() => setPicked(addTarget)}>
+              <GameButton variant="yellow" full size="lg" className="mt-4" onClick={() => pickSquare(addTarget)}>
                 <Camera className="h-5 w-5" /> Add Day {addTarget.index + 1} photo
                 {bingo.rewards.perProof > 0 ? ` · +${fmtG(bingo.rewards.perProof)} G$` : ""}
               </GameButton>
@@ -297,7 +300,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
             {openBonus.length > 0 ? (
               <div className="mt-3 flex flex-col gap-2">
                 {openBonus.map((sq) => (
-                  <GameButton key={sq.index} variant="line" size="sm" full onClick={() => setPicked(sq)}>
+                  <GameButton key={sq.index} variant="line" size="sm" full onClick={() => pickSquare(sq)}>
                     <Sparkles className="h-4 w-4" /> Bonus photo · {sq.title}
                   </GameButton>
                 ))}

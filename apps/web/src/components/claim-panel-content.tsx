@@ -1,5 +1,6 @@
 "use client";
 
+import { afterVote } from "@/lib/vote-gate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
@@ -127,7 +128,7 @@ export function ClaimPanelContent({
       return;
     }
     if (!address || !canClaimUbi) return;
-    await claim();
+    await afterVote(claim);
   };
 
   const handleVerified = async () => {
