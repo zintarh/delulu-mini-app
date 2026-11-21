@@ -127,7 +127,7 @@ function Podium({
             <UserAvatar address={e.address} username={e.username} pfpUrl={pfpMap[e.address.toLowerCase()]} size={e.rank === 1 ? 60 : 50} />
             <span
               className="absolute -bottom-2 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border-2 border-white font-display text-xs font-extrabold"
-              style={{ background: MEDALS[e.rank][0], boxShadow: `0 2px 0 ${MEDALS[e.rank][1]}` }}
+              style={{ background: (MEDALS[e.rank] ?? MEDALS[3])[0], boxShadow: `0 2px 0 ${(MEDALS[e.rank] ?? MEDALS[3])[1]}` }}
             >
               {e.rank}
             </span>
@@ -253,11 +253,12 @@ function Board({ win }: { win: BoardWindow }) {
     me && myRankEntry && !isOnCurrentPage
       ? { address: address!, username: myPageEntry?.username ?? null, points: Number(myRankEntry.points) || 0, rank: myRankEntry.rank }
       : null;
-  const showPodium = page === 0 && entries.length >= 3;
+  // Only for the real top 3: right after "Previous", the old page's rows are still showing until page 1 loads.
+  const showPodium = page === 0 && entries.length >= 3 && entries[0].rank === 1;
   const rows = entries.filter((e) => !showPodium || e.rank > 3);
 
   return (
-    <div>
+    <div className={isLoading ? "opacity-60 transition-opacity" : "transition-opacity"} aria-busy={isLoading}>
       {showPodium ? <Podium top={entries.slice(0, 3)} pfpMap={pfpMap} earnedByAddress={earnedByAddress} /> : null}
       <div className="flex flex-col gap-1 pt-1.5">
         {rows.map((e) => (
