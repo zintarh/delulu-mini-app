@@ -1,7 +1,7 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payoutReferralReward } from "@/lib/celo/reward-vault-payout";
 import { isReferralCreditCountable } from "@/lib/referral/eligibility";
-import { getReferrerStanding } from "@/lib/referral/standing";
+import { getReferrerStanding, notifyReferralPayoutHeld } from "@/lib/referral/standing";
 import {
   REFERRAL_GDOLLARS_REWARD,
   referralRoundAt,
@@ -74,14 +74,14 @@ export async function payReferralCredit(
 
   // Held (not lost) while the referrer is behind on their own campaign — the
   // retry cron pays it once they've posted today's proof.
-  if (
-    !(await isReferralCreditCountable(admin, referrerWallet, credit.credited_at)) ||
-    (await getReferrerStanding(admin, referrerWallet)).locked
-  ) {
+  const countable = await isReferralCreditCountable(admin, referrerWallet, credit.credited_at);
+  const standing = countable ? await getReferrerStanding(admin, referrerWallet) : null;
+  if (!countable || standing?.locked) {
     await admin
       .from("referral_credits")
       .update({ payout_status: "not_eligible" })
       .eq("id", referralCreditId);
+    if (standing?.locked) await notifyReferralPayoutHeld(admin, referrerWallet, standing);
     return;
   }
 

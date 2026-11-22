@@ -1,7 +1,7 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { payoutReferralReward } from "@/lib/celo/reward-vault-payout";
 import { isReferralCreditCountable } from "@/lib/referral/eligibility";
-import { getReferrerStanding } from "@/lib/referral/standing";
+import { getReferrerStanding, notifyReferralPayoutHeld } from "@/lib/referral/standing";
 import { referralRoundAt, roundFirstPayment } from "@/lib/referral/campaign";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -68,11 +68,14 @@ export async function payReferralStreakBonus(admin: Admin, referredWallet: strin
 
   const referrer = String(credit.referrer_wallet).toLowerCase();
   // Same holds as the first payment: held (not lost) while the referrer isn't eligible or is behind.
-  if (
-    !(await isReferralCreditCountable(admin, referrer, credit.credited_at as string)) ||
-    (await getReferrerStanding(admin, referrer)).locked
-  ) {
+  if (!(await isReferralCreditCountable(admin, referrer, credit.credited_at as string))) {
     await admin.from("referral_credits").update({ streak_status: "not_eligible" }).eq("id", credit.id);
+    return "not_yet";
+  }
+  const standing = await getReferrerStanding(admin, referrer);
+  if (standing.locked) {
+    await admin.from("referral_credits").update({ streak_status: "not_eligible" }).eq("id", credit.id);
+    await notifyReferralPayoutHeld(admin, referrer, standing);
     return "not_yet";
   }
 

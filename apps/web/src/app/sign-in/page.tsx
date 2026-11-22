@@ -18,7 +18,7 @@ import {
 } from "@/lib/auth-redirect";
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
-import { ReferralInviteHold, useInviteHold } from "@/components/referral-invite-hold";
+import { useInviter } from "@/hooks/use-inviter";
 import { FirstWeekOffer } from "@/components/first-week-offer";
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
@@ -137,13 +137,13 @@ export default function SignInPage() {
   }, [communityCode]);
 
   // User-level referral link. Also picks up a code stored earlier in this
-  // session, so dropping ?ref= from the URL doesn't skip the invite hold.
+  // session, so dropping ?ref= from the URL still shows who invited you.
   const [inviteCode, setInviteCode] = useState<string | null>(refCode);
   useEffect(() => {
     if (refCode) persistReferralCode(refCode);
     setInviteCode(refCode ?? peekReferralCode());
   }, [refCode]);
-  const invite = useInviteHold(inviteCode);
+  const inviter = useInviter(inviteCode);
 
 
   const triggerEmailAuth = async (targetEmail: string) => {
@@ -351,28 +351,6 @@ export default function SignInPage() {
     );
   }
 
-  // ── Invite on hold ────────────────────────────────────────────────────────
-  // The referrer missed a milestone and hasn't posted today's proof — their
-  // invitee can't sign up until they do (lib/referral/standing.ts).
-
-  if (!authenticated && inviteCode && invite.checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!authenticated && invite.locked) {
-    return (
-      <ReferralInviteHold
-        username={invite.username}
-        pfpUrl={invite.pfpUrl}
-        onRecheck={invite.recheck}
-      />
-    );
-  }
-
   // ── Sign-in form ──────────────────────────────────────────────────────────
   // Design: docs/redesign/screens/SignIn.dc.html
 
@@ -385,7 +363,7 @@ export default function SignInPage() {
           </Link>
 
           {/* First thing a new (or invited) player sees: what their first week pays. */}
-          <FirstWeekOffer variant="invite" invitedBy={inviteCode ? invite.username : null} className="mt-6 animate-rise" />
+          <FirstWeekOffer variant="invite" invitedBy={inviteCode ? inviter.username : null} className="mt-6 animate-rise" />
 
           <div className="mt-10">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">

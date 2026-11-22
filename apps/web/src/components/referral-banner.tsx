@@ -25,13 +25,14 @@ export function ReferralBanner({ address, className }: { address: string; classN
 
   const reward = phase.round.reward.toLocaleString("en-US");
   const locked = eligible && Boolean(standing?.locked);
-  const canCopy = live && eligible && !locked && !!code;
+  // Behind on their own campaign: the link still works, only the payout waits.
+  const canCopy = live && eligible && !!code;
   const sub = !live
     ? `Opens ${referralOpensLabel(phase.round)}`
     : isLoading
       ? "Checking your link…"
       : locked
-        ? "Post today's proof to unlock your link"
+        ? "Payout waiting · post today's proof"
         : !eligible
           ? "Finish setting up to unlock your link"
           : (slotsLine(slots) ?? `${count > 0 ? `${count} counted · ` : ""}round ends ${referralCampaignEndLabel()}`);
@@ -59,7 +60,7 @@ export function ReferralBanner({ address, className }: { address: string; classN
       </span>
       <Link href="/referrals" className="min-w-0 flex-1 text-ink no-underline">
         <p className="m-0 truncate text-[14px] font-extrabold leading-tight">Invite friends · {reward} G$ each</p>
-        <p className="m-0 truncate text-[11px] font-semibold text-muted-foreground">{sub}</p>
+        <p className={cn("m-0 truncate text-[11px] font-semibold", live && locked ? "text-orange" : "text-muted-foreground")}>{sub}</p>
       </Link>
       {canCopy ? (
         <button
@@ -70,7 +71,7 @@ export function ReferralBanner({ address, className }: { address: string; classN
           {copied ? <Check className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.4} />}
           {copied ? "Copied" : "Copy link"}
         </button>
-      ) : !live || locked || !eligible ? (
+      ) : !live || !eligible ? (
         <Lock className="h-4 w-4 shrink-0 text-faint" />
       ) : null}
       <Link href="/referrals" aria-label="See who you invited" className="flex h-9 w-7 shrink-0 items-center justify-center text-muted-foreground">

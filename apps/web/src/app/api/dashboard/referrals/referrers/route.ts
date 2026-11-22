@@ -42,8 +42,8 @@ async function requirePlatformAdminSession() {
 }
 
 /**
- * Everyone who has referred at least one signup, and whether they can refer
- * right now: active, locked (missed a milestone, today's proof not in — see
+ * Everyone who has referred at least one signup, and whether they're paid
+ * right now: active, locked (payout held: missed a milestone, today's proof not in — see
  * lib/referral/standing.ts), still onboarding, or blacklisted.
  * GET /api/dashboard/referrals/referrers
  */

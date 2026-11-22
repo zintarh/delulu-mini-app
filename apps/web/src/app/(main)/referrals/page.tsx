@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Circle, Clock, Lock } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Hourglass, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReferralSlots } from "@/hooks/use-referral-slots";
 import { slotsLine } from "@/lib/referral/slots-copy";
@@ -180,8 +180,8 @@ export default function MyReferralsPage() {
             href={`/communities/${standing.campaign.slug}/campaigns/${standing.campaign.id}`}
             className="press-edge flex items-center gap-2 rounded-[20px] bg-ink px-4 py-3 text-sm font-bold text-white shadow-edge-ink"
           >
-            <Lock className="h-4 w-4 shrink-0" />
-            Invites on hold. Post today&apos;s proof →
+            <Hourglass className="h-4 w-4 shrink-0" />
+            Payouts waiting. Post today&apos;s proof to get paid →
           </Link>
         ) : !ended && !isLoadingEligibility && !eligible ? (
           <div className="flex items-center gap-2 rounded-[20px] border-2 border-line bg-white px-4 py-3 text-sm font-semibold text-muted-foreground">

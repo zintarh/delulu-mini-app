@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Whether a wallet has finished onboarding enough to see/share its referral
- * link, and whether that link is currently locked (see lib/referral/standing.ts).
+ * link, and whether their payouts are currently held (see lib/referral/standing.ts).
  */
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get("address")?.trim().toLowerCase();

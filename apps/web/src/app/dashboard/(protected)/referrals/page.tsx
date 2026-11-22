@@ -244,8 +244,8 @@ export default function AdminReferralsPage() {
       {view === "referrers" ? (
         <>
           <p className="mb-5 text-sm text-muted-foreground">
-            Everyone who has referred a signup. Locked = missed a milestone and today&apos;s proof
-            isn&apos;t in; their invitees can&apos;t sign up and payouts are held until they post.
+            Everyone who has referred a signup. Payout held = missed a milestone and today&apos;s proof
+            isn&apos;t in; friends still sign up with their link, but payouts wait until they post.
           </p>
           <ReferrersTable />
         </>

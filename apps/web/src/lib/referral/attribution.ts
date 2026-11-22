@@ -1,5 +1,4 @@
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
-import { getReferrerStanding } from "@/lib/referral/standing";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -45,13 +44,9 @@ export async function attributeReferral(
     .maybeSingle();
   if (!self || self.referred_by || self.onboarded_at) return;
 
-  // Backstop for the invite gate on /sign-in: a referrer who's behind on
-  // their own campaign can't pick up new referrals until today's proof is in.
-  if ((await getReferrerStanding(admin, referrerAddress)).locked) {
-    console.info(`[referral/attribution] ${code} on hold (referrer behind on proof) for ${normalized}`);
-    return;
-  }
-
+  // Always attribute, even when the referrer is behind on their own campaign:
+  // the friend joins straight away and only the referrer's payout waits for
+  // today's proof (lib/referral/payout.ts, lib/referral/standing.ts).
   await admin
     .from("profiles")
     .update({ referred_by: referrerAddress })

@@ -8,7 +8,7 @@ import { useReferralSlots } from "@/hooks/use-referral-slots";
 import { slotsLine } from "@/lib/referral/slots-copy";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { ONBOARDING_STEP_LABELS } from "@/components/referral-onboarding-checklist";
-import { GameButton, GameCard, GameLink, Trophy } from "@/components/ds";
+import { GameButton, GameCard, Trophy } from "@/components/ds";
 import {
   referralRewardNow,
   referralOpensLabel,
@@ -95,6 +95,7 @@ export function ReferralInviteCard({ address }: { address: string }) {
   }
   if (!code) return null;
 
+  // Behind on their own campaign: they can still invite, but payouts wait for today's proof.
   const locked = eligible && Boolean(standing?.locked);
   const unlockHref = standing?.campaign
     ? `/communities/${standing.campaign.slug}/campaigns/${standing.campaign.id}`
@@ -123,7 +124,7 @@ export function ReferralInviteCard({ address }: { address: string }) {
   const sub = soon
     ? `${referralRewardNow().toLocaleString()} G$ each · opens ${opensLabel}`
     : locked
-    ? "Post today's proof to unlock"
+    ? "Payout waiting · post today's proof"
     : eligible
       ? `${referralRewardNow().toLocaleString()} G$ each · ${slotsLine(slots) ?? `this round ends ${referralCampaignEndLabel()}`}`
       : "Finish onboarding first";
@@ -133,7 +134,7 @@ export function ReferralInviteCard({ address }: { address: string }) {
       <div className="flex items-center gap-3">
         <span className="relative shrink-0">
           <Trophy size={40} />
-          {locked || !eligible ? (
+          {!eligible ? (
             <span className="absolute -bottom-1 -right-1 flex h-[20px] w-[20px] items-center justify-center rounded-full border-2 border-white bg-ink text-white">
               <Lock className="h-2.5 w-2.5" strokeWidth={2.6} />
             </span>
@@ -151,16 +152,18 @@ export function ReferralInviteCard({ address }: { address: string }) {
               </Link>
             ) : null}
           </div>
-          <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">{sub}</div>
+          {locked && !soon ? (
+            <Link href={unlockHref} className="label-mono mt-0.5 block truncate text-[10px] font-bold text-orange">
+              {sub} →
+            </Link>
+          ) : (
+            <div className="label-mono mt-0.5 truncate text-[10px] text-muted-foreground">{sub}</div>
+          )}
         </div>
-        {soon && eligible && !locked ? (
+        {soon && eligible ? (
           <GameButton variant="line" size="sm" disabled aria-disabled title={`Your invite link opens ${opensLabel}`}>
             <Lock className="h-3.5 w-3.5" strokeWidth={2.4} /> Opens {opensLabel}
           </GameButton>
-        ) : locked ? (
-          <GameLink href={unlockHref} variant="ink" size="sm">
-            Post
-          </GameLink>
         ) : eligible ? (
           <GameButton variant="yellow" size="sm" onClick={() => void handleInvite()}>
             {copied ? <Check className="h-4 w-4" strokeWidth={2.4} /> : <Share2 className="h-4 w-4" strokeWidth={2} />}

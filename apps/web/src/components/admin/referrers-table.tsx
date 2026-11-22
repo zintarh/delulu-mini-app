@@ -28,7 +28,7 @@ const STATUS_META: Record<
   { label: string; icon: React.ElementType; className: string }
 > = {
   active: { label: "Active", icon: CheckCircle2, className: "bg-delulu-green/10 text-delulu-green" },
-  locked: { label: "Locked", icon: Lock, className: "bg-destructive/10 text-destructive" },
+  locked: { label: "Payout held", icon: Lock, className: "bg-destructive/10 text-destructive" },
   onboarding: { label: "Onboarding", icon: Clock, className: "bg-muted text-muted-foreground" },
   blocked: { label: "Blocked", icon: ShieldOff, className: "bg-muted text-muted-foreground" },
 };
@@ -38,7 +38,7 @@ type Filter = "all" | ReferrerStatus;
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
-  { value: "locked", label: "Locked" },
+  { value: "locked", label: "Payout held" },
   { value: "onboarding", label: "Onboarding" },
 ];
 

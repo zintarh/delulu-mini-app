@@ -8,13 +8,13 @@ type State = {
   isLoading: boolean;
   eligible: boolean;
   steps: ReferralEligibilitySteps | null;
-  /** Link locked until today's proof is in — see lib/referral/standing.ts. */
+  /** Payouts held until today's proof is in — see lib/referral/standing.ts. */
   standing: ReferrerStanding | null;
 };
 
 /**
  * Whether this wallet has finished onboarding enough to see/share its
- * referral link, and whether that link is currently locked.
+ * referral link, and whether their payouts are currently held.
  */
 export function useReferralEligibility(address?: string | null) {
   const [state, setState] = useState<State>({
