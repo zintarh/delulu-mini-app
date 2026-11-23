@@ -36,13 +36,17 @@ export function setBlockingOverlay(name: string, open: boolean) {
 }
 
 /**
- * May an automatic prompt `name` show now? Only one per visit, never over a
- * must-see modal, and not on the first visit.
+ * May an automatic prompt `name` show now? Priority prompts can take over
+ * another overlay or the visit's automatic-prompt slot.
  */
-export function canAutoShow(name: string, opts: { firstVisit?: boolean } = {}): boolean {
-  if (blocking.size > 0) return false;
-  // `firstVisit`: important enough for a newcomer's first visit too (the Flow State vote) — still after the intro and gift.
+export function canAutoShow(
+  name: string,
+  opts: { firstVisit?: boolean; priority?: boolean } = {},
+): boolean {
+  if (!opts.priority && blocking.size > 0) return false;
+  // `firstVisit`: important enough for a newcomer's first visit too (the Flow State vote).
   if (!opts.firstVisit && visitNumber() < 2) return false;
+  if (opts.priority) return true;
   try {
     const taken = sessionStorage.getItem(SLOT_SESSION_KEY);
     return !taken || taken === name;

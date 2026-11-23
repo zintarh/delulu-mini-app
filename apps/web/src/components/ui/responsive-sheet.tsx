@@ -18,6 +18,7 @@ interface ResponsiveSheetProps {
   showClose?: boolean;
   sheetClassName?: string;
   modalClassName?: string;
+  overlayClassName?: string;
 }
 
 const DESKTOP_QUERY = "(min-width: 1024px)"; // lg — matches the desktop sidebar
@@ -55,6 +56,7 @@ export function ResponsiveSheet({
   contentClassName,
   sheetClassName,
   modalClassName,
+  overlayClassName,
   showClose = true,
 }: ResponsiveSheetProps) {
   const isDesktop = useIsDesktop();
@@ -64,6 +66,7 @@ export function ResponsiveSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
+          overlayClassName={overlayClassName}
           className={cn(bottomSheetShellClassName, sheetClassName, contentClassName)}
         >
           {title && <SheetTitle className="sr-only">{title}</SheetTitle>}
@@ -79,7 +82,7 @@ export function ResponsiveSheet({
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent
         showClose={false}
-        overlayClassName="bg-ink/50 backdrop-blur-[3px]"
+        overlayClassName={cn("bg-ink/50 backdrop-blur-[3px]", overlayClassName)}
         className={cn(
           "w-[calc(100%-3rem)] max-w-[480px] max-h-[86vh] overflow-y-auto scrollbar-hide",
           "rounded-[28px] border-2 border-line bg-white p-7 text-ink",

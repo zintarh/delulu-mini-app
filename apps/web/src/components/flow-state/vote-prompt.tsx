@@ -19,9 +19,9 @@ const SNOOZE_MS = 4 * 60 * 60 * 1000;
 
 /**
  * The Flow State vote, as a pop-up: shows on its own for anyone who hasn't
- * voted yet (even on a first visit, after the intro and gift), takes the
- * visit's one automatic pop-up ahead of the others, and comes back 4 hours
- * after "Not now". The vote itself happens right here, in one tap.
+ * voted yet (even on a first visit), takes priority over other overlays and
+ * automatic prompts, and comes back 4 hours after "Not now". Other overlays
+ * remain queued underneath it. The vote itself happens right here, in one tap.
  *
  * It is also the vote gate (lib/vote-gate.ts): before a Bingo photo or a daily
  * claim, a player who can vote and hasn't gets this screen with no "Not now";
@@ -72,7 +72,7 @@ function VotePromptInner() {
     };
   }, []);
 
-  // Open once we know they haven't voted — waiting out the intro / gift modals (up to ~40s).
+  // Open once we know they haven't voted. Voting takes priority over other modals.
   useEffect(() => {
     if (shown.current || !needsVote || vote.pending) return;
     let snoozedAt = 0;
@@ -85,7 +85,7 @@ function VotePromptInner() {
     let tries = 0;
     const id = window.setInterval(() => {
       tries += 1;
-      if (canAutoShow("vote", { firstVisit: true })) {
+      if (canAutoShow("vote", { firstVisit: true, priority: true })) {
         takeAutoSlot("vote");
         shown.current = true;
         setOpen(true);
@@ -131,8 +131,9 @@ function VotePromptInner() {
       }}
       title="Vote for Delulu"
       hideTitleVisually
+      overlayClassName="z-[219]"
       sheetClassName="rounded-t-3xl pb-10"
-      modalClassName="max-w-md"
+      modalClassName="z-[220] max-w-md"
     >
       <div className="px-4 pb-2 pt-1">
         <div className="relative overflow-hidden rounded-[24px] border-2 border-ink bg-ink p-5 text-center text-white shadow-[0_5px_0_#000]">
