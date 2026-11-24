@@ -40,4 +40,5 @@ test("a credit pays at its own round's reward, also after that round ends", () =
   assert.equal(isInCurrentReferralCampaign("2026-11-17T09:00:00+01:00"), true);
   assert.equal(isInCurrentReferralCampaign("2026-11-18T09:00:00+01:00"), true);
   assert.equal(referralRewardNow(new Date("2026-11-17T12:00:00Z")), 7_000);
+  assert.equal(referralRewardNow(new Date("2026-11-24T12:00:00Z")), 5_000);
 });

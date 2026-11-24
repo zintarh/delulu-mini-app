@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { hasConsecutiveDays } from "@/lib/referral/streak";
-import { REFERRAL_ROUNDS, roundCapacity, roundFirstPayment } from "@/lib/referral/campaign";
+import { REFERRAL_ROUNDS, roundCapacity, roundFirstPayment, roundHasStreakBonus } from "@/lib/referral/campaign";
 
 test("3 days in a row, by Lagos day", () => {
   assert.equal(hasConsecutiveDays(["2026-11-18T09:00:00Z", "2026-11-19T09:00:00Z", "2026-11-20T09:00:00Z"]), true);
@@ -14,10 +14,19 @@ test("3 days in a row, by Lagos day", () => {
   assert.equal(hasConsecutiveDays([]), false);
 });
 
-test("7,000 per friend: 4,000 first, 3,000 bonus; budget counts whole friends", () => {
+test("round 1 keeps 7,000 = 4,000 first + 3,000 bonus", () => {
   const r = REFERRAL_ROUNDS[0];
   assert.equal(r.reward, 7_000);
   assert.equal(roundFirstPayment(r), 4000);
   assert.equal(r.reward - roundFirstPayment(r), 3000);
+  assert.equal(roundHasStreakBonus(r), true);
   assert.equal(roundCapacity(r), r.slots);
+});
+
+test("from round 2: 5,000 per friend, all at once, no streak bonus", () => {
+  for (const r of REFERRAL_ROUNDS.slice(1)) {
+    assert.equal(r.reward, 5_000);
+    assert.equal(roundFirstPayment(r), 5_000);
+    assert.equal(roundHasStreakBonus(r), false);
+  }
 });

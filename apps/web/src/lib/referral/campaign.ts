@@ -43,11 +43,12 @@ export type ReferralRound = {
  * GoodBuilders Season 2: six 2-week epochs from Tue 17 Nov 2026, each ending on
  * a Tuesday demo day (1 Dec, 15 Dec, 29 Dec, 12 Jan, 26 Jan, 9 Feb). Referrals
  * run weekly inside them — two rounds per epoch, Tuesday to Tuesday (Lagos
- * midnight). 7,000 G$ per friend: 4,000 when they qualify + 3,000 after 3 days
- * in a row — the streak part is big on purpose: friends who come back are what
- * we pay for. (Was 2,000 + 3,000 until 20 Nov, then 7,000 + 3,000 for a day; the
- * 3,000 bonus never changed, so credits already paid keep exactly what they
- * were shown.) Spots per round are set from the admin; `slots` is the default.
+ * midnight). From round 2 (Tue 24 Nov): 5,000 G$ per friend, paid in full the
+ * moment they qualify — the 3-day split confused people and left referrers
+ * waiting on money they'd been shown. Round 1 keeps its 7,000 = 4,000 on
+ * qualify + 3,000 after 3 days in a row, so credits earned then still get the
+ * bonus they were promised (lib/referral/streak.ts). Spots per round are set
+ * from the admin; `slots` is the default.
  */
 export const SEASON_START_LAGOS = "2026-11-17";
 export const EPOCH_COUNT = 6;
@@ -67,8 +68,7 @@ export const DEFAULT_WEEKLY_SPOTS = [50, 50, 100, 100, 125, 125, 150, 150, 175, 
 export const REFERRAL_ROUNDS: ReferralRound[] = Array.from({ length: EPOCH_COUNT * 2 }, (_, i) => ({
   start: lagosMidnightIso(seasonDay(i * 7)),
   end: lagosMidnightIso(seasonDay((i + 1) * 7)),
-  reward: 7_000,
-  firstPayment: 4_000,
+  ...(i === 0 ? { reward: 7_000, firstPayment: 4_000 } : { reward: 5_000 }),
   budget: 50_000,
   slots: DEFAULT_WEEKLY_SPOTS[i] ?? 100,
 }));
@@ -109,6 +109,17 @@ export function roundFirstPayment(round: ReferralRound): number {
   return Math.min(round.reward, round.firstPayment ?? round.reward);
 }
 
+/** Whether this round holds part of the reward back for the 3-day streak. */
+export function roundHasStreakBonus(round: ReferralRound | null | undefined): boolean {
+  return !!round && roundFirstPayment(round) < round.reward;
+}
+
+/** The running round, else the next one, else the last — for copy shown between rounds. */
+export function referralRoundForCopy(now: Date = new Date()): ReferralRound {
+  const t = now.getTime();
+  return currentReferralRound(now) ?? REFERRAL_ROUNDS.find((r) => Date.parse(r.end) > t) ?? REFERRAL_ROUNDS[REFERRAL_ROUNDS.length - 1];
+}
+
 /** Max referrals a round can pay (budget ÷ reward). */
 export function roundCapacity(round: ReferralRound): number {
   if (typeof round.slots === "number") return round.slots;
@@ -117,9 +128,7 @@ export function roundCapacity(round: ReferralRound): number {
 
 /** Reward per referral right now (or the next/last round's, for copy shown between rounds). */
 export function referralRewardNow(now: Date = new Date()): number {
-  const t = now.getTime();
-  const next = REFERRAL_ROUNDS.find((r) => Date.parse(r.end) > t);
-  return (currentReferralRound(now) ?? next ?? REFERRAL_ROUNDS[REFERRAL_ROUNDS.length - 1]).reward;
+  return referralRoundForCopy(now).reward;
 }
 
 /** @deprecated Use referralRewardNow() — rounds can pay different amounts. */

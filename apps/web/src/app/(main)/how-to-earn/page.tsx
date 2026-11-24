@@ -21,7 +21,7 @@ import { useBingoList } from "@/hooks/use-bingo";
 import { fmtNgn, fmtUsd } from "@/lib/earn/format";
 import { PRIZE } from "@/lib/leaderboard/windows";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
-import { REFERRAL_ROUNDS, roundFirstPayment } from "@/lib/referral/campaign";
+import { referralRoundForCopy, roundFirstPayment } from "@/lib/referral/campaign";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const compactG = (n: number) => (n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : fmt(n));
@@ -89,7 +89,7 @@ export default function HowToEarnPage() {
     return [...rows.values()].sort((a, b) => a.stake - b.stake || a.days - b.days);
   }, [bingos]);
   const maxBack = ladder.reduce((m, r) => Math.max(m, r.back), 0);
-  const round = REFERRAL_ROUNDS[0];
+  const round = referralRoundForCopy();
   const referralTotal = round.reward;
   const referralFirst = roundFirstPayment(round);
   const c = data?.config;
@@ -184,7 +184,7 @@ export default function HowToEarnPage() {
             <WayToEarn
               art={<span className="text-[30px] leading-none">🤝</span>}
               title="Invite friends"
-              sub={`+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3`}
+              sub={referralFirst < referralTotal ? `+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3` : "Paid in full once they verify and earn 1,000 points"}
               badge={`${compactG(referralTotal)} G$`}
               href="/referrals"
             />
