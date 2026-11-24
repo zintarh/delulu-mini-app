@@ -51,7 +51,7 @@ function greetingFor(part: Daypart, name: string | null, date = new Date()): str
   }
 }
 
-export function HomeGreeting({ name, address }: { name: string; address: string | undefined }) {
+export function HomeGreeting({ name, address }: { name?: string; address: string | undefined }) {
   const { total, left, isLoading } = useTodayQuests(address);
   const daypart = useDaypart();
   const sub = isLoading

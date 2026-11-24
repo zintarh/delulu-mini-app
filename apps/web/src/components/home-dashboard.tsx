@@ -18,7 +18,6 @@ import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
-import { useUserStore } from "@/stores/useUserStore";
 import { cn } from "@/lib/utils";
 
 interface HomeDashboardProps {
@@ -34,8 +33,6 @@ interface HomeDashboardProps {
  */
 export function HomeDashboard({ className }: HomeDashboardProps) {
   const { authenticated, address, isReady } = useAuth();
-  const user = useUserStore((s) => s.user);
-  const name = user?.username || user?.displayName || "";
   const sessionHint = hasStoredAuthSession();
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
   // null until the forfeit lists load.
@@ -72,7 +69,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
       skeleton={address ? <HomeSignedInSkeleton className={className} /> : <HomeGuestSkeleton className={className} />}
     >
       <div className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}>
-        <HomeGreeting name={name} address={address} />
+        <HomeGreeting address={address} />
         {/* New and invited players: the First Week offer comes before everything else. */}
         <HomeFirstWeek guest={!address} hidden={next?.step.kind === "first-week"} />
         {/* …and a pop-up the first time, so nobody has to find which Bingo has the welcome bonus. */}
