@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { cardViews } from "@/lib/bingo/read";
 import { viewerWallet } from "@/lib/bingo/viewer";
+import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
 import { cyclePhase, type BingoAttemptRow, type BingoCycleRow, type BingoCycleTierRow, type BingoVersionRow } from "@/lib/bingo/types";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     (attempts ?? []) as BingoAttemptRow[],
     (version as BingoVersionRow).missions,
     (tiers ?? []) as BingoCycleTierRow[],
-    { cycleOver: cyclePhase(c) === "ended", viewer: viewerWallet(request), durationDays: Math.round((Date.parse(c.ends_at) - Date.parse(c.starts_at)) / 86_400_000) },
+    { cycleOver: cyclePhase(c) === "ended", viewer: viewerWallet(request), session: getAuthenticatedWallet(request), durationDays: Math.round((Date.parse(c.ends_at) - Date.parse(c.starts_at)) / 86_400_000) },
   );
 
   return NextResponse.json({

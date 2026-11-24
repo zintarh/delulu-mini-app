@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import { Lulu } from "@/components/ds";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
@@ -115,6 +115,10 @@ export function BingoPlayers({
                       <img key={p.index} src={p.photoUrl!} alt="" loading="lazy" className="h-9 w-9 rounded-lg border-2 border-white object-cover shadow-sm" />
                     ))}
                   </span>
+                ) : card.photosPrivate && !mine && card.requiredFilled > 0 ? (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-line text-muted-foreground" title="Photos are private">
+                    <Lock className="h-4 w-4" />
+                  </span>
                 ) : null}
                 {scores[card.attemptId] ? (
                   <span className="shrink-0 rounded-full bg-orange-soft px-2 py-0.5 text-[11px] font-extrabold text-orange">🔥{scores[card.attemptId].score}</span>
@@ -151,6 +155,8 @@ export function BingoPlayers({
           <div className="px-4 pb-2 pt-1">
             <BingoCollage card={open} bingoTitle={bingoTitle} required={required} mine={open.attemptId === myAttemptId} />
             {/* Every card is one tap from a cheer — the vote in this week's Best card contest. */}
+            {/* Private cards can't be seen, so they sit out the cheer contest. */}
+            {open.photosPrivate ? null : (
             <CheerPanel
               slug={slug}
               attemptId={open.attemptId}
@@ -158,6 +164,7 @@ export function BingoPlayers({
               ownerName={open.username ? `@${open.username}` : "this player"}
               contest={contest}
             />
+            )}
           </div>
         ) : null}
       </ResponsiveSheet>

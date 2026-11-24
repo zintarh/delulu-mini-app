@@ -5,6 +5,7 @@ import { completionAmountFor, isCategoryEnabled } from "@/lib/rewards/rules";
 import { loadSquares } from "@/lib/bingo/attempts";
 import { perSquareFor } from "@/lib/bingo/reward";
 import { buildSquares, type BingoCardView, type BingoView } from "@/lib/bingo/view";
+import { arePhotosPrivate, privatePhotoWallets } from "@/lib/bingo/privacy";
 export type { BingoCardView, BingoSquareView, BingoTierView, BingoView } from "@/lib/bingo/view";
 import {
   DAY_MS,
@@ -49,11 +50,18 @@ export async function cardViews(
   attempts: BingoAttemptRow[],
   missions: BingoMission[],
   tiers: { tier_key: string; label: string }[],
-  opts: { cycleOver: boolean; viewer?: string | null; durationDays: number },
+  opts: {
+    cycleOver: boolean;
+    viewer?: string | null;
+    /** The signed-in wallet (cookie, not ?address): only it unlocks its own private photos. */
+    session?: string | null;
+    durationDays: number;
+  },
 ): Promise<BingoCardView[]> {
-  const [squares, profiles] = await Promise.all([
+  const [squares, profiles, privateWallets] = await Promise.all([
     loadSquares(admin, attempts.map((a) => a.id)),
     profilesFor(admin, attempts.map((a) => a.wallet)),
+    privatePhotoWallets(admin, attempts.map((a) => a.wallet)),
   ]);
   const tierLabel = new Map(tiers.map((t) => [t.tier_key, t.label]));
   return attempts.map((a) => {
@@ -61,6 +69,8 @@ export async function cardViews(
     // Other players only ever see approved, on-chain squares.
     const visible = (squares.get(a.id) ?? []).filter((s) => own || s.status === "filled");
     const p = profiles.get(a.wallet);
+    const photosPrivate = privateWallets.has(a.wallet.toLowerCase());
+    const built = buildSquares(missions, visible, attemptClosed(a, opts.durationDays, opts.cycleOver));
     return {
       attemptId: a.id,
       wallet: a.wallet,
@@ -75,7 +85,9 @@ export async function cardViews(
       lastFilledAt: a.last_filled_at,
       startedAt: a.started_at,
       endsAt: a.ends_at,
-      squares: buildSquares(missions, visible, attemptClosed(a, opts.durationDays, opts.cycleOver)),
+      photosPrivate,
+      // Private: progress shows, the photos never leave the server.
+      squares: photosPrivate && opts.session?.toLowerCase() !== a.wallet.toLowerCase() ? built.map((sq) => ({ ...sq, photoUrl: null })) : built,
     };
   });
 }
@@ -97,8 +109,10 @@ async function myCard(
   tierLabel: string,
   window: { startsAt: string; endsAt: string; cycleOver: boolean },
   durationDays: number,
+  session: string | null | undefined,
 ) {
-  const rows = (await loadSquares(admin, [a.id])).get(a.id) ?? [];
+  const [squareMap, photosPrivate] = await Promise.all([loadSquares(admin, [a.id]), arePhotosPrivate(admin, a.wallet)]);
+  const rows = squareMap.get(a.id) ?? [];
   const today = daySlot(window.startsAt, window.endsAt);
   const todayUsed = today != null && rows.some((r) => r.slot_index === today && r.status === "filled");
   const phase = cyclePhase({ starts_at: window.startsAt, ends_at: window.endsAt });
@@ -122,7 +136,11 @@ async function myCard(
     lastFilledAt: a.last_filled_at,
     startedAt: a.started_at,
     endsAt: a.ends_at,
-    squares: buildSquares(missions, rows, attemptClosed(a, durationDays, window.cycleOver)),
+    photosPrivate,
+    // A private card asked for by ?address (not the owner's session) shows progress only.
+    squares: buildSquares(missions, rows, attemptClosed(a, durationDays, window.cycleOver)).map((sq) =>
+      photosPrivate && session?.toLowerCase() !== a.wallet.toLowerCase() ? { ...sq, photoUrl: null } : sq,
+    ),
   };
   return { card, phase, today, todayUsed, nextSquareAt };
 }
@@ -131,7 +149,13 @@ async function myCard(
  * Everything one Bingo card on screen needs, in three parallel rounds:
  * (cycles, version, config, rolling stats) → (tiers, players, my attempt) → my squares.
  */
-export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, viewer: string | null): Promise<BingoView | null> {
+export async function buildBingoView(
+  admin: Admin,
+  campaign: BingoCampaignRow,
+  viewer: string | null,
+  /** The signed-in wallet (cookie). Private photos only show to it. */
+  session?: string | null,
+): Promise<BingoView | null> {
   const rolling = campaign.enrollment === "rolling";
   const nowIso = new Date().toISOString();
   const [cyclesRes, currentVersionRes, config, rollingCount, rollingMine] = await Promise.all([
@@ -182,7 +206,7 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
         if (own) v = own as BingoVersionRow;
       }
       const label = v.tiers.find((t) => t.key === mine.tier_key)?.label ?? mine.tier_key;
-      const r = await myCard(admin, mine, v.missions, label, { startsAt: mine.started_at, endsAt: mine.ends_at, cycleOver: false }, campaign.duration_days);
+      const r = await myCard(admin, mine, v.missions, label, { startsAt: mine.started_at, endsAt: mine.ends_at, cycleOver: false }, campaign.duration_days, session);
       const missedDay = mine.required_filled < campaign.duration_days && rollingMissedDay(mine);
       me = { ...r.card, phase: mineOver ? "ended" : r.phase, today: r.today, todayUsed: r.todayUsed, nextSquareAt: r.nextSquareAt, dayOrdered: true, missedDay };
     }
@@ -212,7 +236,7 @@ export async function buildBingoView(admin: Admin, campaign: BingoCampaignRow, v
     const mine = mineRes.data as BingoAttemptRow | null;
     if (mine) {
       const label = tiers.find((x) => x.tier_key === mine.tier_key)?.label ?? mine.tier_key;
-      const r = await myCard(admin, mine, v.missions, label, { startsAt: cycle.starts_at, endsAt: cycle.ends_at, cycleOver: cyclePhase(cycle) === "ended" }, campaign.duration_days);
+      const r = await myCard(admin, mine, v.missions, label, { startsAt: cycle.starts_at, endsAt: cycle.ends_at, cycleOver: cyclePhase(cycle) === "ended" }, campaign.duration_days, session);
       me = { ...r.card, phase: r.phase, today: r.today, todayUsed: r.todayUsed, nextSquareAt: r.nextSquareAt, dayOrdered: false, missedDay: false };
     }
     // Join until the last day starts — a later joiner couldn't fill a single required square.

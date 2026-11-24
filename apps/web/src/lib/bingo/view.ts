@@ -26,6 +26,8 @@ export type BingoCardView = {
   /** This player's own window — the cycle for weekly Bingos, their personal clock for rolling ones. */
   startedAt: string;
   endsAt: string;
+  /** The owner keeps their photos private: others get progress only (photoUrl null). */
+  photosPrivate?: boolean;
   squares: BingoSquareView[];
 };
 

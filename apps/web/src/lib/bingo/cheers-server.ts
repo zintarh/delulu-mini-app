@@ -5,6 +5,7 @@ import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
 import { matchTransfer } from "@/lib/support/transfer-match";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { sendPushAndNotification } from "@/lib/push/notify-recipients";
+import { arePhotosPrivate, privatePhotoWallets } from "@/lib/bingo/privacy";
 import {
   BEST_CARD_PRIZE_G,
   CONTEST_MIN_PLAYERS,
@@ -39,6 +40,7 @@ export async function recordCheer(admin: Admin, voter: string, attemptId: string
   if (!attempt) throw new CheerError("Card not found.");
   const to = String(attempt.wallet).toLowerCase();
   if (to === from) throw new CheerError("You can't cheer your own card.");
+  if (await arePhotosPrivate(admin, to)) throw new CheerError("This card is private — only public cards can be cheered.");
   if (!(await isGoodDollarVerified(from))) throw new CheerError("Verify once to cheer — it keeps the vote fair.");
 
   const day = lagosDay(Date.now());
@@ -147,11 +149,16 @@ export async function loadCheerContest(admin: Admin, campaignId: string, viewer:
       .eq("campaign_id", campaignId)
       .lt("started_at", new Date(week.end).toISOString())
       .gt("ends_at", new Date(week.start).toISOString()),
-    admin.from("card_cheers").select("attempt_id, from_wallet, amount, lagos_day").eq("campaign_id", campaignId).eq("week_start", week.start).limit(20_000),
+    admin.from("card_cheers").select("attempt_id, from_wallet, to_wallet, amount, lagos_day").eq("campaign_id", campaignId).eq("week_start", week.start).limit(20_000),
   ]);
   if (cheers.error && /card_cheers/.test(cheers.error.message)) return { ...base, players: players ?? 0, eligible: (players ?? 0) >= CONTEST_MIN_PLAYERS, setupPending: true };
 
-  const rows = (cheers.data ?? []).map((r) => ({ attemptId: String(r.attempt_id), fromWallet: String(r.from_wallet), amount: Number(r.amount) }));
+  // Private cards can't be seen, so they're out of the Best card contest (cheers from before they switched don't count).
+  const cheerRows = cheers.data ?? [];
+  const hidden = await privatePhotoWallets(admin, [...new Set(cheerRows.map((r) => String(r.to_wallet ?? "")).filter(Boolean))]);
+  const rows = cheerRows
+    .filter((r) => !hidden.has(String(r.to_wallet ?? "").toLowerCase()))
+    .map((r) => ({ attemptId: String(r.attempt_id), fromWallet: String(r.from_wallet), amount: Number(r.amount) }));
   const scored = scoreCards(rows);
   const top = scored.slice(0, LEADERBOARD_SIZE);
   const ids = top.map((s) => s.attemptId);

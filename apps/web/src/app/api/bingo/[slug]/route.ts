@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { buildBingoView } from "@/lib/bingo/read";
 import { viewerWallet } from "@/lib/bingo/viewer";
+import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
 import type { BingoCampaignRow } from "@/lib/bingo/types";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: campaign } = await admin.from("bingo_campaigns").select("*").eq("slug", slug).neq("status", "draft").maybeSingle();
   if (!campaign) return NextResponse.json({ error: "Bingo not found" }, { status: 404 });
 
-  const view = await buildBingoView(admin, campaign as BingoCampaignRow, viewerWallet(request));
+  const view = await buildBingoView(admin, campaign as BingoCampaignRow, viewerWallet(request), getAuthenticatedWallet(request));
   if (!view) return NextResponse.json({ error: "Bingo not found" }, { status: 404 });
 
   const { data: past } = await admin

@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { fetchBatchForfeitCommitmentState } from "@/lib/forfeit/forfeit-subgraph";
 import { resolveUsernameForAddress } from "@/lib/resolve-username";
 import { capitalizeFirst } from "@/lib/utils";
+import { arePhotosPrivate } from "@/lib/bingo/privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +38,14 @@ export async function GET(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!commitment) return NextResponse.json({ error: "Commitment not found" }, { status: 404 });
 
-  const [creatorUsername, onChainStateMap] = await Promise.all([
+  const [creatorUsername, onChainStateMap, bingoCard, creatorPrivate] = await Promise.all([
     resolveUsernameForAddress(admin, commitment.creator_wallet),
     fetchBatchForfeitCommitmentState([onChainCommitmentId]).catch(() => new Map()),
+    admin.from("bingo_attempts").select("id").eq("forfeit_commitment_id", onChainCommitmentId).maybeSingle(),
+    arePhotosPrivate(admin, String(commitment.creator_wallet)),
   ]);
+  // A Bingo card whose owner keeps photos private: this page is public, so no photo.
+  const hideProof = !!bingoCard.data && creatorPrivate;
 
   const onChain = onChainStateMap.get(onChainCommitmentId) ?? null;
 
@@ -69,7 +74,7 @@ export async function GET(
       onChain,
       currentPeriod: currentPeriod
         ? {
-            proofUrl: currentPeriod.proof_url,
+            proofUrl: hideProof ? null : currentPeriod.proof_url,
             verifierAction: currentPeriod.verifier_action,
             resolvedAt: currentPeriod.resolved_at,
           }

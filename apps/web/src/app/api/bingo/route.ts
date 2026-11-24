@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { buildBingoView } from "@/lib/bingo/read";
 import { viewerWallet } from "@/lib/bingo/viewer";
+import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
 import type { BingoCampaignRow } from "@/lib/bingo/types";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
   const viewer = viewerWallet(request);
+  const session = getAuthenticatedWallet(request);
 
   const { data, error } = await admin
     .from("bingo_campaigns")
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const views = (await Promise.all(((data ?? []) as BingoCampaignRow[]).map((c) => buildBingoView(admin, c, viewer)))).filter(
+  const views = (await Promise.all(((data ?? []) as BingoCampaignRow[]).map((c) => buildBingoView(admin, c, viewer, session)))).filter(
     // Only what's running or announced (starts within a day) — next week's Bingo waits its turn.
     (v) => v && v.visible,
   );

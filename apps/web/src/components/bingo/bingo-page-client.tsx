@@ -12,6 +12,7 @@ import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { BingoBoard, type SquareAvailability } from "@/components/bingo/bingo-board";
 import { BingoCollage } from "@/components/bingo/bingo-collage";
 import { BingoPlayers } from "@/components/bingo/bingo-players";
+import { PhotoPrivacySwitch } from "@/components/bingo/photo-privacy-switch";
 import { BingoEarnings, BingoEarningsLine } from "@/components/bingo/bingo-earnings";
 import { CheerContestBanner, CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
@@ -283,6 +284,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
                   if (sq) pickSquare(sq);
                 }}
               />
+              <PhotoPrivacySwitch className="mt-3" />
             </section>
 
             {/* Right under it: the one thing to do now. */}

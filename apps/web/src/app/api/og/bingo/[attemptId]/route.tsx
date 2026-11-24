@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import type { NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
+import { arePhotosPrivate } from "@/lib/bingo/privacy";
 import { squareTint } from "@/lib/bingo/mission-art";
 import { collageColumns } from "@/lib/bingo/collage";
 import type { BingoMission, BingoTier } from "@/lib/bingo/types";
@@ -32,7 +34,7 @@ async function font(family: string, weight: number, text: string): Promise<Array
 /**
  * GET /api/og/bingo/:attemptId — the player's Bingo card as a 1080×1350
  * share image: their approved photos, tier colours, score, BINGO stamp.
- * Only approved (public) squares are drawn.
+ * Only approved squares are drawn, and only for public cards (or the owner's own share).
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ attemptId: string }> }) {
   const { attemptId } = await params;
@@ -45,11 +47,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .maybeSingle();
   if (!a) return new Response("not found", { status: 404 });
   const camp = (Array.isArray(a.bingo_campaigns) ? a.bingo_campaigns[0] : a.bingo_campaigns) as { title: string; duration_days: number };
-  const [{ data: version }, { data: squares }, { data: profile }] = await Promise.all([
+  const [{ data: version }, { data: allSquares }, { data: profile }, photosPrivate] = await Promise.all([
     admin.from("bingo_versions").select("missions, tiers").eq("id", a.version_id).single(),
     admin.from("bingo_squares").select("square_index, proof_url").eq("attempt_id", a.id).eq("status", "filled"),
     admin.from("profiles").select("username").eq("address", a.wallet).maybeSingle(),
+    arePhotosPrivate(admin, String(a.wallet)),
   ]);
+  // Private photos: only the owner's own share image draws them; link previews and
+  // everyone else get the card with mission tiles instead.
+  const ownerAsking = getAuthenticatedWallet(request)?.toLowerCase() === String(a.wallet).toLowerCase();
+  const hidePhotos = photosPrivate && !ownerAsking;
+  const squares = hidePhotos ? [] : allSquares;
+  const doneIdx = new Set((allSquares ?? []).map((s) => s.square_index as number));
   const missions = ((version?.missions ?? []) as BingoMission[]).filter((m) => !m.bonus);
   const tier = ((version?.tiers ?? []) as BingoTier[]).find((t) => t.key === a.tier_key);
   const t = THEMES[a.tier_key as string] ?? THEMES.starter;
@@ -78,7 +87,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Same Pinterest-style layout as the in-app card (lib/bingo/collage).
   const squareStates = missions.map((_, i) => ({
     index: i,
-    state: (filled.has(i) ? "filled" : (a.status as string) !== "active" ? "missed" : "empty") as "filled" | "missed" | "empty",
+    state: (filled.has(i) || doneIdx.has(i) ? "filled" : (a.status as string) !== "active" ? "missed" : "empty") as "filled" | "missed" | "empty",
   }));
   const columns = collageColumns(squareStates, { withScore: true, gapRatio: 20 / 413 });
   // Card 1080×1350: 60 page margin, 8 border, 48 padding → 848 inside; 22 between columns.
@@ -149,7 +158,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                       key={k}
                       style={{ ...box, flexDirection: "column", justifyContent: "center", padding: "0 26px", background: tile.kind === "missed" ? "#ecece7" : squareTint(tile.index).bg, color: tile.kind === "missed" ? "#8a8a80" : squareTint(tile.index).ink }}
                     >
-                      <span style={{ fontSize: 22, fontWeight: 800, opacity: 0.65 }}>{tile.kind === "missed" ? `${day.toUpperCase()} · MISSED` : day.toUpperCase()}</span>
+                      <span style={{ fontSize: 22, fontWeight: 800, opacity: 0.65 }}>{tile.kind === "missed" ? `${day.toUpperCase()} · MISSED` : tile.kind === "photo" ? `${day.toUpperCase()} · DONE` : day.toUpperCase()}</span>
                       <span style={{ fontSize: 28, fontWeight: 800, marginTop: 4 }}>{missions[tile.index]?.title ?? ""}</span>
                     </div>
                   );
@@ -188,6 +197,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         </div>
       </div>
     ),
-    { width: 1080, height: 1350, fonts: fonts.length ? fonts : undefined, headers: { "Cache-Control": "public, max-age=300" } },
+    { width: 1080, height: 1350, fonts: fonts.length ? fonts : undefined, headers: { "Cache-Control": photosPrivate ? "private, no-store" : "public, max-age=300" } },
   );
 }

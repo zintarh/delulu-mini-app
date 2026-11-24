@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { cardViews } from "@/lib/bingo/read";
 import { viewerWallet } from "@/lib/bingo/viewer";
+import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
 import { DAY_MS, type BingoAttemptRow, type BingoCampaignRow, type BingoVersionRow } from "@/lib/bingo/types";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const cards = await cardViews(admin, (attempts ?? []) as BingoAttemptRow[], v.missions, v.tiers.map((t) => ({ tier_key: t.key, label: t.label })), {
     cycleOver: false,
     viewer: viewerWallet(request),
+    session: getAuthenticatedWallet(request),
     durationDays: c.duration_days,
   });
   return NextResponse.json({

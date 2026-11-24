@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { parseUnits } from "viem";
 import { useChainId } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Camera, Coins, Eye, Lock, RotateCcw, TriangleAlert } from "lucide-react";
+import { CalendarDays, Camera, Coins, Lock, RotateCcw, TriangleAlert } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { LowBalancePanel } from "@/components/low-balance-panel";
+import { PhotoPrivacySwitch } from "@/components/bingo/photo-privacy-switch";
 import { Coin, GameButton } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { useTokenBalance } from "@/hooks/use-token-balance";
@@ -144,7 +145,7 @@ export function BingoJoinSheet({
             : { icon: TriangleAlert, text: "No stake lost for missed days" },
           { icon: RotateCcw, text: `Stake back after ${lastDay}, minus missed days` },
         ];
-    return [...list, ...(earn ? [earn] : []), { icon: Eye, text: "Your Bingo photos are shown to other players" }];
+    return [...list, ...(earn ? [earn] : [])];
   }, [tier, rolling, required, perMiss, lastDay, bingo.rewards]);
 
   const joinWeekly = async () => {
@@ -266,6 +267,9 @@ export function BingoJoinSheet({
             </li>
           ))}
         </ul>
+
+        {/* Photos are public unless you say so — decided before you play, changeable any time. */}
+        <PhotoPrivacySwitch />
 
         {spotsFull ? (
           <p className="m-0 flex items-start gap-2 rounded-xl bg-green-soft px-3 py-2 text-[12px] font-bold leading-snug text-green-edge">

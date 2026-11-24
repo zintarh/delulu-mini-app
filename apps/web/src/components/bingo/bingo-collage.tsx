@@ -1,5 +1,6 @@
 "use client";
 
+import { Lock } from "lucide-react";
 import { Lulu } from "@/components/ds";
 import { MissionSticker } from "@/components/bingo/mission-stickers";
 import { flexStatus, flexTheme } from "@/components/bingo/bingo-flex-card";
@@ -98,6 +99,19 @@ export function BingoCollage({
         </div>
       );
     }
+    // A private card's done day: kept, but the photo stays with its owner.
+    if (tile.kind === "photo") {
+      return (
+        <div
+          className="relative flex flex-col items-center justify-center gap-1 overflow-hidden rounded-[18px] bg-gradient-to-br from-[#d9d6cc] to-[#bdb9ad] text-[#3d3b35] shadow-[0_2px_10px_rgba(0,0,0,0.12)]"
+          style={style}
+          aria-label={`${day}: done, photo private`}
+        >
+          <Lock className="h-5 w-5" strokeWidth={2.4} />
+          <p className="m-0 text-[10px] font-extrabold uppercase tracking-wide">{day} · done</p>
+        </div>
+      );
+    }
     const missed = tile.kind === "missed";
     if (!missed && onPick && canPick?.(tile.index)) {
       return (
@@ -146,6 +160,11 @@ export function BingoCollage({
           )}
         </span>
         <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold">{mine ? "My card" : name}</span>
+        {card.photosPrivate ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/15 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide" title="Photos are private">
+            <Lock className="h-3 w-3" /> Private
+          </span>
+        ) : null}
         <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide" style={{ background: t.chipBg, color: t.chipFg }}>
           {card.tierLabel} · {card.stake.toLocaleString("en-US")} G$
         </span>
