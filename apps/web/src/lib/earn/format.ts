@@ -25,3 +25,10 @@ export const fmtMoney = (m: Pick<Money, "usd" | "ngn">) => `${fmtUsd(m.usd)} (�
 
 /** "metakay23 $9.12 (≈ ₦12,330) · Hekii …" */
 export const earnersLine = (list: Earner[]) => list.map((e) => `@${e.name} ${fmtMoney(e)}`).join(" · ");
+
+/**
+ * Naira worth showing next to a G$ amount: tiny figures ("≈ ₦13") make a
+ * reward look worthless, so below ₦100 we show nothing and let G$ speak.
+ */
+export const MIN_NGN_SHOWN = 100;
+export const ngnWorthShowing = (ngn: number | null | undefined) => (ngn != null && ngn >= MIN_NGN_SHOWN ? fmtNgn(ngn) : null);

@@ -60,7 +60,7 @@ export function TryItPhone() {
 
       <div className="relative z-[2] w-[340px] max-w-full animate-rise rounded-[50px] bg-ink p-[11px] shadow-lift">
         <div className="absolute left-1/2 top-5 z-[2] -ml-[46px] h-[26px] w-[92px] rounded-[14px] bg-ink" aria-hidden />
-        <div className="flex min-h-[600px] flex-col gap-3.5 overflow-hidden rounded-[40px] bg-paper px-4 pb-[18px] pt-[54px]">
+        <div className="flex min-h-[440px] flex-col gap-3.5 overflow-hidden rounded-[40px] bg-paper px-4 pb-[18px] pt-[54px] sm:min-h-[600px]">
           <div className="flex items-center justify-between">
             <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-line bg-white" aria-hidden>
               <X className="h-4 w-4" strokeWidth={2.4} />

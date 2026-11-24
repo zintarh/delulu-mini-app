@@ -8,7 +8,7 @@ import { fmtDay, fmtG, fmtRange, fmtUntil } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { fmtNgn } from "@/lib/earn/format";
+import { ngnWorthShowing } from "@/lib/earn/format";
 
 /** "Day 3 of 7" / "Starts Wed 18 Nov" / "3 days · start anytime" — the same everywhere. */
 export function bingoStatus(b: BingoView): { text: string; live: boolean } {
@@ -94,7 +94,8 @@ function useEarnInfo(bingo: BingoView) {
   // The cashback for the stake the card shows, so the two always match.
   const atStake = bingo.tiers.find((t) => t.stake === stake);
   const backAtStake = typeof atStake?.completionReward === "number" ? atStake.completionReward : 0;
-  const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
+  // Naira when it's a real amount; small ones fall back to G$ (see ngnWorthShowing).
+  const ngn = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null);
   const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : String(n));
   return { days, perDay, back, backAtStake, total, stake, ngn, k };
 }
@@ -128,7 +129,7 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         {/* The most this Bingo pays back (its top stake) — "up to", since the line below shows the smallest stake. */}
         {earn.back > 0 && !playing ? (
           <span className={cn("inline-flex items-center rounded-full bg-green-strong font-extrabold text-white", pin ? "px-1.5 py-0.5 text-[9px]" : "px-2.5 py-1 text-[11px]")}>
-            Cashback {earn.back > earn.backAtStake ? "up to " : ""}+{earn.back.toLocaleString("en-US")} G${earn.ngn(earn.back) ? ` ≈ ${earn.ngn(earn.back)}` : ""}
+            {earn.back > earn.backAtStake ? "Up to " : ""}+{earn.ngn(earn.back) ?? `${earn.k(earn.back)} G$`} back
           </span>
         ) : null}
         {/* Only while you're playing ("Day 2 of 7") — the squares already say 3 or 7 days. */}

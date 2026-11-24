@@ -860,6 +860,23 @@ textarea {
     --muted-foreground: 92 92 86;
   }
 
+  /* Night on a sky-painted screen (Home, Explore…): the top bar, the strip
+     under it and the strip behind the bottom nav take the sky's colour, so the
+     page isn't framed by white bands. Daytime screens are unchanged. */
+  html[data-daypart="night"]:has(.bg-wash) .app-topbar {
+    background-color: rgba(15, 18, 51, 0.94);
+  }
+  html[data-daypart="night"]:has(.bg-wash) .app-wordmark .text-ink {
+    color: #f2f1fb;
+  }
+  html[data-daypart="night"]:has(.bg-wash) .app-sky {
+    background-color: #0f1233;
+  }
+  /* The wash ends on #262859 — the strip behind the bottom nav matches it. */
+  html[data-daypart="night"]:has(.bg-wash) .app-sky-bottom {
+    background-color: #262859;
+  }
+
   /* Solid bottom "edge" that presses down on tap (cards, buttons, pills) */
   .press-edge {
     transition: transform 80ms ease, box-shadow 80ms ease;

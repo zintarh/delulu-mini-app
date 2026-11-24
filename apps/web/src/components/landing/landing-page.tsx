@@ -38,7 +38,7 @@ export function LandingPage() {
     // html/body don't scroll in this app (PWA shell), so the page owns its scroller.
     <div ref={scrollerRef} className="h-[100dvh] overflow-y-auto overflow-x-hidden bg-paper font-body text-ink scroll-smooth">
       <LandingHeader signedIn={signedIn} />
-      <section id="top" className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-14 px-6 pb-[88px] pt-14">
+      <section id="top" className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-8 px-6 pb-12 pt-10 sm:gap-14 sm:pb-[88px] sm:pt-14">
         <HeroCopy />
         <TryItPhone />
       </section>

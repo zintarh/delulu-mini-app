@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
-import { Lulu } from "@/components/ds";
+import { Lulu, gameButtonClass } from "@/components/ds";
+import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
 import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel, currentReferralRound, roundFirstPayment, roundHasStreakBonus, REFERRAL_ROUNDS } from "@/lib/referral/campaign";
 
@@ -96,7 +97,9 @@ function ReferralRow({ r, ended }: { r: MyReferral; ended: boolean }) {
 }
 
 export default function MyReferralsPage() {
-  const { address } = useAuth();
+  const { address, isReady } = useAuth();
+  // Signed out: no list to load — show how to get a link instead of placeholders that never fill.
+  const guest = isReady && !address;
   const { eligible, standing, isLoading: isLoadingEligibility } = useReferralEligibility(address);
   const [referrals, setReferrals] = useState<MyReferral[] | null>(null);
   const [error, setError] = useState(false);
@@ -197,14 +200,27 @@ export default function MyReferralsPage() {
             <Hourglass className="h-4 w-4 shrink-0" />
             Payouts waiting. Post today&apos;s proof to get paid →
           </Link>
-        ) : !ended && !isLoadingEligibility && !eligible ? (
+        ) : address && !ended && !isLoadingEligibility && !eligible ? (
           <div className="flex items-center gap-2 rounded-[20px] border-2 border-line bg-white px-4 py-3 text-sm font-semibold text-muted-foreground">
             <Lock className="h-4 w-4 shrink-0" />
             Finish your own onboarding for referrals to count on the leaderboard.
           </div>
         ) : null}
 
-        {error ? (
+        {guest ? (
+          <div className="flex flex-col items-center rounded-[20px] border-2 border-line bg-white px-5 py-8 text-center">
+            <Lulu size={64} mood="kept" />
+            <p className="m-0 mt-3 text-[15px] font-extrabold">Sign in to get your invite link</p>
+            <p className="m-0 mt-1 text-[13px] font-semibold text-muted-foreground">Friends you invite show up here.</p>
+            <Link
+              href={buildSignInUrl("/referrals")}
+              onClick={() => persistSignInRedirect("/referrals")}
+              className={cn(gameButtonClass({ full: true }), "mt-4 no-underline")}
+            >
+              Sign in
+            </Link>
+          </div>
+        ) : error ? (
           <p className="py-16 text-center text-sm text-muted-foreground">
             Couldn&apos;t load your referrals. Try again.
           </p>

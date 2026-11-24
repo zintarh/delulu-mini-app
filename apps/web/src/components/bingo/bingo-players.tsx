@@ -73,14 +73,15 @@ export function BingoPlayers({
           const mine = card.attemptId === myAttemptId;
           const status = flexStatus(card, required);
           const photos = card.squares.filter((s) => !s.bonus && s.state === "filled" && s.photoUrl).slice(-3).reverse();
-          const name = mine ? "You" : card.username ? `@${card.username}` : `${card.wallet.slice(0, 6)}…`;
+          const name = mine ? "You" : card.username ? `@${card.username}` : "Player";
           return (
             <li key={card.attemptId}>
               <button
                 type="button"
                 onClick={() => setOpen(card)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition-colors",
+                  // text-ink: the page behind can be the dark night theme, the rows are always light.
+                  "flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left text-ink transition-colors",
                   mine ? "border-ink bg-yellow-soft" : "border-line bg-white hover:bg-paper",
                 )}
               >

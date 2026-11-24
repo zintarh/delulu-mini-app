@@ -67,7 +67,7 @@ export function MobileBottomNavSpacer() {
   if (hidesBottomNav(pathname)) return null;
   return (
     <div
-      className="shrink-0 lg:hidden"
+      className="app-sky-bottom shrink-0 lg:hidden"
       style={{ height: "var(--mobile-bottom-nav-clearance)" }}
       aria-hidden
     />
@@ -107,7 +107,7 @@ export function MainAppContent({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "min-h-0 flex-1",
+        "app-sky min-h-0 flex-1",
         nestedScroll ? "flex flex-col overflow-hidden" : "overflow-y-auto scrollbar-hide",
         needsMobileNavOffset && "pt-[var(--mobile-top-nav-bar)]",
       )}

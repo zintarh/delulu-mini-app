@@ -59,7 +59,7 @@ export function CheerContestBanner({ contest, onCheer }: { contest: CheerContest
         <div className="mt-3 flex items-center gap-1.5">
           {top.map((e, i) => (
             <span key={e.attemptId} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-extrabold">
-              {["🥇", "🥈", "🥉"][i]} @{e.username ?? e.wallet.slice(0, 6)} <span className="text-orange">🔥{e.score}</span>
+              {["🥇", "🥈", "🥉"][i]} {e.username ? `@${e.username}` : "Player"} <span className="text-orange">🔥{e.score}</span>
             </span>
           ))}
         </div>

@@ -6,7 +6,7 @@ import { Trophy } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { fmtUsd } from "@/lib/earn/format";
+import { fmtNgn } from "@/lib/earn/format";
 import { PRIZE, fortnightWindow } from "@/lib/leaderboard/windows";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export function LeaderboardPrizeCard({ className }: { className?: string }) {
   const { myRankEntry, isRankLoading } = useAllUsersLeaderboard(0, address, undefined, "fortnight");
   const round = fortnightWindow();
   const daysLeft = Math.max(1, Math.ceil((round.endMs - Date.now()) / 86_400_000));
-  const usd = facts ? fmtUsd(PRIZE.poolG * facts.gdUsd) : null;
+  const ngn = facts ? fmtNgn(PRIZE.poolG * facts.gdUsd * facts.ngnPerUsd) : null;
   const inPrize = !!myRankEntry && myRankEntry.rank <= PRIZE.winners;
   const you = isRankLoading
     ? " "
@@ -43,7 +43,7 @@ export function LeaderboardPrizeCard({ className }: { className?: string }) {
       <span className="relative min-w-0 flex-1">
         <span className="block truncate text-[14px] font-extrabold">
           Top {PRIZE.winners} share <span className="text-yellow">{PRIZE.poolG.toLocaleString("en-US")} G$</span>
-          {usd ? <span className="font-bold text-white/70"> ≈ {usd}</span> : null}
+          {ngn ? <span className="font-bold text-white/70"> ≈ {ngn}</span> : null}
         </span>
         <span className={cn("block truncate text-[11px] font-semibold", inPrize ? "text-green" : "text-white/70")}>
           {you} · {daysLeft} {daysLeft === 1 ? "day" : "days"} left

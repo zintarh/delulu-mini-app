@@ -19,7 +19,7 @@ import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn } from "@/lib/utils";
 import { APP_HOME } from "@/components/main-nav-config";
 import { useEffect, useState } from "react";
-import { fmtMoney, fmtNgn, type EarnFacts } from "@/lib/earn/format";
+import { fmtNgn, ngnWorthShowing, type EarnFacts } from "@/lib/earn/format";
 import { referralRewardNow } from "@/lib/referral/campaign";
 
 /* Copy and layout follow docs/redesign/screens/Main.dc.html. */
@@ -39,7 +39,8 @@ function useLandingFacts(): EarnFacts | null {
   }, []);
   return facts;
 }
-const ngnOf = (facts: EarnFacts | null, g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
+/** Naira for a G$ amount — only when it's worth showing (tiny "≈ ₦13" figures read as nothing). */
+const ngnOf = (facts: EarnFacts | null, g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null);
 
 function SectionHead({ title, sub, center = true }: { title: React.ReactNode; sub?: string; center?: boolean }) {
   return (
@@ -147,7 +148,7 @@ function HeroChips() {
 /* ---------------------------------------------------------------- free money banner */
 export function FreeMoneyBanner() {
   return (
-    <section className="mx-auto max-w-[1240px] px-6 pb-24">
+    <section className="mx-auto max-w-[1240px] px-6 pb-12 sm:pb-24">
       <div data-reveal="pop" className="reveal flex flex-wrap items-center gap-6 rounded-[28px] border-2 border-yellow-line bg-yellow-soft px-7 py-6 shadow-[0_6px_0_#e5b41c]">
         <span className="inline-block animate-wiggle">
           <Chest size={84} />
@@ -183,7 +184,7 @@ export function ProblemSection() {
     </div>
   );
   return (
-    <section id="problem" className="mx-auto flex max-w-[1100px] flex-col gap-12 px-6 py-[110px]">
+    <section id="problem" className="mx-auto flex max-w-[1100px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
       <SectionHead title="Goals are free to quit." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-center gap-6">
         <div data-reveal="left" className="reveal flex flex-col gap-[18px] rounded-3xl border-2 border-dashed border-[#d6d6cf] bg-[#efefea] p-7">
@@ -233,14 +234,14 @@ export function TwoWaysSection() {
   const card = "reveal flex flex-col gap-3 rounded-[28px] border-2 border-line bg-white p-7 shadow-[0_6px_0_#e6e6e0]";
   return (
     <section id="ways" className="border-y-2 border-line bg-white">
-      <div className="mx-auto flex max-w-[1160px] flex-col gap-12 px-6 py-[110px]">
+      <div className="mx-auto flex max-w-[1160px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
         <SectionHead title={<>Show up.<br />Get paid.</>} sub="One photo a day. Every kept day pays — and finishing pays the most." />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
           {/* First Week — the way in */}
           <div data-reveal="left" className="reveal relative flex flex-col gap-3 rounded-[28px] border-2 border-yellow-line bg-yellow-soft p-7 shadow-[0_8px_0_#e5b41c]">
             <span className="label-mono text-[11px] text-[#6b5300]">New here</span>
             <span className="text-2xl font-extrabold">Your first week pays you</span>
-            <span className="font-display text-[56px] font-extrabold leading-[0.9]">{facts?.firstWeek ? fmtMoney(facts.firstWeek.entry) : "≈ ₦1,000"}</span>
+            <span className="font-display text-[56px] font-extrabold leading-[0.9]">{facts?.firstWeek ? fmtNgn(facts.firstWeek.entry.ngn) : "≈ ₦1,500"}</span>
             <span className="text-[15px] leading-snug text-[#5c4a0a]">Show up 7 days in a row on Your First Week — paid as you go, plus a bonus when you finish. Once per person.</span>
           </div>
 
@@ -312,7 +313,7 @@ export function FeaturesSection() {
     </div>
   );
   return (
-    <section id="game" className="mx-auto flex max-w-[1240px] flex-col gap-12 px-6 py-[110px]">
+    <section id="game" className="mx-auto flex max-w-[1240px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
       <SectionHead title="Every kept day counts." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
         <Feature title="Leaderboards" line="A weekly board, and every 2 weeks the top 10 share 250,000 G$.">
@@ -374,7 +375,7 @@ export function StoriesSection() {
   if (TESTIMONIALS.length === 0) return null;
   return (
     <section id="stories" className="border-y-2 border-line bg-paper">
-      <div className="mx-auto flex max-w-[1240px] flex-col gap-12 px-6 py-[110px]">
+      <div className="mx-auto flex max-w-[1240px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
         <SectionHead title="Proof, not promises." />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6">
           {TESTIMONIALS.map((t, i) => (
@@ -412,7 +413,7 @@ const FAQS: [string, string][] = [
 export function FaqSection() {
   return (
     <section id="faq" className="border-y-2 border-line bg-white">
-      <div className="mx-auto flex max-w-[820px] flex-col gap-10 px-6 py-[110px]">
+      <div className="mx-auto flex max-w-[820px] flex-col gap-10 px-6 py-16 sm:py-[110px]">
         <div className="flex flex-wrap items-center justify-center gap-[18px] text-center">
           <span className="inline-flex">
             <Lulu size={72} />
@@ -440,7 +441,7 @@ export function FaqSection() {
 /* ---------------------------------------------------------------- final CTA */
 export function FinalCta() {
   return (
-    <section className="mx-auto max-w-[1240px] px-6 py-[110px]">
+    <section className="mx-auto max-w-[1240px] px-6 py-16 sm:py-[110px]">
       <div data-reveal="pop" className="reveal relative flex flex-wrap items-center justify-between gap-8 overflow-hidden rounded-[36px] bg-ink px-[clamp(24px,6vw,72px)] py-[clamp(40px,6vw,80px)] text-white shadow-[0_10px_0_#000]">
         <ConfettiStatic
           pieces={[

@@ -1288,7 +1288,7 @@ export function ForfeitCreatePage() {
               }}
               className="h-16 w-full rounded-full bg-ink text-base font-semibold text-white"
             >
-              Sign in to sign
+              Sign in to start
             </button>
           ) : (
             <HoldToSign

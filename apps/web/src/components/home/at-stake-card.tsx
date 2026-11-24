@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronRight, Flame, Lock, Trophy } from "lucide-react";
 import { useBingoList } from "@/hooks/use-bingo";
-import { fmtNgn, fmtUsd, toMoney } from "@/lib/earn/format";
+import { fmtNgn, toMoney } from "@/lib/earn/format";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export function AtStakeCard({ className }: { className?: string }) {
           ) : null}
           {bonus ? (
             <span className={cn(chip, "text-green-edge")}>
-              <Flame className="h-3 w-3" /> Finish: {fmtUsd(bonus.usd)} · {fmtNgn(bonus.ngn)}
+              <Flame className="h-3 w-3" /> Finish: {fmtNgn(bonus.ngn)}
             </span>
           ) : null}
         </div>
@@ -82,7 +82,7 @@ export function AtStakeCard({ className }: { className?: string }) {
         {top.length ? (
           <p className="m-0 mt-1.5 flex items-center gap-1 truncate text-[11px] font-semibold text-muted-foreground">
             <Trophy className="h-3 w-3 shrink-0" />
-            {top.map((e) => `@${e.name} ${fmtUsd(e.usd)} · ${fmtNgn(e.ngn)}`).join("  ·  ")}
+            {top.map((e) => `@${e.name} ${fmtNgn(e.ngn)}`).join("  ·  ")}
           </p>
         ) : null}
       </div>

@@ -4,21 +4,19 @@ import Link from "next/link";
 import { usePublicRewards } from "@/hooks/use-public-rewards";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Play, Send } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Send } from "lucide-react";
 import { AppIntroView } from "@/components/app-intro";
 import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { CheckDot, Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
-import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { compactCount } from "@/lib/rewards/public-stats";
-import { formatUsdFromG } from "@/lib/rewards/summary";
 import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { useBingoList } from "@/hooks/use-bingo";
-import { fmtNgn, fmtUsd } from "@/lib/earn/format";
+import { fmtNgn, ngnWorthShowing } from "@/lib/earn/format";
 import { PRIZE } from "@/lib/leaderboard/windows";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
 import { referralRoundForCopy, roundFirstPayment } from "@/lib/referral/campaign";
@@ -54,7 +52,7 @@ function WayToEarn({
       <span className="flex h-11 w-11 shrink-0 items-center justify-center">{art}</span>
       <div className="min-w-0 flex-1">
         <div className="font-extrabold leading-tight">{title}</div>
-        <div className="label-mono mt-1 text-[10px] text-muted-foreground">{sub}</div>
+        <div className="mt-0.5 text-[12px] font-semibold leading-snug text-muted-foreground">{sub}</div>
       </div>
       <span className="shrink-0 rounded-full bg-green-soft px-2.5 py-1 text-[12px] font-extrabold text-green-edge">{badge}</span>
       {href ? <ChevronRight className="-mr-1 h-4 w-4 shrink-0 text-muted-foreground" /> : null}
@@ -73,9 +71,11 @@ function WayToEarn({
 /** How to earn on Delulu — every way to earn, with live amounts and real payout numbers. */
 export default function HowToEarnPage() {
   const { data, isLoading } = usePublicRewards();
-  const { usd: usdPerG } = useGoodDollarPrice();
   const facts = useEarnFacts();
-  const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
+  // Earnings read in naira when the amount is worth showing; otherwise G$.
+  const ngn = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null);
+  const money = (g: number) => ngn(g) ?? `${compactG(g)} G$`;
+  const [ladderOpen, setLadderOpen] = useState(false);
   const { bingos } = useBingoList();
   // Cashback ladder from the live Bingos: one row per stake (3-day and 7-day), smallest first.
   const ladder = useMemo(() => {
@@ -94,7 +94,6 @@ export default function HowToEarnPage() {
   const referralFirst = roundFirstPayment(round);
   const c = data?.config;
   const stats = data?.stats;
-  const minCashoutUsd = formatUsdFromG(NAIRA_CASHOUT_MIN_G, usdPerG);
   const [introOpen, setIntroOpen] = useState(false);
   const { authenticated } = useAuth();
   const router = useRouter();
@@ -112,9 +111,9 @@ export default function HowToEarnPage() {
               <Coin size={110} />
             </span>
             <div className="relative flex gap-2">
-              <Stat value={compactCount(stats.totalG)} label="G$ paid out" sub={formatUsdFromG(stats.totalG, usdPerG) ? `≈ ${formatUsdFromG(stats.totalG, usdPerG)}` : null} />
+              <Stat value={compactCount(stats.totalG)} label="G$ paid out" sub={ngn(stats.totalG) ? `≈ ${ngn(stats.totalG)}` : null} />
               <Stat value={fmt(stats.people)} label="People rewarded" />
-              <Stat value={compactCount(stats.biggestG)} label="Biggest payout" sub="G$" />
+              <Stat value={compactCount(stats.biggestG)} label="Biggest payout" sub={ngn(stats.biggestG) ? `G$ ≈ ${ngn(stats.biggestG)}` : "G$"} />
             </div>
             <p className="label-mono relative m-0 mt-4 text-center text-[9px] text-white/50">Live from our payout records</p>
           </div>
@@ -142,8 +141,8 @@ export default function HowToEarnPage() {
               <WayToEarn
                 art={<Lulu size={40} mood="kept" animated={false} />}
                 title="Your first week"
-                sub={`7 days in a row · new players · ≈ ${fmtNgn(facts.firstWeek.entry.ngn)}`}
-                badge={`+${compactG(facts.firstWeek.entry.g)} G$`}
+                sub="7 days in a row · new players"
+                badge={`+${fmtNgn(facts.firstWeek.entry.ngn)}`}
                 href="/bingo/first-week"
               />
             ) : null}
@@ -159,40 +158,55 @@ export default function HowToEarnPage() {
               art={<Trophy size={38} />}
               title="Finish a Bingo"
               sub="Your stake back + cashback · bigger stake, more back"
-              badge={maxBack ? `Up to +${compactG(maxBack)} G$` : "Cashback"}
+              badge={maxBack ? `Up to +${money(maxBack)}` : "Cashback"}
               href="/explore"
             />
             {/* The ladder, so "stake more, get more" is obvious */}
+            {/* Every stake level, behind a tap — the badge above already says the most. */}
             {ladder.length ? (
-              <div className="-mt-1 grid grid-cols-2 gap-1.5 rounded-[18px] bg-paper p-2 sm:grid-cols-3">
-                {ladder.map((r) => (
-                  <div key={`${r.days}-${r.stake}`} className="rounded-xl bg-white px-2.5 py-2 text-[12px] font-bold shadow-edge-sm">
-                    <span className="text-muted-foreground">{r.days}d · </span>
-                    {compactG(r.stake)} → <span className="text-green-edge">+{fmt(r.back)}</span>
-                    {ngn(r.back) ? <span className="block text-[10px] font-semibold text-muted-foreground">≈ {ngn(r.back)}</span> : null}
-                  </div>
-                ))}
+              <div className="-mt-1">
+                <button
+                  type="button"
+                  onClick={() => setLadderOpen((o) => !o)}
+                  aria-expanded={ladderOpen}
+                  className="inline-flex items-center gap-1 px-1 text-[12px] font-extrabold text-ink"
+                >
+                  {ladderOpen ? "Hide" : "See"} cashback for every stake
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", ladderOpen && "rotate-180")} />
+                </button>
+                {ladderOpen ? (
+                  <ul className="m-0 mt-1.5 flex list-none flex-col gap-1 rounded-[18px] bg-paper p-2">
+                    {ladder.map((r) => (
+                      <li key={`${r.days}-${r.stake}`} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-[12px] font-bold">
+                        <span>
+                          Stake {compactG(r.stake)} G$ <span className="font-semibold text-muted-foreground">· {r.days} days</span>
+                        </span>
+                        <span className="text-green-edge">+{money(r.back)} back</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             ) : null}
             <WayToEarn
               art={<span className="text-[30px] leading-none">🔥</span>}
               title="Cheers on your card"
-              sub={`People send you G$ · best card each week wins ${compactG(BEST_CARD_PRIZE_G)}`}
-              badge={`${compactG(BEST_CARD_PRIZE_G)} G$`}
+              sub="People cheer your card · the best card each week wins"
+              badge={money(BEST_CARD_PRIZE_G)}
               href="/explore"
             />
             <WayToEarn
               art={<span className="text-[30px] leading-none">🤝</span>}
               title="Invite friends"
               sub={referralFirst < referralTotal ? `+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3` : "Paid in full once they verify and earn 1,000 points"}
-              badge={`${compactG(referralTotal)} G$`}
+              badge={money(referralTotal)}
               href="/referrals"
             />
             <WayToEarn
               art={<Trophy size={38} />}
               title="Leaderboard prize"
-              sub={`Top ${PRIZE.winners} share ${PRIZE.poolG.toLocaleString("en-US")} G$${facts ? ` ≈ ${fmtUsd(PRIZE.poolG * facts.gdUsd)}` : ""} every 2 weeks · bigger stake, higher rank`}
-              badge="Every 2 weeks"
+              sub={`Top ${PRIZE.winners} share it every 2 weeks · bigger stake, higher rank`}
+              badge={money(PRIZE.poolG)}
               href="/leaderboard"
             />
           </div>
@@ -213,7 +227,7 @@ export default function HowToEarnPage() {
             <div className="min-w-0 flex-1">
               <h2 className="m-0 text-[18px] font-extrabold leading-tight">Turn G$ into naira</h2>
               <p className="label-mono m-0 mt-1 text-[10px] text-green-edge">
-                From {fmt(NAIRA_CASHOUT_MIN_G)} G${minCashoutUsd ? ` (≈ ${minCashoutUsd})` : ""}
+                From {fmt(NAIRA_CASHOUT_MIN_G)} G${ngn(NAIRA_CASHOUT_MIN_G) ? ` (≈ ${ngn(NAIRA_CASHOUT_MIN_G)})` : ""}
               </p>
             </div>
           </div>

@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
-import { useEarnedTotalsByAddresses, formatEarnedUsdt } from "@/hooks/use-earned-totals";
+import { useEarnedTotalsByAddresses } from "@/hooks/use-earned-totals";
 import { cn } from "@/lib/utils";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
@@ -11,7 +11,7 @@ import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Flame, Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
 import { PRIZE, boardWindow, fortnightWindow, weekWindow, type BoardWindow } from "@/lib/leaderboard/windows";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { fmtUsd } from "@/lib/earn/format";
+import { fmtNgn, ngnWorthShowing } from "@/lib/earn/format";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCompact } from "@/lib/levels";
@@ -38,8 +38,13 @@ function StreakFlame({ days, className }: { days?: number; className?: string })
   );
 }
 
-function formatAddr(addr: string) {
-  return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
+/** No username yet: a plain "Player", never a wallet address. */
+const displayName = (e: { username: string | null }) => (e.username ? `@${e.username}` : "Player");
+
+/** Earned (stored in $) as naira, only when it's a real amount — "$0.04 earned" reads as nothing. */
+function useEarnedLabel() {
+  const facts = useEarnFacts();
+  return (usd: number) => (facts && usd > 0 ? ngnWorthShowing(usd * facts.ngnPerUsd) : null);
 }
 
 const MEDALS: Record<number, [string, string]> = {
@@ -81,6 +86,8 @@ function Row({
   compact: boolean;
   earnedUsd: number;
 }) {
+  const earned = useEarnedLabel()(earnedUsd);
+  const second = [entry.daysKept ? `${entry.daysKept} ${entry.daysKept === 1 ? "day" : "days"} kept` : null, earned ? `${earned} earned` : null].filter(Boolean).join(" · ");
   return (
     <div
       className={cn(
@@ -91,17 +98,14 @@ function Row({
       <RankBadge rank={entry.rank} />
       <UserAvatar address={entry.address} username={entry.username} pfpUrl={pfp} size={38} />
       <span className="min-w-0 flex-1 truncate font-bold">
-        {isMe ? "You" : entry.username ? `@${entry.username}` : formatAddr(entry.address)}
+        {isMe ? "You" : displayName(entry)}
       </span>
       <StreakFlame days={entry.streak} />
       <span className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="label-mono text-xs font-semibold text-ink">
           {entry.points > 0 ? `${compact ? formatCompact(entry.points) : entry.points.toLocaleString()} pts` : "—"}
         </span>
-        {entry.daysKept ? <span className="label-mono text-[10px] text-green-edge">{entry.daysKept} {entry.daysKept === 1 ? "day" : "days"} kept</span> : null}
-        {earnedUsd > 0 ? (
-          <span className="label-mono text-[10px] text-muted-foreground">{formatEarnedUsdt(earnedUsd)} earned</span>
-        ) : null}
+        {second ? <span className="label-mono text-[10px] text-green-edge">{second}</span> : null}
       </span>
     </div>
   );
@@ -117,6 +121,7 @@ function Podium({
   pfpMap: Record<string, string | null | undefined>;
   earnedByAddress: Record<string, number>;
 }) {
+  const earnedLabel = useEarnedLabel();
   const order = [top[1], top[0], top[2]].filter(Boolean);
   const heights: Record<number, number> = { 1: 80, 2: 56, 3: 40 };
   return (
@@ -132,15 +137,13 @@ function Podium({
               {e.rank}
             </span>
           </span>
-          <span className="mt-1.5 max-w-full truncate text-sm font-bold">{e.username ? `@${e.username}` : formatAddr(e.address)}</span>
+          <span className="mt-1.5 max-w-full truncate text-sm font-bold">{displayName(e)}</span>
           <span className="label-mono flex items-center gap-1.5 text-[10px] text-muted-foreground">
             {formatCompact(e.points)}
             <StreakFlame days={e.streak} className="text-[10px]" />
           </span>
-          {(earnedByAddress[e.address.toLowerCase()] ?? 0) > 0 ? (
-            <span className="label-mono text-[9px] text-muted-foreground/80">
-              {formatEarnedUsdt(earnedByAddress[e.address.toLowerCase()])}
-            </span>
+          {earnedLabel(earnedByAddress[e.address.toLowerCase()] ?? 0) ? (
+            <span className="label-mono text-[9px] text-muted-foreground/80">{earnedLabel(earnedByAddress[e.address.toLowerCase()] ?? 0)}</span>
           ) : null}
           <div
             className="w-full rounded-t-[14px] shadow-[inset_0_-6px_0_rgba(0,0,0,0.08)]"
@@ -198,7 +201,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
   const daysLeft = Math.max(0, Math.ceil((range.endMs - Date.now()) / 86_400_000));
   const ends = daysLeft <= 1 ? "ends today" : `${daysLeft} days left`;
   if (win !== "week") {
-    const usd = facts ? PRIZE.poolG * facts.gdUsd : null;
+    const ngn = facts ? PRIZE.poolG * facts.gdUsd * facts.ngnPerUsd : null;
     const round = fortnightWindow();
     return (
       <div className="relative mt-4 overflow-hidden rounded-[22px] border-2 border-ink bg-ink p-4 text-white shadow-[0_4px_0_#000]">
@@ -211,7 +214,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
             <p className="m-0 text-[13px] font-bold text-white/70">Round {round.index} · top {PRIZE.winners} share every 2 weeks</p>
             <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">
               {PRIZE.poolG.toLocaleString("en-US")} G$
-              {usd ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtUsd(usd)}</span> : null}
+              {ngn ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtNgn(ngn)}</span> : null}
             </p>
             <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Bigger stake + more days kept = higher rank · {ends}</p>
           </div>

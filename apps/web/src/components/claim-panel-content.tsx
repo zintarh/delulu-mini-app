@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 import { afterVote } from "@/lib/vote-gate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -207,7 +209,10 @@ export function ClaimPanelContent({
         >
           <CoinStack locked={needsWhitelist} className="scale-125" />
           <MonoLabel className="mt-3">Today&apos;s amount</MonoLabel>
-          {isClaimDataLoading || !isReady || !isInitialized ? (
+          {isReady && !address ? (
+            // Signed out there's no amount to look up — say what it is instead of a loader that never ends.
+            <p className="mx-auto mt-2 max-w-[260px] text-lg font-extrabold leading-snug">Sign in to see yours</p>
+          ) : isClaimDataLoading || !isReady || !isInitialized ? (
             <div className="mx-auto mt-2 h-10 w-32 animate-pulse rounded-lg bg-line" />
           ) : needsWhitelist ? (
             <p className="mx-auto mt-2 max-w-[260px] text-lg font-extrabold leading-snug">
@@ -226,7 +231,7 @@ export function ClaimPanelContent({
           </p>
         </GameCard>
 
-        <div className="mb-6 flex items-center justify-between rounded-[20px] border-2 border-line bg-white px-4 py-3">
+        <div className={cn("mb-6 flex items-center justify-between rounded-[20px] border-2 border-line bg-white px-4 py-3", !address && "hidden")}>
           <span className="text-sm font-semibold text-muted-foreground">Your balance</span>
           <span className="text-sm font-extrabold tabular-nums">
             {isGdLoading

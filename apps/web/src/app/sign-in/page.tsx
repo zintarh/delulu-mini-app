@@ -432,15 +432,14 @@ export default function SignInPage() {
                   aria-label="Continue with email"
                   aria-busy={isCheckingEmail || isLaunchingEmailProvider}
                   disabled={isAnyPending || !isInitialized || !privyReady || !isValidEmail(email)}
-                  className="press-edge flex h-14 shrink-0 items-center rounded-2xl bg-ink px-1.5 shadow-edge-ink disabled:cursor-not-allowed disabled:opacity-60"
+                  // One solid button: yellow once the email is valid, quietly grey until then.
+                  className="press-edge flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-yellow text-ink shadow-edge-yellow disabled:cursor-not-allowed disabled:bg-line disabled:text-muted-foreground disabled:shadow-none"
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
-                    {isCheckingEmail || isLaunchingEmailProvider ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <ArrowRight className="h-5 w-5" strokeWidth={2.4} />
-                    )}
-                  </span>
+                  {isCheckingEmail || isLaunchingEmailProvider ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-5 w-5" strokeWidth={2.6} />
+                  )}
                 </button>
               </div>
               {showEmailError ? (

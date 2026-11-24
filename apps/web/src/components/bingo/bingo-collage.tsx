@@ -35,7 +35,7 @@ export function BingoCollage({
 }) {
   const t = flexTheme(card.tierKey);
   const status = flexStatus(card, required);
-  const name = card.username ? `@${card.username}` : `${card.wallet.slice(0, 6)}…${card.wallet.slice(-4)}`;
+  const name = card.username ? `@${card.username}` : "Player";
   const squares = card.squares.filter((s) => !s.bonus);
   const bySquare = new Map(squares.map((s) => [s.index, s]));
   // gap-2 (8px) on a ~170px column ≈ 0.05.

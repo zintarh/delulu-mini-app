@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { fmtNgn } from "@/lib/earn/format";
+import { ngnWorthShowing } from "@/lib/earn/format";
 import type { BingoView } from "@/lib/bingo/view";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +13,8 @@ function useMath(bingo: BingoView) {
   const facts = useEarnFacts();
   const days = bingo.missions.filter((m) => !m.bonus).length || bingo.durationDays;
   const perDay = bingo.rewards.perProof;
-  const ngn = (g: number) => (facts ? fmtNgn(g * facts.gdUsd * facts.ngnPerUsd) : null);
+  // What you earn reads in naira; tiny amounts fall back to G$ (ngnWorthShowing).
+  const money = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null) ?? `${k(g)} G$`;
   const rows = bingo.tiers
     .filter((t) => t.stake > 0)
     .map((t) => {
@@ -19,58 +22,62 @@ function useMath(bingo: BingoView) {
       return { key: t.key, stake: t.stake, back, total: perDay * days + back };
     })
     .sort((a, b) => a.stake - b.stake);
-  return { days, perDay, ngn, rows };
+  return { days, perDay, money, rows };
 }
 
 /**
- * Before joining: what this Bingo pays, per stake level — G$ a day, cashback
- * for finishing, and the most you take home (≈ ₦ at today's rate). One small
- * table instead of paragraphs.
+ * Before joining: one number (the most this Bingo pays), one line on how, and
+ * every stake level behind a tap — not a table of figures up front.
  */
 export function BingoEarnings({ bingo, className }: { bingo: BingoView; className?: string }) {
-  const { days, perDay, ngn, rows } = useMath(bingo);
+  const { days, perDay, money, rows } = useMath(bingo);
+  const [open, setOpen] = useState(false);
   if (!rows.length) return null;
+  const top = rows[rows.length - 1];
   return (
-    <section className={cn("rounded-[22px] border-2 border-ink bg-white p-3.5 shadow-[0_3px_0_#000]", className)}>
-      <div className="flex items-baseline justify-between">
-        <p className="m-0 text-[15px] font-extrabold">What you earn</p>
-        <p className="label-mono m-0 text-[10px] text-muted-foreground">
-          {perDay} G$ a photo · {days} days
-        </p>
-      </div>
-      <div className="mt-2.5 grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-1.5 text-[12px]">
-        <span className="label-mono text-[9px] text-muted-foreground">Stake</span>
-        <span className="label-mono text-[9px] text-muted-foreground">Cashback</span>
-        <span className="label-mono text-right text-[9px] text-muted-foreground">You take home</span>
-        {rows.map((r) => (
-          <div key={r.key} className="contents">
-            <span className="font-extrabold">{k(r.stake)} G$</span>
-            <span className="font-extrabold text-green-edge">
-              +{k(r.back)}
-              {ngn(r.back) ? <span className="block text-[10px] font-semibold text-muted-foreground">≈ {ngn(r.back)}</span> : null}
-            </span>
-            <span className="text-right font-extrabold">
-              +{k(r.total)} G$
-              {ngn(r.total) ? <span className="block text-[10px] font-semibold text-muted-foreground">≈ {ngn(r.total)}</span> : null}
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="m-0 mt-2.5 text-[11px] font-semibold text-muted-foreground">
-        Plus your stake back when you finish. Miss a day and the card ends — you keep what you earned.
+    <section className={cn("rounded-[22px] border-2 border-ink bg-white p-3.5 text-ink shadow-[0_3px_0_#000]", className)}>
+      <p className="label-mono m-0 text-[10px] text-muted-foreground">Finish and take home</p>
+      <p className="m-0 mt-0.5 font-display text-[30px] font-extrabold leading-none text-green-edge">
+        {rows.length > 1 ? <span className="mr-1.5 text-[15px] text-ink">up to</span> : null}
+        {money(top.total)}
       </p>
+      <p className="m-0 mt-1.5 text-[12px] font-semibold text-muted-foreground">
+        {perDay} G$ a photo for {days} days, cashback at the end, and your stake back.
+      </p>
+      {rows.length > 1 ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="mt-2 inline-flex items-center gap-1 text-[12px] font-extrabold text-ink"
+          >
+            {open ? "Hide" : "See"} every stake <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+          </button>
+          {open ? (
+            <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0">
+              {rows.map((r) => (
+                <li key={r.key} className="flex items-center justify-between rounded-xl bg-paper px-3 py-2 text-[12px]">
+                  <span className="font-bold">Stake {k(r.stake)} G$</span>
+                  <span className="font-extrabold text-green-edge">+{money(r.total)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }
 
 /** After joining: one line for your own stake. */
 export function BingoEarningsLine({ bingo, stake, className }: { bingo: BingoView; stake: number; className?: string }) {
-  const { perDay, ngn, rows } = useMath(bingo);
+  const { money, rows } = useMath(bingo);
   const mine = rows.find((r) => r.stake === stake);
   if (!mine) return null;
   return (
     <p className={cn("m-0 rounded-2xl bg-green-soft px-3 py-2 text-[12px] font-bold text-green-edge", className)}>
-      {perDay} G$ a photo · finish +{k(mine.back)} cashback · up to +{k(mine.total)} G${ngn(mine.total) ? ` ≈ ${ngn(mine.total)}` : ""}
+      Finish to take home +{money(mine.total)} · plus your stake back
     </p>
   );
 }
