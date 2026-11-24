@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { DashboardPage } from "@/components/dashboard/dashboard-ui";
 import { adminFetch } from "@/components/admin/reward-engine-ui";
+import { GdScorecardPanel } from "@/components/dashboard/gd-scorecard-panel";
 import type { SeasonEpochReport, SeasonPeriod, SeasonReport } from "@/lib/analytics/season";
 import { cn } from "@/lib/utils";
 
@@ -125,9 +126,11 @@ export default function SeasonDashboardPage() {
   const [data, setData] = useState<SeasonReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setReloadKey((k) => k + 1);
     setError(null);
     try {
       setData(await adminFetch<SeasonReport>("/api/dashboard/season"));
@@ -177,6 +180,7 @@ export default function SeasonDashboardPage() {
           Season so far: {fmt(total.signups)} sign-ups · {fmt(total.credited)} referrals counted · {fmt(total.finished)} cards finished · {fmtG(total.circ)} G$ circulated
         </p>
       ) : null}
+      <GdScorecardPanel reloadKey={reloadKey} />
       {!data && !error ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : null}
       <div className="flex flex-col gap-3">
         {(data?.epochs ?? []).map((e) => (
