@@ -119,7 +119,27 @@ export function BingoProofSheet({
       }
 
       if (json.filled) {
-        // Server-verified card: Delulu already marked the day done — nothing to sign.
+        // Already done (recovered from an earlier attempt) — nothing to sign.
+      } else if (json.requiresOnChain && json.kind === "forfeit" && json.serverVerified) {
+        // Server-verified 3-day card: the player signs today's proof (their own on-chain activity),
+        // then Delulu's verifier marks the day done. A failed or cancelled signature never costs
+        // them the day — the photo is approved, so we finish it either way.
+        setStep("signing");
+        try {
+          await submitProofAndWait(json.onChainCommitmentId, json.proofUrl);
+        } catch (e) {
+          console.warn("[bingo] proof signature skipped", e);
+        }
+        setStep("confirming");
+        const fin = await fetch(`/api/bingo/attempts/${attemptId}/finish-day`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ squareIndex: square.index }),
+        });
+        if (!fin.ok) {
+          const fj = await fin.json().catch(() => ({}));
+          throw Object.assign(new Error(fj.error ?? "Your photo is approved — reopen the square to finish."), { title: "Almost there" });
+        }
       } else if (json.requiresOnChain && json.kind === "forfeit") {
         // 3-day card = the player's own goal: prove today, resolve today, exactly like a personal delulu.
         setStep("signing");

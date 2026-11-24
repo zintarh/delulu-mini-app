@@ -9,7 +9,7 @@ import { readPeriodOutcome } from "@/lib/bingo/rolling";
 import { parseTzOffset } from "@/lib/proof-integrity/check";
 import { reviewProof } from "@/lib/proof-integrity/review";
 import { recordApprovedProof } from "@/lib/proof-reward/grant";
-import { finishDayAsVerifier, isServerVerified } from "@/lib/bingo/server-verify";
+import { isServerVerified } from "@/lib/bingo/server-verify";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -215,7 +215,7 @@ async function rollingProof(
 
   const { data: existing } = await admin
     .from("bingo_squares")
-    .select("id, status")
+    .select("id, status, proof_url")
     .eq("attempt_id", attempt.id)
     .eq("square_index", squareIndex)
     .maybeSingle();
@@ -236,15 +236,17 @@ async function rollingProof(
 
   // Server-verified card (Delulu's server is its verifier): Delulu marks the day done itself.
   const serverVerified = await isServerVerified(onChainId).catch(() => false);
-  // Photo already approved, day not finished (a timeout): finish it now — no second review.
+  // Photo already approved, day not finished (cancelled signature or a timeout): no second review —
+  // the player signs the proof again (their own on-chain activity), then Delulu finishes the day.
   if (serverVerified && existing?.status === "confirming") {
-    try {
-      await finishDayAsVerifier(admin, { attemptId: attempt.id, squareIndex });
-      return NextResponse.json({ verified: true, filled: true });
-    } catch (e) {
-      console.error("[bingo/proof] server finish failed", e);
-      return err("Your photo is approved — we're saving your day. Tap again in a moment.", 503, { code: "finishing" });
-    }
+    return NextResponse.json({
+      verified: true,
+      requiresOnChain: true,
+      kind: "forfeit",
+      serverVerified: true,
+      onChainCommitmentId: onChainId,
+      proofUrl: existing.proof_url ?? proofUrls[0],
+    });
   }
 
   const { data: goal } = await admin.from("forfeit_commitments").select("id").eq("on_chain_commitment_id", onChainId).maybeSingle();
@@ -287,22 +289,14 @@ async function rollingProof(
   // Same reward path as a personal goal: this exact photo, proven on-chain, earns.
   await recordApprovedProof(admin, { wallet, kind: "forfeit", proofUrl: proofUrls[0], refId: goal.id as string });
 
-  if (serverVerified) {
-    // Approved → done: Delulu's server marks the day on-chain, fills the square and runs the reward.
-    // If this times out, the photo stays approved and the 5-minute keeper finishes it.
-    try {
-      await finishDayAsVerifier(admin, { attemptId: attempt.id, squareIndex });
-      return NextResponse.json({ verified: true, filled: true, reason: review.reason });
-    } catch (e) {
-      console.error("[bingo/proof] server finish failed", e);
-      return err("Your photo is approved — we're saving your day. It'll show in a few minutes.", 503, { code: "finishing" });
-    }
-  }
-
+  // Server-verified card: the player signs the proof themselves (so the day is their own on-chain
+  // activity), then /finish-day has Delulu's verifier mark it done. If they never sign, the keeper
+  // sweep still finishes the approved day — a missed signature never costs them the day.
   return NextResponse.json({
     verified: true,
     requiresOnChain: true,
     kind: "forfeit",
+    ...(serverVerified ? { serverVerified: true } : {}),
     onChainCommitmentId: onChainId,
     proofUrl: proofUrls[0],
     reason: review.reason,

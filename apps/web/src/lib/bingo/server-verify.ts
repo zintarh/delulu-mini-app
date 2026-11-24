@@ -98,7 +98,8 @@ export async function sweepUnfinishedDays(admin: Admin, maxCards = 20): Promise<
     .select("attempt_id, square_index, approved_at, bingo_attempts!inner(forfeit_commitment_id, status)")
     .eq("status", "confirming")
     .eq("bonus", false)
-    .lt("approved_at", new Date(Date.now() - 60_000).toISOString())
+    // Grace for the player to sign their own proof first (their on-chain activity); the client finishes the day right after.
+    .lt("approved_at", new Date(Date.now() - 3 * 60_000).toISOString())
     .limit(maxCards);
   for (const r of rows ?? []) {
     const att = (Array.isArray(r.bingo_attempts) ? r.bingo_attempts[0] : r.bingo_attempts) as { forfeit_commitment_id: number | null; status: string } | null;
