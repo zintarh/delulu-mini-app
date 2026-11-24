@@ -27,7 +27,7 @@ function CategoryRow({ section }: { section: Section }) {
   const bingos = section.bingos ?? [];
   return (
     <section className="animate-rise">
-      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink night:text-white">{section.label}</h2>
+      <h2 className="m-0 mb-3 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink">{section.label}</h2>
       <PinBoard wide>
         {bingos.map((b, i) => (
           <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
@@ -124,7 +124,7 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     return (
       <div className="flex flex-col items-center gap-2 py-12 text-center">
         <p className="text-sm text-muted-foreground">Couldn&apos;t load missions. Try again.</p>
-        <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-ink underline night:text-white">
+        <button type="button" onClick={() => void refetch()} disabled={isRefetching} className="text-sm font-bold text-ink underline">
           {isRefetching ? "Retrying…" : "Retry"}
         </button>
       </div>

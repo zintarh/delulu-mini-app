@@ -75,7 +75,7 @@ export function HomeGreeting({ name, address }: { name?: string; address: string
         <p className="m-0 min-w-0 text-sm text-muted-foreground">{sub}</p>
         <Link
           href="/support"
-          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink no-underline night:text-white"
+          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink no-underline"
         >
           <HeartHandshake className="h-3.5 w-3.5 text-pink" strokeWidth={2.6} /> Support others
         </Link>

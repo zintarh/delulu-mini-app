@@ -202,9 +202,5 @@ module.exports = {
   },
   plugins: [
     require("tailwindcss-animate"),
-    // `night:` — styles for the night-time wash (html[data-daypart="night"], see lib/daypart).
-    function ({ addVariant }) {
-      addVariant("night", 'html[data-daypart="night"] &');
-    },
   ],
 };
