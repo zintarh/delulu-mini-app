@@ -31,6 +31,7 @@ export const NUDGE_RULES = [
   "photo_unconfirmed",
   "last_call",
   "square_due",
+  "boost_ready",
   "missed_day",
   "referred_next_step",
   "referrer_paid",
@@ -53,6 +54,7 @@ export const RULE_LABEL: Record<NudgeRule, string> = {
   photo_unconfirmed: "Photo approved but not finished — tap to lock it in",
   last_call: "Last call: ~2h left, stake on the line",
   square_due: "Today's square closing",
+  boost_ready: "Daily Boost: free money ready, today not boosted",
   missed_day: "Missed a day",
   referred_next_step: "Invited friend: today's next step",
   referrer_paid: "Referrer just got paid",
@@ -236,6 +238,25 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
         emailHeading: `Don't lose your card, ${p.username ?? "friend"}`,
         emailBody: withOffers(`Today's square on ${card.title} is still empty: ${mission}.\n\nIt closes in ${fmtHours(left)}. One photo earns you 100 G$ and keeps your card alive.`, nowMs, "photo", p),
         cta: "Add today's photo",
+      };
+    }
+  }
+
+  // 1b. Daily Boost: earlier in the day (before square_due's window), today's
+  //     photo not in yet and today not boosted — claim and boost first.
+  if (card && !card.todayFilled && card.boostDue) {
+    const left = hoursLeft(card.dayEndsAt, nowMs);
+    if (left > 8) {
+      return {
+        rule: "boost_ready",
+        dedupeKey: `${card.attemptId}:${card.today}:boost`,
+        title: "🚀 Your free money is ready — boost today",
+        body: `Claim it and add it to ${card.title} before your photo: +1% cashback for today.`,
+        path: `/bingo/${card.slug}`,
+        emailSubject: `Boost day ${card.today + 1} of ${card.title} for +1%`,
+        emailHeading: `Boost today, ${p.username ?? "friend"}`,
+        emailBody: withOffers(`Your free money for today is ready. Claim it and add it to ${card.title} before today's photo — every boosted day adds 1% to the cashback you get when you finish.`, nowMs, "photo", p),
+        cta: "Claim & boost",
       };
     }
   }
@@ -503,6 +524,7 @@ export function actedOn(rule: NudgeRule, p: Person, sentAtIso: string): boolean 
     case "photo_unconfirmed":
     case "last_call":
     case "square_due":
+    case "boost_ready":
     case "missed_day":
     case "gift_not_played":
       return after(p.lastProofAt) || (rule === "gift_not_played" && p.everStartedBingo);

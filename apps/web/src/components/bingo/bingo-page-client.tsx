@@ -13,6 +13,7 @@ import { BingoBoard, type SquareAvailability } from "@/components/bingo/bingo-bo
 import { BingoCollage } from "@/components/bingo/bingo-collage";
 import { BingoPlayers } from "@/components/bingo/bingo-players";
 import { PhotoPrivacySwitch } from "@/components/bingo/photo-privacy-switch";
+import { BoostCard } from "@/components/bingo/boost-card";
 import { BingoEarnings, BingoEarningsLine } from "@/components/bingo/bingo-earnings";
 import { CheerContestBanner, CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
@@ -286,6 +287,9 @@ export function BingoPageClient({ slug }: { slug: string }) {
               />
               <PhotoPrivacySwitch className="mt-3" />
             </section>
+
+            {/* Daily Boost: before today's photo (hidden until the contract upgrade is live). */}
+            <BoostCard bingo={bingo} onBoosted={reload} className="mt-4" />
 
             {/* Right under it: the one thing to do now. */}
             {addTarget ? (

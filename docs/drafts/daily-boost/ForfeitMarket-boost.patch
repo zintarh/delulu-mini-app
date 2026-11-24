@@ -1,0 +1,65 @@
+--- apps/contracts/contracts/ForfeitMarket.sol	2026-11-25 00:00:49
++++ contracts/ForfeitMarket.sol	2026-11-25 00:42:55
+@@ -146,6 +146,10 @@
+     address public rewardVault;
+     /// @dev token => community-pool G$ sent to the reward vault since v3.
+     mapping(address => uint256) public sweptToVaultByToken;
++    /// @dev v4 (appended after sweptToVaultByToken — never reorder slots above). Daily
++    ///      Boost: G$ the creator added to a commitment during each period. Rewards
++    ///      (cashback %, boost streaks) are computed off-chain from this + the event.
++    mapping(uint256 => mapping(uint32 => uint256)) public boostedAmount;
+ 
+     // --- EVENTS ---
+     event CommitmentCreated(
+@@ -199,6 +203,13 @@
+     event CommunityPoolWithdrawn(address indexed token, address indexed to, uint256 amount);
+     event VerifierInviteRevoked(uint256 indexed commitmentId, address indexed newVerifier);
+     event RewardVaultUpdated(address indexed rewardVault);
++    event CommitmentBoosted(
++        uint256 indexed commitmentId,
++        uint32 indexed periodIndex,
++        address indexed creator,
++        uint256 amount,
++        uint256 newStakeAmount
++    );
+     event CommunityPoolSweptToVault(address indexed token, address indexed rewardVault, uint256 amount, address indexed caller);
+     event CommitmentStakedByVault(uint256 indexed commitmentId, address indexed creator, uint256 stakeAmount);
+     /// @dev Emitted when a forfeiture's destination transfer fails (e.g. the token
+@@ -669,6 +680,30 @@
+     ///         bounty (no permissionless caller to pay here). Callable any time the
+     ///         commitment is active, deadline passed or not: cancelling never returns
+     ///         money to the creator, so there's no reason to race a keeper for it.
++    /**
++     * @notice Daily Boost: the creator adds to an active commitment's stake during the
++     *         current period, before it's resolved. The boost joins the stake and follows
++     *         its rules: returned in full with the rest on success, forfeited with the rest
++     *         on a miss. Word pledges (stake 0) can't be boosted — they stay word pledges.
++     */
++    function boostCommitment(uint256 commitmentId, uint256 amount) external nonReentrant whenNotPaused {
++        Commitment storage c = commitments[commitmentId];
++        if (c.creator == address(0)) revert CommitmentNotFound();
++        if (msg.sender != c.creator) revert Unauthorized();
++        if (!c.active || c.cancelled) revert NotActive();
++        if (amount == 0 || c.stakeAmount == 0) revert InvalidInput();
++        if (block.timestamp > c.currentPeriodDeadline) revert DeadlinePassed();
++        if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
++            revert PeriodAlreadyResolved();
++        }
++        _requirePeriodOpen(c);
++
++        IERC20(c.token).safeTransferFrom(msg.sender, address(this), amount);
++        c.stakeAmount += amount;
++        boostedAmount[commitmentId][c.currentPeriodIndex] += amount;
++        emit CommitmentBoosted(commitmentId, c.currentPeriodIndex, msg.sender, amount, c.stakeAmount);
++    }
++
+     function cancelCommitment(uint256 commitmentId) external nonReentrant {
+         Commitment storage c = commitments[commitmentId];
+         if (c.creator == address(0)) revert CommitmentNotFound();
+@@ -709,5 +744,5 @@
+ 
+     /// @dev Reserved for future storage without breaking upgrades. 44 → 42: v3 added
+     ///      rewardVault and sweptToVaultByToken above.
+-    uint256[42] private __gap;
++    uint256[41] private __gap;
+ }

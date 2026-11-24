@@ -1,3 +1,4 @@
+import { BOOST } from "@/lib/bingo/boost";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { DAY_MS, daySlot, rollingMissedDay } from "@/lib/bingo/types";
 import { SEASON_START_LAGOS } from "@/lib/referral/campaign";
@@ -43,6 +44,8 @@ export type Person = {
     todayApprovedAt?: string | null;
     todayMission: string | null;
     dayEndsAt: string;
+    /** Daily Boost is live and today's day hasn't been boosted yet (money cards only). */
+    boostDue?: boolean;
   };
   /** Bingo slugs they've ever started. */
   playedSlugs: string[];
@@ -275,6 +278,12 @@ export async function loadPeople(
     const { data } = await admin.from("profiles").select("address, username").in("address", c);
     for (const r of data ?? []) referrerNames.set(String(r.address).toLowerCase(), (r.username as string) ?? null);
   }
+  // Daily Boost: who already boosted today's day (empty until it's live / the table exists).
+  const boostedSlots = new Set<string>();
+  if (BOOST.live && liveIds.length) {
+    const { data: boosts } = await admin.from("bingo_boosts").select("attempt_id, slot_index").in("attempt_id", liveIds);
+    for (const b of boosts ?? []) boostedSlots.add(`${b.attempt_id}:${b.slot_index}`);
+  }
   const filledSlots = new Set((filled ?? []).filter((f) => f.status === "filled").map((f) => `${f.attempt_id}:${f.slot_index}`));
   const approvedSlots = new Map((filled ?? []).filter((f) => f.status === "confirming").map((f) => [`${f.attempt_id}:${f.slot_index}`, String(f.approved_at)]));
   const missionsOf = new Map((versions ?? []).map((v) => [v.id as string, (v.missions as { title: string }[]).map((m) => m.title)]));
@@ -304,6 +313,7 @@ export async function loadPeople(
         todayApprovedAt: approvedSlots.get(`${active.id}:${today}`) ?? null,
         todayMission: missionsOf.get(active.version_id)?.[today] ?? null,
         dayEndsAt: new Date(Date.parse(active.started_at) + (today + 1) * DAY_MS).toISOString(),
+        boostDue: BOOST.live && Number(active.stake_amount ?? 0) > 0 && !boostedSlots.has(`${active.id}:${today}`),
       };
     }
     return {

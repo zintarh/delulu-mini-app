@@ -87,6 +87,26 @@ export type BingoView = {
         dayOrdered: boolean;
         /** Rolling: a missed day ended this attempt early (stake forfeited). */
         missedDay: boolean;
+        /** Daily Boost (rolling cards, once it's live): what the card's boosts are worth so far. */
+        boost?: {
+          pot: number;
+          pct: number;
+          cashback: number;
+          boostedKeptDays: number;
+          perfect: boolean;
+          /** The card's on-chain ForfeitMarket commitment (what boostCommitment takes). */
+          commitmentId: number;
+          /** Days (0-based) boosted so far. */
+          boostedSlots: number[];
+          /** Today's day already boosted. */
+          boostedToday: boolean;
+          /** Day (0-based) a boost now would count for, or null when today can't be boosted. */
+          openSlot: number | null;
+          /** Most of a day's boost that earns cashback, before today's free claim is known. */
+          capFromStake: number;
+          /** Players who boosted today. */
+          boostersToday: number;
+        };
       })
     | null;
 };
