@@ -345,13 +345,6 @@ export default function RewardEngineSettingsPage() {
             hint="Max daily proof rewards per user per day."
           />
           <NumberField
-            label="Abandoned-goal cooldown"
-            suffix="days"
-            value={draft.dailyProof.abandonCooldownDays}
-            onChange={(v) => update((c) => void (c.dailyProof.abandonCooldownDays = v))}
-            issue={issueAt("dailyProof.abandonCooldownDays")}
-          />
-          <NumberField
             label="Release idle goal after"
             suffix="days"
             value={draft.dailyProof.idleReleaseDays}

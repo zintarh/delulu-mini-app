@@ -95,7 +95,7 @@ test("dedupe keys are stable and wallet-case-insensitive", () => {
   );
 });
 
-test("slot release: completion frees at once, abandonment and idling cool down", () => {
+test("slot release: completed, missed or idle goals all free at once — no cooldown", () => {
   const config = DEFAULT_REWARDS_CONFIG.dailyProof;
   const today = "2026-11-11";
   assert.deepEqual(decideSlotRelease({ state: "active", lastActiveDay: "2026-11-10", today, config }), {
@@ -109,12 +109,12 @@ test("slot release: completion frees at once, abandonment and idling cool down",
   assert.deepEqual(decideSlotRelease({ state: "abandoned", lastActiveDay: today, today, config }), {
     release: true,
     reason: "abandoned",
-    cooldownUntilDay: "2026-11-18",
+    cooldownUntilDay: null,
   });
   assert.deepEqual(decideSlotRelease({ state: "unknown", lastActiveDay: "2026-10-28", today, config }), {
     release: true,
     reason: "idle",
-    cooldownUntilDay: "2026-11-18",
+    cooldownUntilDay: null,
   });
   assert.deepEqual(decideSlotRelease({ state: "unknown", lastActiveDay: "2026-10-29", today, config }), {
     release: false,

@@ -41,7 +41,7 @@ export type RewardsConfig = {
     amount: number;
     /** Goals per user that can earn daily proof rewards at the same time. */
     maxEligibleGoals: number;
-    /** An abandoned goal's slot stays blocked this long, so churning goals gains nothing. */
+    /** @deprecated No longer used: a missed or left goal frees its slot at once (decideSlotRelease). Kept so saved configs still parse. */
     abandonCooldownDays: number;
     /** A slotted goal with no rewarded proof for this long is treated as abandoned. */
     idleReleaseDays: number;
@@ -106,7 +106,7 @@ const DEFAULT_COMPLETION_TIERS: CompletionTier[] = [
 export const DEFAULT_REWARDS_CONFIG: RewardsConfig = {
   enabled: true,
   timezone: "Africa/Lagos",
-  dailyProof: { enabled: true, amount: 100, maxEligibleGoals: 2, abandonCooldownDays: 7, idleReleaseDays: 14 },
+  dailyProof: { enabled: true, amount: 100, maxEligibleGoals: 2, abandonCooldownDays: 0, idleReleaseDays: 14 },
   weeklyConsistency: { enabled: true, amount: 250, minProofs: 5 },
   campaignCompletion: { enabled: true, tiers: DEFAULT_COMPLETION_TIERS, lateJoinExponent: 2 },
   goalCompletion: { enabled: true, tiers: DEFAULT_COMPLETION_TIERS, shareExponent: 2 },
@@ -412,10 +412,11 @@ export type SlotReleaseDecision =
   | { release: true; reason: "completed" | "abandoned" | "idle"; cooldownUntilDay: string | null };
 
 /**
- * Whether a held slot should be freed. Finishing a goal frees it at once;
- * abandoning it (or letting it go idle) frees it only after a cooldown, so
- * dropping a goal to start an easier one never yields more rewards than
- * keeping the original.
+ * Whether a held slot should be freed. Finishing, missing (forfeited) or
+ * leaving a goal, or letting it go idle, frees it at once: a missed goal never
+ * cuts a player off from earning (24 Nov 2026 — the old 7-day cooldown read as
+ * "you can't claim anymore" and pushed people out). `cooldownUntilDay` stays
+ * null; the column is kept so old rows still read.
  */
 export function decideSlotRelease(params: {
   state: GoalState;
@@ -426,10 +427,9 @@ export function decideSlotRelease(params: {
 }): SlotReleaseDecision {
   const { state, lastActiveDay, today, config } = params;
   if (state === "completed") return { release: true, reason: "completed", cooldownUntilDay: null };
-  const cooldownUntilDay = addDays(today, config.abandonCooldownDays);
-  if (state === "abandoned") return { release: true, reason: "abandoned", cooldownUntilDay };
+  if (state === "abandoned") return { release: true, reason: "abandoned", cooldownUntilDay: null };
   if (daysBetween(lastActiveDay, today) >= config.idleReleaseDays) {
-    return { release: true, reason: "idle", cooldownUntilDay };
+    return { release: true, reason: "idle", cooldownUntilDay: null };
   }
   return { release: false };
 }
