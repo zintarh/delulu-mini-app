@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronRight } from "lucide-react";
 import { Trophy } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
-import { ticketsFor } from "@/lib/pool/tickets";
+import { TICKETS } from "@/lib/pool/tickets";
 import { cn } from "@/lib/utils";
 
 type Pot = {
@@ -41,9 +41,17 @@ export function HomePotCard({ className }: { className?: string }) {
   const me = pot.me;
   const weekDays = Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${pot.start}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
   const today = new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
-  // The step up that matters most: from a small stake to 1,000 (5× the tickets).
-  const upTickets = me ? ticketsFor(1_000, !!me.newcomer) : 0;
-  const nudge = me && me.onTrack && me.stake < 1_000 && me.tickets > 0 ? `Stake 1,000 for ${upTickets} tickets (you have ${me.tickets})` : null;
+  // In the pot = on track AND has tickets (returning players need 1,000+ staked).
+  const inPot = !!me && me.onTrack && me.tickets > 0;
+  // The next stake level up, for "stake higher, more tickets".
+  const next = me ? TICKETS.find(([, n]) => n > me.tickets) ?? null : null;
+  const nudge = !me || !me.onTrack
+    ? null
+    : me.tickets === 0
+      ? "Stake 1,000+ on a card to be in the pot"
+      : next
+        ? `${me.newcomer && me.tickets === 5 && me.stake < TICKETS[0][0] ? "New player: in for showing up · " : ""}Stake ${next[0].toLocaleString("en-US")} for ${next[1]} tickets (you have ${me.tickets})`
+        : null;
 
   return (
     <Link
@@ -79,17 +87,19 @@ export function HomePotCard({ className }: { className?: string }) {
           </ol>
           <p className="m-0 mt-2 flex items-center justify-between gap-2 text-[12px] font-extrabold">
             <span>
-              {me.onTrack
+              {inPot
                 ? me.estimate > 0
                   ? `You're in ✓ · your share now ≈ ${g(me.estimate)} G$`
                   : me.keptToday
                     ? "You're in ✓"
                     : "Post on a staked card today to stay in"
-                : "Missed a day · back in on Monday"}
+                : me.onTrack
+                  ? "Not in the pot yet"
+                  : "Missed a day · back in on Monday"}
             </span>
             <ChevronRight className="h-4 w-4 shrink-0" />
           </p>
-          {nudge ? <p className="m-0 mt-1 text-[11px] font-bold text-[#5c4a0a]">{nudge}{me.newcomer ? " · new players get double" : ""}</p> : null}
+          {nudge ? <p className="m-0 mt-1 text-[11px] font-bold text-[#5c4a0a]">{nudge}</p> : null}
         </>
       ) : (
         <p className="m-0 mt-2 text-[12px] font-extrabold">Stake, post a photo every day, share the pot →</p>

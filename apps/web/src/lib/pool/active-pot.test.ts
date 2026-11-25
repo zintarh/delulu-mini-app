@@ -11,20 +11,21 @@ test("only players who kept all 7 days share", () => {
   assert.equal(s.get("a"), 1_000_000);
 });
 
-test("tickets: steep to 1,000, flatter above; new players double", () => {
-  assert.equal(ticketsFor(50, false), 0);
-  assert.equal(ticketsFor(100, false), 1);
+test("tickets: new players earn for being active; returning players need 1,000+ and earn more higher up", () => {
+  assert.equal(ticketsFor(0, true), 0); // must be on a staked card
+  assert.equal(ticketsFor(100, true), 5); // new: active is enough
+  assert.equal(ticketsFor(5_000, true), 15); // new players still gain from staking more
+  assert.equal(ticketsFor(100, false), 0); // returning: below 1,000 isn't in the pot
   assert.equal(ticketsFor(1_000, false), 5);
-  assert.equal(ticketsFor(1_000, true), 10);
-  assert.equal(ticketsFor(5_000, false), 10);
-  assert.equal(ticketsFor(1_000_000, false), 20);
+  assert.equal(ticketsFor(2_500, false), 10);
+  assert.equal(ticketsFor(1_000_000, false), 40);
 });
 
-test("shares follow tickets: a new player at 1,000 matches a regular at 5,000", () => {
-  const s = potShares({ potG: 1_000_000, players: [p("new", 1_000, true), p("old", 5_000, false)] }, 7);
+test("a new player at 100 matches a returning player at 1,000", () => {
+  const s = potShares({ potG: 1_000_000, players: [p("new", 100, true), p("old", 1_000, false)] }, 7);
   assert.equal(s.get("new"), 500_000);
   assert.equal(s.get("old"), 500_000);
-  assert.equal(ACTIVE_POT.newcomerMultiplier, 2);
+  assert.equal(ACTIVE_POT.newcomerTickets, 5);
 });
 
 test("never pays more than the pot", () => {

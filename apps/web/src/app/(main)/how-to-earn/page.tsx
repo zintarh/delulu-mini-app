@@ -192,7 +192,7 @@ export default function HowToEarnPage() {
             <WayToEarn
               art={<span className="text-[30px] leading-none">🏆</span>}
               title="Weekly pot"
-              sub={`Post on a staked card all 7 days · bigger stake = more tickets · new players get double`}
+              sub="Post on a staked card all 7 days · new players are in for showing up · after that, stake 1,000+ (more stake, more tickets)"
               badge={`${compactG(ACTIVE_POT.weeklyG)} G$`}
               href="/home"
             />

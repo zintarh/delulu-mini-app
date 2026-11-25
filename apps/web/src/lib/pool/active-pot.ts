@@ -8,9 +8,9 @@ type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 /**
  * The Weekly Active Pot (25 Nov 2026): everyone who keeps a photo on a
  * STAKED card every Lagos day Monday–Sunday shares ~$100 of G$ a week.
- * Shares are TICKETS that grow with the stake (TICKETS below) — steep from
- * 100 to 1,000, flatter above, so new players are pushed to 1,000 and whales
- * can't swallow the pot — and new players (first 14 days) get double tickets.
+ * Shares are tickets (lib/pool/tickets.ts): new players (first 14 days) get 5
+ * just for being active, more if their stake earns more; returning players
+ * earn by stake (1,000 → 5 … 100k → 40) and need 1,000+ to be in at all.
  * Funded from the marketing budget (later also 80% of missed stakes).
  */
 import { ACTIVE_POT, ticketsFor } from "@/lib/pool/tickets";
