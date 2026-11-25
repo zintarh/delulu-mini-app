@@ -448,7 +448,7 @@ export function CampaignBannerCard({
         // into the neighbouring grid column / past a narrow phone's swipe slot.
         "group relative block min-w-0 animate-rise overflow-hidden text-white no-underline",
         pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
-        "shadow-[0_14px_30px_-12px_rgba(22,22,21,0.45)] transition-transform active:scale-[0.98]",
+        "shadow-[0_4px_0_#161615] [contain:paint] active:scale-[0.98]",
         hasImage ? "bg-ink" : "bg-gradient-to-br from-ink-3 via-ink-2 to-ink",
         className,
       )}

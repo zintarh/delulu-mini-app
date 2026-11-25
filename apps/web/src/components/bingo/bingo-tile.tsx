@@ -48,7 +48,7 @@ export function BingoTile({ bingo, className }: { bingo: BingoView; className?: 
   return (
     <Link
       href={`/bingo/${bingo.slug}`}
-      className={cn("press-edge flex gap-3.5 rounded-[20px] border-2 border-line bg-white p-3 text-ink no-underline shadow-edge [content-visibility:auto] [contain-intrinsic-size:auto_112px]", className)}
+      className={cn("press-edge flex gap-3.5 rounded-[20px] border-2 border-line bg-white p-3 text-ink no-underline shadow-edge [contain:paint]", className)}
     >
       {/* The card fills the thumbnail top to bottom: photos as they come in, our stickers until then. */}
       <span className="relative w-[92px] shrink-0 self-stretch overflow-hidden rounded-xl ring-2 ring-line">
@@ -111,8 +111,8 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
       className={cn(
         "group relative block min-w-0 animate-rise overflow-hidden bg-ink text-white no-underline",
         pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
-        // Flat edge, one layer, and skip cards that are off screen. A blurred shadow under a drawn board repaints on every scroll frame.
-        "shadow-[0_4px_0_#161615] [content-visibility:auto] [contain-intrinsic-size:auto_320px] active:scale-[0.98]",
+        // Flat edge. A blurred shadow, and content-visibility, both hitch as a row of drawn boards scrolls into view.
+        "shadow-[0_4px_0_#161615] [contain:paint] active:scale-[0.98]",
         className,
       )}
     >
@@ -143,7 +143,7 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
       </div>
 
       <div className={cn("pointer-events-none absolute z-[2]", pin ? "inset-x-3 bottom-3" : "inset-x-5 bottom-5")}>
-        <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.45)] [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
+        <h3 className={cn("m-0 line-clamp-2 font-extrabold leading-[1.15] tracking-[-0.01em] text-white [text-wrap:balance]", pin ? "text-[15px]" : "text-[22px]")}>
           {bingo.title}
         </h3>
         {/* One plain line: what you put in and for how long. The full breakdown is on the Bingo page. */}

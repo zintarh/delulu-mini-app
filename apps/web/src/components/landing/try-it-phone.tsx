@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BingoBoard } from "@/components/bingo/bingo-board";
 import { buildSquares, type BingoView } from "@/lib/bingo/view";
@@ -77,6 +77,8 @@ function fromBingo(b: BingoView): Card {
 export function LandingBingoShowcase() {
   const [cards, setCards] = useState<Card[]>(FALLBACK);
   const [i, setI] = useState(0);
+  const [onScreen, setOnScreen] = useState(true);
+  const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -94,27 +96,36 @@ export function LandingBingoShowcase() {
   }, []);
 
   useEffect(() => {
+    const el = root.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting), { root: null, threshold: 0.2 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!onScreen) return;
     const id = window.setInterval(() => setI((n) => (n + 1) % cards.length), 3200);
     return () => window.clearInterval(id);
-  }, [cards.length]);
+  }, [cards.length, onScreen]);
 
   const card = cards[i] ?? cards[0];
   const squares = buildSquares(card.missions, [], false);
 
   return (
-    <div className="relative flex min-w-0 flex-[1_1_420px] justify-center py-5">
+    <div ref={root} className="relative flex min-w-0 flex-[1_1_420px] justify-center py-5">
       <Link
         href={`/bingo/${card.slug}`}
         aria-label={`${card.title} Bingo`}
         className="block w-full max-w-[420px] text-ink no-underline"
       >
-        <div key={card.slug} className="animate-rise">
+        <div key={card.slug}>
           <p className="label-mono m-0 text-[11px] text-muted-foreground">{card.durationDays}-day Bingo</p>
           <h2 className="m-0 mt-1 font-display text-[34px] font-extrabold uppercase leading-[0.92]" aria-live="polite">
             {card.title}
           </h2>
           <div className="mt-4">
-            <BingoBoard squares={squares} reward={card.perProof > 0 ? { perSquare: card.perProof } : undefined} />
+            <BingoBoard still squares={squares} reward={card.perProof > 0 ? { perSquare: card.perProof } : undefined} />
           </div>
           <p className="m-0 mt-3 text-[13px] font-extrabold text-muted-foreground">Play this card · one proof a day</p>
         </div>

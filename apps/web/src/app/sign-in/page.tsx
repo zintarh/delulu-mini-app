@@ -19,7 +19,7 @@ import {
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { useInviter } from "@/hooks/use-inviter";
-import { WeeklyPotCard } from "@/components/landing/sections";
+import { HomePotCard } from "@/components/home/home-pot-card";
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { gameButtonClass } from "@/components/ds";
@@ -365,16 +365,15 @@ export default function SignInPage() {
           {inviteCode && inviter.username ? (
             <p className="m-0 mt-6 text-[13px] font-extrabold text-muted-foreground">@{inviter.username} invited you</p>
           ) : null}
-          <WeeklyPotCard className="mt-4 animate-rise" />
 
-          <div className="mt-10">
+          <div className="mt-8">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
-              Make it a
+              Build habits
               <br />
-              <span className="bg-yellow px-[0.06em]">contract.</span>
+              you <span className="bg-yellow px-[0.06em]">can&apos;t skip.</span>
             </h2>
             <p className="mt-3.5 animate-rise text-muted-foreground [animation-delay:.1s]">
-              Sign in to start your first one.
+              Stick with the habit. Sign in to start.
             </p>
           </div>
 
@@ -489,6 +488,7 @@ export default function SignInPage() {
             By continuing you accept the{" "}
             <a href="/terms" className="text-ink underline underline-offset-2">terms</a>
           </p>
+          <HomePotCard className="mt-8" />
         </div>
       </div>
     </div>

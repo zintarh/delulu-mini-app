@@ -66,7 +66,7 @@ const revealDelay = (seconds: number) => ({ "--reveal-delay": `${seconds}s` }) a
 /* ---------------------------------------------------------------- header */
 export function LandingHeader({ signedIn = false }: { signedIn?: boolean }) {
   return (
-    <header data-reveal="down" className="reveal sticky top-0 z-30 bg-paper/90 backdrop-blur-md">
+    <header data-reveal="down" className="reveal sticky top-0 z-30 bg-paper">
       <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-5 py-3 sm:px-6">
         <Link href="/" aria-label="Delulu" className="no-underline">
           <Wordmark size={26} />
@@ -113,7 +113,6 @@ export function HeroCopy() {
           </div>
           <Lulu size={84} mood="kept" wave className="ml-2 mt-1.5 h-16 w-16 sm:ml-3 sm:mt-2 sm:h-[84px] sm:w-[84px]" />
         </div>
-        <WeeklyPotCard className="animate-rise [animation-delay:.15s]" />
         <div className="flex animate-rise flex-wrap items-center gap-2.5 text-[clamp(20px,2vw,26px)] font-extrabold [animation-delay:.2s]">
           <span>Play it.</span>
           <span className="rounded-[10px] bg-yellow px-3 py-0.5 shadow-edge-yellow">Prove it.</span>
@@ -161,19 +160,22 @@ function HeroChips() {
 export function FreeMoneyBanner() {
   return (
     <section className="mx-auto max-w-[1240px] px-6 pb-12 sm:pb-24">
-      <div data-reveal="pop" className="reveal flex flex-wrap items-center gap-6 rounded-[28px] border-2 border-yellow-line bg-yellow-soft px-7 py-6 shadow-[0_6px_0_#e5b41c]">
-        <span className="inline-block animate-wiggle">
-          <Chest size={84} />
-        </span>
-        <div className="min-w-0 flex-[1_1_320px]">
-          <div className="text-2xl font-extrabold">No money? Start with free money.</div>
-          <div className="mt-1.5 text-base leading-normal text-muted-foreground">
-            Do a quick face check once, then claim free G$ every day from GoodDollar. Play it on a card, or keep it.
+      <div data-reveal="pop" className="reveal rounded-[28px] border-2 border-yellow-line bg-yellow-soft px-7 py-6 shadow-[0_6px_0_#e5b41c]">
+        <div className="flex flex-wrap items-center gap-6">
+          <span className="inline-block animate-wiggle">
+            <Chest size={84} />
+          </span>
+          <div className="min-w-0 flex-[1_1_320px]">
+            <div className="text-2xl font-extrabold">No money? Start with free money.</div>
+            <div className="mt-1.5 text-base leading-normal text-muted-foreground">
+              Do a quick face check once, then claim free G$ every day from GoodDollar. Play it on a card, or keep it.
+            </div>
           </div>
+          <Link href="/sign-in" className={gameButtonClass({ variant: "ink" })}>
+            Claim yours
+          </Link>
         </div>
-        <Link href="/sign-in" className={gameButtonClass({ variant: "ink" })}>
-          Claim yours
-        </Link>
+        <WeeklyPotCard className="mt-5 border-0 border-t-2 border-yellow-line bg-transparent px-0 pb-0 pt-5 shadow-none" />
       </div>
     </section>
   );

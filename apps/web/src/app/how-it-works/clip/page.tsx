@@ -187,12 +187,27 @@ const STEPS: { n: string; title: string; body: string; art: ReactNode }[] = [
 ];
 
 /** Short looping clip. Loaded in an iframe so watching stays inside the app. */
+const SOUND_AT: Record<number, [string, number][]> = {
+  0: [["click", 2800]],
+  1: [["stamp", 400]],
+  2: [["climb", 2100]],
+  3: [["whoosh", 350], ["chime", 800]],
+};
+
 export default function HowItWorksClip() {
   const [i, setI] = useState(0);
 
   useEffect(() => {
     const id = window.setTimeout(() => setI((n) => (n + 1) % STEPS.length), BEAT_MS);
-    return () => window.clearTimeout(id);
+    const cues = (SOUND_AT[i] ?? []).map(([name, at]) =>
+      window.setTimeout(() => {
+        window.parent.postMessage({ type: "delulu-clip-sound", name }, window.location.origin);
+      }, at),
+    );
+    return () => {
+      window.clearTimeout(id);
+      cues.forEach((t) => window.clearTimeout(t));
+    };
   }, [i]);
 
   const step = STEPS[i]!;

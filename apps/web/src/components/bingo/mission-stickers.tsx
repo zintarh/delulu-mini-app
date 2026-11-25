@@ -295,7 +295,7 @@ export function MissionSticker({
       height={size}
       viewBox="0 0 64 64"
       aria-hidden
-      className={cn("shrink-0 overflow-visible", muted && "opacity-30 grayscale", className)}
+      className={cn("shrink-0", muted && "opacity-30 grayscale", className)}
     >
       {ART[missionStickerKey(title)]}
     </svg>

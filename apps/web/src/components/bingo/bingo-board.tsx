@@ -24,6 +24,7 @@ export function BingoBoard({
   size = "hero",
   complete = false,
   reward,
+  still = false,
   className,
 }: {
   squares: BingoSquareView[];
@@ -35,6 +36,8 @@ export function BingoBoard({
   complete?: boolean;
   /** Shown on squares still to fill: what each daily square pays. */
   reward?: BoardReward;
+  /** Preview only: no tilt, no wiggle. One paint, so it scrolls without hitching. */
+  still?: boolean;
   className?: string;
 }) {
   // Remember what was filled on first render so only new fills animate.
@@ -60,7 +63,8 @@ export function BingoBoard({
   return (
     <div
       className={cn(
-        "relative rounded-[28px] border-2 border-ink bg-white p-3 shadow-[0_6px_0_#161615] [transform:translateZ(0)]",
+        "relative rounded-[28px] border-2 border-ink bg-white p-3 shadow-[0_6px_0_#161615]",
+        still && "[contain:paint]",
         // Faint dot grid: a board you stick things on.
         "bg-[radial-gradient(#e6e6e0_1.2px,transparent_1.2px)] [background-size:14px_14px]",
         className,
@@ -76,6 +80,7 @@ export function BingoBoard({
               square={s}
               avail={avail}
               fresh={fresh.has(s.index)}
+              still={still}
               onClick={tappable ? () => onPick?.(s) : undefined}
               reward={reward}
             />
@@ -124,12 +129,14 @@ function Square({
   square: s,
   avail,
   fresh,
+  still = false,
   onClick,
   reward,
 }: {
   square: BingoSquareView;
   avail: SquareAvailability;
   fresh: boolean;
+  still?: boolean;
   onClick?: () => void;
   reward?: BoardReward;
 }) {
@@ -143,9 +150,14 @@ function Square({
     <Tag
       {...(onClick ? { type: "button" as const, onClick } : {})}
       aria-label={`${s.title}${s.state === "filled" ? " — done" : open ? " — add a photo" : ""}`}
-      style={{ transform: `rotate(${squareTilt(s.index) * 0.6}deg)`, background: photo || missed ? undefined : tint.bg, borderColor: open || photo ? undefined : missed ? undefined : tint.edge }}
+      style={{
+        transform: still ? undefined : `rotate(${squareTilt(s.index) * 0.6}deg)`,
+        background: photo || missed ? undefined : tint.bg,
+        borderColor: open || photo ? undefined : missed ? undefined : tint.edge,
+      }}
       className={cn(
-        "relative aspect-square overflow-hidden rounded-2xl border-2 text-left transition-transform duration-200",
+        "relative aspect-square overflow-hidden rounded-2xl border-2 text-left",
+        !still && "transition-transform duration-200",
         photo && "border-ink bg-ink",
         missed && "border-line bg-[#ecece7]",
         open && "border-ink shadow-[0_3px_0_#161615]",
@@ -171,7 +183,7 @@ function Square({
       ) : (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1.5 pb-2 pt-3 text-center">
           <RewardChip square={s} reward={missed ? undefined : reward} />
-          <MissionSticker title={s.title} size={38} muted={missed} className={cn(open && "animate-wiggle")} />
+          <MissionSticker title={s.title} size={38} muted={missed} className={cn(!still && open && "animate-wiggle")} />
           <span
             className={cn("line-clamp-2 text-[10.5px] font-extrabold leading-[1.1]", missed && "text-faint line-through")}
             style={missed ? undefined : { color: tint.ink }}
@@ -246,7 +258,7 @@ export function BingoBoardBackground({
   const row = squares.length <= 3;
   const layout = !row ? "grid-cols-3 grid-rows-3" : stack ? "grid-cols-1 grid-rows-3" : "grid-cols-3 grid-rows-1";
   return (
-    <div className={cn("grid gap-[2px] bg-white/80 [transform:translateZ(0)]", layout, className)} aria-hidden>
+    <div className={cn("grid gap-[2px] bg-white/80 [contain:paint]", layout, className)} aria-hidden>
       {squares.slice(0, 9).map((s) => (
         <Cell key={s.index} square={s} sticker={sticker ?? (row ? 64 : 44)} className="aspect-auto h-full min-h-0" />
       ))}
