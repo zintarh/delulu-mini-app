@@ -14,10 +14,12 @@ const DAY = 86_400_000;
 const live = SEASON_2_START_MS + DAY;
 const before = SEASON_2_START_MS - DAY;
 
-test("points scale with stake, token points under 5k, capped at a 100k stake", () => {
+test("points scale with stake, token points under 1k, capped at a 100k stake", () => {
   assert.equal(seasonPointsForStake(0), LOW_STAKE_POINTS);
-  assert.equal(seasonPointsForStake(1_000), LOW_STAKE_POINTS);
-  assert.equal(seasonPointsForStake(4_999), LOW_STAKE_POINTS);
+  assert.equal(seasonPointsForStake(100), LOW_STAKE_POINTS);
+  assert.equal(seasonPointsForStake(999), LOW_STAKE_POINTS);
+  assert.equal(seasonPointsForStake(1_000), 100);
+  assert.equal(seasonPointsForStake(2_500), 250);
   assert.equal(seasonPointsForStake(5_000), 500);
   assert.equal(seasonPointsForStake(10_000), 1_000);
   assert.equal(seasonPointsForStake(20_000), 2_000);
@@ -35,8 +37,8 @@ test("newcomer for 2 weeks unless they pass 20 proofs or 20 days", () => {
 
 test("minimums and word pledges only bite once the season is live", () => {
   assert.equal(minStakeFor("regular", before), 0);
-  assert.equal(minStakeFor("regular", live), 5_000);
-  assert.equal(minStakeFor("newcomer", live), 5_000); // First Week is the only 1k way in (exempt)
+  assert.equal(minStakeFor("regular", live), 1_000);
+  assert.equal(minStakeFor("newcomer", live), 1_000); // First Week (100) and 3-day Bingos are exempt
   assert.equal(canPledgeWord("regular", before), true);
   assert.equal(canPledgeWord("regular", live), false);
   assert.equal(canPledgeWord("newcomer", live), true);

@@ -37,9 +37,10 @@ async function fetchJson<T>(url: string): Promise<T | null> {
  * streak bonus is a separate reward (not the card's), so it isn't counted —
  * the card must never promise more than finishing it pays (25 Nov 2026).
  */
-export function sevenDayTierTotal(tier: Pick<BingoTier, "rewardPerSquare" | "completionReward">, dailyAmount: number): number {
+export function sevenDayTierTotal(tier: Pick<BingoTier, "rewardPerSquare" | "completionReward" | "potShare" | "stake">, dailyAmount: number): number {
   const perPhoto = typeof tier.rewardPerSquare === "number" ? tier.rewardPerSquare : dailyAmount;
-  return perPhoto * 7 + (tier.completionReward ?? 0);
+  // Pot-share tiers: at most their own stake from the pot (see lib/bingo/reward.ts).
+  return perPhoto * 7 + (tier.potShare ? tier.stake : (tier.completionReward ?? 0));
 }
 
 export async function getEarnFacts(admin: Admin): Promise<EarnFacts> {
@@ -72,6 +73,8 @@ export async function getEarnFacts(admin: Admin): Promise<EarnFacts> {
       entry: money(Math.min(...totals)),
       top: money(Math.max(...totals)),
       perPhoto: typeof entryTier.rewardPerSquare === "number" ? entryTier.rewardPerSquare : daily,
+      stake: entryTier.stake,
+      potShare: !!entryTier.potShare,
     };
   };
   const rows = (bingo.data ?? []) as { slug: string; title: string; status: string; current_version_id: string | null }[];

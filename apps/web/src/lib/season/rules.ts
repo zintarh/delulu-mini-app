@@ -30,19 +30,22 @@ export const NEWCOMER_WINDOW_DAYS = 14;
 export const VETERAN_PROOF_COUNT = 20;
 export const VETERAN_ACTIVE_DAYS = 20;
 
-/** Same as regulars: new players' 1k way in is First Week only (exempt from the minimum). */
-export const NEWCOMER_MIN_STAKE = 5_000;
-export const REGULAR_MIN_STAKE = 5_000;
+/**
+ * Minimum money stake (25 Nov 2026: sized to the free daily claim, ~120 G$/day —
+ * was 5,000). First Week (100) and 3-day Bingos (from 500) are exempt.
+ */
+export const NEWCOMER_MIN_STAKE = 1_000;
+export const REGULAR_MIN_STAKE = 1_000;
 export const MAX_GOAL_DAYS = 7;
 
-/** Points per verified proof: stake ÷ 10 from 5k up, capped at a 100k stake (the top Bingo level). */
+/** Points per verified proof: stake ÷ 10 from the minimum stake up, capped at a 100k stake. */
 export const POINTS_PER_STAKE_DIVISOR = 10;
 export const POINTS_STAKE_CAP = 100_000;
-/** Token points for proofs backed by less than 5k (word pledges, free campaigns included). */
+/** Token points for proofs backed by less than the minimum stake (word pledges, free campaigns included). */
 export const LOW_STAKE_POINTS = 10;
 
 /** Stake presets shown to regulars — the points they earn sit right under them. */
-export const STAKE_PRESETS_REGULAR = [5_000, 10_000, 20_000] as const;
+export const STAKE_PRESETS_REGULAR = [1_000, 2_500, 5_000] as const;
 export const STAKE_PRESETS_NEWCOMER = STAKE_PRESETS_REGULAR;
 
 const DAY_MS = 86_400_000;

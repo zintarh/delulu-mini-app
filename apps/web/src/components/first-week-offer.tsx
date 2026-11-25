@@ -54,7 +54,9 @@ export function FirstWeekOffer({
           <Gift className="h-3.5 w-3.5" strokeWidth={2.6} />
           {invitedBy ? `@${invitedBy} invited you` : "Welcome week"}
         </span>
-        <p className="m-0 mt-3 text-[13px] font-bold text-white/70">{variant === "invite" ? "Your first 7 days pay" : "Your first week pays"}</p>
+        <p className="m-0 mt-3 text-[13px] font-bold text-white/70">
+          {fw.stake ? `Stake ${fw.stake.toLocaleString("en-US")} G$ · earn up to` : variant === "invite" ? "Your first 7 days pay" : "Your first week pays"}
+        </p>
         <span className="mt-0.5 block font-display text-[44px] font-extrabold leading-none text-yellow [text-shadow:0_0_24px_rgba(255,214,0,0.35)]">
           {fw.entry.g.toLocaleString("en-US")} <span className="text-[26px]">G$</span>
         </span>
@@ -73,11 +75,15 @@ export function FirstWeekOffer({
             <span className="flex h-9 w-9 animate-wiggle items-center justify-center rounded-full bg-green shadow-[0_0_16px_rgba(45,179,111,0.7)]">
               <span className="text-[16px]" aria-hidden>🏁</span>
             </span>
-            <span className="text-[10px] font-extrabold tabular-nums text-green">+{g(finish)}</span>
+            <span className="text-[10px] font-extrabold tabular-nums text-green">{fw.potShare ? `up to +${g(finish)}` : `+${g(finish)}`}</span>
           </li>
         </ol>
 
-        <p className="m-0 mt-3 text-[11px] font-semibold text-white/60">{daily.toLocaleString("en-US")} G$ a photo + {finish.toLocaleString("en-US")} G$ at the finish</p>
+        <p className="m-0 mt-3 text-[11px] font-semibold text-white/60">
+          {fw.potShare
+            ? `${daily.toLocaleString("en-US")} G$ a photo · finishers split what others lose`
+            : `${daily.toLocaleString("en-US")} G$ a photo + ${finish.toLocaleString("en-US")} G$ at the finish`}
+        </p>
 
         {href ? (
           <Link

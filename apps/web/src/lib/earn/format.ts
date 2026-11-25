@@ -1,7 +1,18 @@
 /** Money formatting shared by server (nudges) and client (Home card) — no server imports. */
 export type Money = { g: number; usd: number; ngn: number };
 export type Earner = { name: string; usd: number; ngn: number };
-export type SevenDay = { slug: string; title: string; entry: Money; top: Money; perPhoto: number };
+export type SevenDay = {
+  slug: string;
+  title: string;
+  /** The most the entry tier can earn (photos + finishing reward, or up to its stake from the pot). */
+  entry: Money;
+  top: Money;
+  perPhoto: number;
+  /** The entry tier's stake (First Week: 100). */
+  stake?: number;
+  /** Finishers split the missed stakes (up to their own stake) instead of a fixed finishing reward. */
+  potShare?: boolean;
+};
 export type EarnFacts = {
   gdUsd: number;
   ngnPerUsd: number;

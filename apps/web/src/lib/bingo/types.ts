@@ -21,13 +21,19 @@ export const tierSchema = z
   .object({
     key: z.string().regex(/^[a-z][a-z0-9_]{1,19}$/),
     label: z.string().trim().min(2).max(20),
-    // Nothing below 1,000 G$ — small stakes don't move G$ (see lib/season/rules).
-    stake: z.number().int().min(1_000).max(10_000_000),
+    // From 100 G$: stakes are sized to the free daily claim (~120 G$/day), 25 Nov 2026.
+    stake: z.number().int().min(100).max(10_000_000),
     forfeitPct: z.union([z.literal(0), z.literal(2), z.literal(5), z.literal(10)]),
     /** G$ per approved daily photo on this tier; unset = the Rewards Engine's global daily amount. */
     rewardPerSquare: z.number().int().min(0).max(100_000).optional(),
     /** G$ for finishing the whole card on this tier; unset = the engine's default by length. */
     completionReward: z.number().int().min(0).max(1_000_000).optional(),
+    /**
+     * Finishers split the stakes of players who missed (First Week, 25 Nov 2026):
+     * the finishing reward is a share of that pool, up to the card's stake
+     * (lib/bingo/reward.ts), instead of a fixed completionReward.
+     */
+    potShare: z.boolean().optional(),
   })
   .strict();
 

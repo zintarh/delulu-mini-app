@@ -6,7 +6,8 @@ import { findGiftJoinTarget } from "@/lib/onboarding/gift-join";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
-export const ONBOARDING_GIFT_GDOLLARS = 500;
+import { ONBOARDING_GIFT_ENABLED, ONBOARDING_GIFT_GDOLLARS } from "@/lib/onboarding/gift-config";
+export { ONBOARDING_GIFT_ENABLED, ONBOARDING_GIFT_GDOLLARS };
 
 /**
  * New-users-only cutoff — an account that signed up before this never
@@ -55,6 +56,11 @@ export async function evaluateAndCreditOnboardingGift(
       claimedAt: profile?.onboarding_gift_claimed_at ?? null,
       justGranted: false,
     };
+  }
+
+  // Switched off: no new gifts (already-deposited ones returned above).
+  if (!ONBOARDING_GIFT_ENABLED) {
+    return { status: "not_eligible", claimedAt: null, justGranted: false };
   }
 
   // The gift ended with the referral campaign: no new deposits after it.

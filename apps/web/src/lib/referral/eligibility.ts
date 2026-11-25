@@ -1,3 +1,4 @@
+import { ONBOARDING_GIFT_ENABLED } from "@/lib/onboarding/gift-config";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import {
@@ -57,7 +58,7 @@ export async function checkReferralEligibility(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("onboarding_gift_claimed_at, claim_count, created_at")
+    .select("onboarding_gift_claimed_at, onboarding_gift_status, claim_count, created_at")
     .eq("address", wallet)
     .maybeSingle();
 
@@ -74,7 +75,11 @@ export async function checkReferralEligibility(
   const steps: ReferralEligibilitySteps = {
     verified,
     claimedUbi: (profile.claim_count ?? 0) >= 1,
-    claimedGift: predatesGiftRegime || Boolean(profile.onboarding_gift_claimed_at),
+    // With the gift switched off (25 Nov 2026), anyone who was never granted one has nothing to claim.
+    claimedGift:
+      predatesGiftRegime ||
+      Boolean(profile.onboarding_gift_claimed_at) ||
+      (!ONBOARDING_GIFT_ENABLED && profile.onboarding_gift_status !== "sent"),
     completedCampaign: hasCampaignProof || hasForfeitProof,
   };
 
