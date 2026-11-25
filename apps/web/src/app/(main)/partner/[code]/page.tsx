@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { Check, CheckCircle2, Coins, Copy, Loader2, Search, ShieldCheck, Ticket, UserRound, Wallet, X } from "lucide-react";
+import { Check, CheckCircle2, Coins, Copy, Loader2, Search, Ticket, UserRound, Wallet, X } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { GameCard, Lulu, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
-import type { PartnerFriend, PartnerMissing, PartnerReport } from "@/lib/referral/partners";
+import type { PartnerFriend, PartnerListFilter, PartnerMissing, PartnerReport } from "@/lib/referral/partners";
 import { cn } from "@/lib/utils";
-
-type Filter = "all" | "completed" | "fell_off" | PartnerMissing;
 
 const MISSING_LABEL: Record<PartnerMissing, string> = {
   verify: "Face check left",
@@ -21,15 +19,11 @@ const MISSING_LABEL: Record<PartnerMissing, string> = {
   points: "Short on points",
 };
 
-const FILTERS: { key: Filter; label: string; test: (f: PartnerFriend) => boolean }[] = [
-  { key: "all", label: "All", test: () => true },
-  { key: "completed", label: "Counted", test: (f) => f.completed },
-  { key: "fell_off", label: "Fell off", test: (f) => !f.completed },
-  { key: "verify", label: "No face check", test: (f) => f.missing === "verify" },
-  { key: "claim", label: "Didn't claim", test: (f) => f.missing === "claim" },
-  { key: "stake", label: "Didn't stake", test: (f) => f.missing === "stake" },
-  { key: "join", label: "Didn't join a card", test: (f) => f.missing === "join" },
-  { key: "points", label: "Short on points", test: (f) => f.missing === "points" },
+const FILTERS: { key: PartnerListFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "claim", label: "Didn't claim" },
+  { key: "stake", label: "Didn't stake" },
+  { key: "join", label: "Didn't join a card" },
 ];
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -42,31 +36,58 @@ export default function PartnerPage() {
   const { address, authenticated } = useAuth();
   const [data, setData] = useState<(PartnerReport & { viewer: string }) | null>(null);
   const [err, setErr] = useState<{ status: number; message: string } | null>(null);
+  const [listError, setListError] = useState("");
+  const [loadingList, setLoadingList] = useState(false);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<PartnerListFilter>("all");
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
 
+  const lastQuery = useRef(q.trim());
+  const hasData = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = q.trim();
+      if (lastQuery.current !== next) {
+        lastQuery.current = next;
+        setPage(1);
+      }
+      setDebouncedQ(next);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
   useEffect(() => {
     let cancelled = false;
-    setErr(null);
-    fetch(`/api/partner/${code}`, { credentials: "include" })
+    setListError("");
+    setLoadingList(true);
+    const params = new URLSearchParams({ page: String(page), filter });
+    if (debouncedQ) params.set("q", debouncedQ);
+    fetch(`/api/partner/${code}?${params}`, { credentials: "include" })
       .then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }))
       .then(({ ok, status, j }) => {
         if (cancelled) return;
-        if (ok) setData(j);
-        else setErr({ status, message: j.error ?? "Couldn't load this page." });
+        if (ok) {
+          hasData.current = true;
+          setData(j);
+          setErr(null);
+          setListError("");
+        } else {
+          const message = j.error ?? "Couldn't load this page. Try again in a moment.";
+          if (hasData.current) setListError(message);
+          else setErr({ status, message });
+        }
       })
-      .catch(() => !cancelled && setErr({ status: 0, message: "You seem to be offline." }));
+      .catch(() => {
+        if (cancelled) return;
+        if (hasData.current) setListError("You seem to be offline.");
+        else setErr({ status: 0, message: "You seem to be offline." });
+      })
+      .finally(() => { if (!cancelled) setLoadingList(false); });
     return () => { cancelled = true; };
-  }, [code, address, authenticated]);
-
-  const list = useMemo(() => {
-    if (!data) return [];
-    const test = FILTERS.find((f) => f.key === filter)!.test;
-    const s = q.trim().toLowerCase().replace(/^@/, "");
-    return data.friends.filter((f) => test(f) && (!s || f.wallet.includes(s) || (f.username ?? "").toLowerCase().includes(s)));
-  }, [data, filter, q]);
+  }, [code, address, authenticated, page, filter, debouncedQ]);
 
   if (err) {
     return (
@@ -93,7 +114,10 @@ export default function PartnerPage() {
     return (
       <MainPage>
         <PageBackHeader title="Your referrals" />
-        <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex flex-col items-center gap-3 py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <p className="m-0 text-[13px] text-muted-foreground">Loading your referrals</p>
+        </div>
       </MainPage>
     );
   }
@@ -133,26 +157,25 @@ export default function PartnerPage() {
             <li>They earn {fmt(data.partner.minPoints)} points. That is one kept photo on a 100 G$ card.</li>
           </ol>
           <p className="m-0 mt-2 text-[12px] font-semibold text-[#5f4a00]">
-            Fell off means they signed up and stopped before that. Search a name or wallet, then use Fell off to see the step they still need.
+            The newest people are listed 10 at a time. Each one shows the step they still need, including the face check and points.
           </p>
         </GameCard>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Brought" value={t.brought} />
-          <Stat label="Counted" value={t.completed} sub={`${pct(t.completed)}%`} strong />
+          <Stat label="Claimed G$" value={t.claimed} sub={`${pct(t.claimed)}%`} />
+          <Stat label="Staked G$" value={t.staked} sub={`${pct(t.staked)}%`} strong />
           <Stat label="Back 3+ days" value={t.back3} sub={`${pct(t.back3)}%`} />
-          <Stat label="Back 7+ days" value={t.back7} sub={`${pct(t.back7)}%`} />
         </div>
 
         <GameCard className="p-4">
           <p className="label-mono m-0 text-[10px] text-muted-foreground">How far they got</p>
           <div className="mt-3 flex flex-col gap-2.5">
             <Step icon={UserRound} label="Signed up" n={t.brought} of={t.brought} />
-            <Step icon={ShieldCheck} label="Face check" n={t.verified} of={t.brought} />
             <Step icon={Coins} label="Claimed free G$" n={t.claimed} of={t.brought} />
             <Step icon={Wallet} label="Staked that G$" n={t.staked} of={t.brought} />
             <Step icon={Ticket} label="Joined a Bingo card" n={t.joined} of={t.brought} />
-            <Step icon={CheckCircle2} label={`Counted (${fmt(data.partner.minPoints)} pts)`} n={t.completed} of={t.brought} />
+            <Step icon={CheckCircle2} label="Back 7+ days" n={t.back7} of={t.brought} />
           </div>
         </GameCard>
 
@@ -174,32 +197,32 @@ export default function PartnerPage() {
         </div>
 
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Filter">
-          {FILTERS.map((f) => {
-            const n = data.friends.filter(f.test).length;
-            return (
+          {FILTERS.map((f) => (
               <button
                 key={f.key}
                 type="button"
                 aria-pressed={filter === f.key}
-                onClick={() => setFilter(f.key)}
+                onClick={() => { setFilter(f.key); setPage(1); }}
                 className={cn(
                   "shrink-0 rounded-full border-2 px-3 py-1.5 text-[12px] font-extrabold",
                   filter === f.key ? "border-ink bg-ink text-white" : "border-line bg-white text-ink",
                 )}
               >
-                {f.label} · {n}
+                {f.label} · {fmt(data.filterCounts[f.key])}
               </button>
-            );
-          })}
+            ))}
         </div>
 
-        {list.length === 0 ? (
+        {listError ? <p className="m-0 text-center text-[13px] font-bold text-orange">{listError}</p> : null}
+        {loadingList && data.friends.length === 0 ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : data.friends.length === 0 ? (
           <p className="py-8 text-center text-[13px] font-semibold text-muted-foreground">
             {t.brought === 0 ? "No one has joined through your link yet. Share it!" : "No one matches."}
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {list.map((f) => (
+          <ul className={cn("flex flex-col gap-2", loadingList && "opacity-60")}>
+            {data.friends.map((f) => (
               <li key={f.wallet}>
                 <GameCard className="p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -230,8 +253,31 @@ export default function PartnerPage() {
             ))}
           </ul>
         )}
+        {data.totalFriends > 0 ? (
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              disabled={data.page <= 1 || loadingList}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12px] font-extrabold disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <p className="m-0 text-[12px] font-bold text-muted-foreground">
+              {fmt((data.page - 1) * data.pageSize + 1)}–{fmt((data.page - 1) * data.pageSize + data.friends.length)} of {fmt(data.totalFriends)}
+            </p>
+            <button
+              type="button"
+              disabled={data.page * data.pageSize >= data.totalFriends || loadingList}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-[12px] font-extrabold disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
         <p className="m-0 text-center text-[11px] text-muted-foreground">
-          &ldquo;Back&rdquo; counts the days after sign-up they opened the app or kept a goal. Updated every few minutes.
+          &ldquo;Back&rdquo; on the totals counts days they opened the app after sign-up. On each person it also counts a day they kept a goal.
         </p>
       </div>
     </MainPage>

@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
-import { buildPartnerReport, loadPartner } from "@/lib/referral/partners";
+import { buildPartnerReport, loadPartner, type PartnerListFilter } from "@/lib/referral/partners";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -31,6 +31,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://www.staydelulu.xyz";
-  const report = await buildPartnerReport(admin, partner, appUrl);
-  return NextResponse.json({ ...report, viewer: isOwner ? "owner" : "admin" }, { headers: { "Cache-Control": "private, no-store" } });
+  const page = Number(request.nextUrl.searchParams.get("page"));
+  const q = request.nextUrl.searchParams.get("q") ?? "";
+  const filterRaw = request.nextUrl.searchParams.get("filter") ?? "all";
+  const filter: PartnerListFilter = filterRaw === "claim" || filterRaw === "stake" || filterRaw === "join" ? filterRaw : "all";
+  try {
+    const report = await buildPartnerReport(admin, partner, appUrl, { page: Number.isFinite(page) ? page : 1, q, filter });
+    return NextResponse.json({ ...report, viewer: isOwner ? "owner" : "admin" }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (err) {
+    console.error("[partner] report failed", err);
+    return NextResponse.json({ error: "Couldn't load this page. Try again in a moment." }, { status: 500 });
+  }
 }

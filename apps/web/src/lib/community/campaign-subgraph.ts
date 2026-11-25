@@ -1104,6 +1104,126 @@ export async function totalProofPointsOnGraph(walletAddress: string): Promise<{ 
   }
 }
 
+const PARTICIPANT_POINTS_QUERY = `
+  query ParticipantPoints($addresses: [String!]!, $after: String!) {
+    communityCampaignParticipants(
+      first: 1000
+      orderBy: id
+      where: { participantAddress_in: $addresses, id_gt: $after }
+    ) {
+      id
+      participantAddress
+      pointsTotal
+    }
+  }
+`;
+
+const FORFEIT_DAYS_FOR_WALLETS_QUERY = `
+  query ForfeitDaysForWallets($addresses: [String!]!, $after: String!) {
+    forfeitPeriodResolutions(
+      first: 1000
+      orderBy: id
+      where: { outcome: "success", creatorAddress_in: $addresses, id_gt: $after }
+    ) {
+      id
+      creatorAddress
+      createdAt
+      pointsAwarded
+    }
+  }
+`;
+
+const MISSION_DAYS_FOR_WALLETS_QUERY = `
+  query MissionDaysForWallets($addresses: [String!]!, $after: String!) {
+    communityCampaignMilestoneCompletions(
+      first: 1000
+      orderBy: id
+      where: { participantAddress_in: $addresses, id_gt: $after }
+    ) {
+      id
+      participantAddress
+      createdAt
+    }
+  }
+`;
+
+async function pageAddressFilter<T extends { id: string }>(
+  query: string,
+  key: string,
+  addresses: string[],
+): Promise<T[]> {
+  const out: T[] = [];
+  let after = "";
+  for (let page = 0; page < 20; page++) {
+    const data = await fetchSubgraph<Record<string, T[]>>(query, { addresses, after }, { fresh: true });
+    if (data == null) throw new Error("Subgraph returned nothing");
+    const batch = data[key] ?? [];
+    out.push(...batch);
+    if (batch.length < 1000) break;
+    after = batch[batch.length - 1].id;
+  }
+  return out;
+}
+
+/**
+ * Points and kept-proof times for many wallets in a handful of subgraph
+ * queries. Same totals as totalProofPointsOnGraph, without one request each.
+ */
+export async function proofActivityForWallets(
+  addresses: string[],
+): Promise<Map<string, { points: number; times: number[] }>> {
+  const stats = new Map<string, { points: number; times: number[] }>();
+  for (const address of addresses) stats.set(address, { points: 0, times: [] });
+  const chunks: string[][] = [];
+  for (let i = 0; i < addresses.length; i += 40) chunks.push(addresses.slice(i, i + 40));
+  const apply = async (chunk: string[]) => {
+    const load = () => Promise.all([
+      pageAddressFilter<{ id: string; participantAddress: string; pointsTotal: string }>(
+        PARTICIPANT_POINTS_QUERY,
+        "communityCampaignParticipants",
+        chunk,
+      ),
+      pageAddressFilter<{ id: string; creatorAddress: string; createdAt: string; pointsAwarded: string | null }>(
+        FORFEIT_DAYS_FOR_WALLETS_QUERY,
+        "forfeitPeriodResolutions",
+        chunk,
+      ),
+      pageAddressFilter<{ id: string; participantAddress: string; createdAt: string }>(
+        MISSION_DAYS_FOR_WALLETS_QUERY,
+        "communityCampaignMilestoneCompletions",
+        chunk,
+      ),
+    ]);
+    let participants: { participantAddress: string; pointsTotal: string }[];
+    let forfeits: { creatorAddress: string; createdAt: string; pointsAwarded: string | null }[];
+    let missions: { participantAddress: string; createdAt: string }[];
+    try {
+      [participants, forfeits, missions] = await load();
+    } catch {
+      await sleep(400);
+      [participants, forfeits, missions] = await load();
+    }
+    for (const row of participants) {
+      const stat = stats.get(row.participantAddress.toLowerCase());
+      if (stat) stat.points += Number(row.pointsTotal || 0);
+    }
+    for (const row of forfeits) {
+      const stat = stats.get(row.creatorAddress.toLowerCase());
+      if (!stat) continue;
+      stat.points += Number(row.pointsAwarded || 0);
+      stat.times.push(Number(row.createdAt) * 1000);
+    }
+    for (const row of missions) {
+      const stat = stats.get(row.participantAddress.toLowerCase());
+      if (stat) stat.times.push(Number(row.createdAt) * 1000);
+    }
+  };
+  for (let i = 0; i < chunks.length; i += 2) {
+    await Promise.all(chunks.slice(i, i + 2).map(apply));
+  }
+  return stats;
+}
+
 // ── Season 2: points from the stake behind each verified proof ─────────────
 
 const SEASON_FORFEIT_PROOFS_QUERY = `

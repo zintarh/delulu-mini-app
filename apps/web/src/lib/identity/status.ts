@@ -45,7 +45,7 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 // different copy, and our own eligibility checks (referral, onboarding gift)
 // need to know someone proved they're real at some point, not just whether
 // they happen to be inside the current window right now.
-const IDENTITY_ABI = parseAbi([
+export const IDENTITY_ABI = parseAbi([
   "function getWhitelistedRoot(address account) view returns (address)",
   "function identities(address) view returns (uint256 dateAuthenticated, uint256 dateAdded, string did, uint256 whitelistedOnChainId, uint8 status, uint32 authCount)",
   "function reverifyDaysOptions(uint256) view returns (uint256)",

@@ -84,19 +84,23 @@ export async function sendSignupIdleEmails(admin: Admin): Promise<{ candidates: 
   const resend = new Resend(resendKey);
   let sent = 0;
   let failed = 0;
+  let stopped = false;
   const html = buildLuluEmailHtml({ appUrl, subject: email.subject, heading: email.heading, body: email.body, cta: email.cta, ctaPath: email.path });
   const text = buildLuluEmailText({ appUrl, heading: email.heading, body: email.body, cta: email.cta, ctaPath: email.path });
 
-  for (let i = 0; i < pending.length; i += 50) {
+  for (let i = 0; i < pending.length && !stopped; i += 50) {
     const batch = pending.slice(i, i + 50);
     const payload = batch.map((p) => ({ from, to: p.email, subject: email.subject, html, text }));
     let ok = false;
+    let reason = "";
     try {
       const { error } = await resend.batch.send(payload);
       if (error) throw new Error(error.message);
       ok = true;
     } catch (err) {
-      console.error("[signup-idle] batch failed", err instanceof Error ? err.message : "send failed");
+      reason = err instanceof Error ? err.message : "send failed";
+      console.error("[signup-idle] batch failed", reason);
+      stopped = /quota|rate limit/i.test(reason);
     }
     if (ok) sent += batch.length;
     else failed += batch.length;
