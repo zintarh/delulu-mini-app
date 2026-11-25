@@ -74,48 +74,11 @@ export function usePostAuthRoute() {
   });
 
   const hasOnChainUsername = typeof username === "string" && username.trim().length > 0;
-
-  // The contract profile (setProfile) is the only thing that counts as set up.
-  // A database row, including the generated player names, is not a profile.
-  // The row is still read so someone already inside the app skips the face
-  // check and goes straight to the profile form.
-  const [isSupabaseOnboarded, setIsSupabaseOnboarded] = useState(false);
-  const [isFetchingOnboarded, setIsFetchingOnboarded] = useState(true);
-  useEffect(() => {
-    if (!authenticated || !address) {
-      setIsFetchingOnboarded(false);
-      return;
-    }
-    let cancelled = false;
-    setIsFetchingOnboarded(true);
-    void (async () => {
-      try {
-        const res = await fetch(`/api/onboarding?address=${address}`);
-        const json = (await res.json()) as { onboarded?: boolean };
-        if (!cancelled) setIsSupabaseOnboarded(Boolean(json.onboarded));
-      } catch {
-        if (!cancelled) setIsSupabaseOnboarded(false);
-      } finally {
-        if (!cancelled) setIsFetchingOnboarded(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authenticated, address]);
-
   const hasProfile = hasOnChainUsername;
-  const mustChooseProfile = !hasOnChainUsername && isSupabaseOnboarded;
 
-  // Routing and the main-app OnboardingGate ((main)/layout.tsx) MUST agree on
-  // who gets in — when they disagreed, the two bounced users between each
-  // other in an endless "Checking your account…" loop. Both now require the
-  // on-chain profile from setProfile. The read-only identity check avoids
-  // waiting on the ClaimSDK, which needs a live signing wallet and can leave
-  // this page spinning forever.
+  // Routing and the main-app gate MUST agree: setProfile is the only profile.
   const {
     identityState,
-    isLoading: isIdentityLoading,
     refresh: refreshIdentity,
   } = useIdentity();
   // Still consulted after the in-page verify flow, which updates this first.
@@ -160,7 +123,7 @@ export function usePostAuthRoute() {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || isFetchingOnboarded || isIdentityLoading) {
+    if (isFetchingUsername) {
       setRouteState("loading");
       return;
     }
@@ -187,17 +150,9 @@ export function usePostAuthRoute() {
       return;
     }
 
-    // New account: the face check is how most people get gas for the profile
-    // transaction (GoodDollar sends a little CELO once verified). Skipping it
-    // via the gas faucet is the other way through. Someone who already has a
-    // generated name already cleared this once — send them to the form.
-    if (!isWhitelisted && !skippedVerify && !mustChooseProfile) {
-      setRouteState("needs_ubi_claim");
-      return;
-    }
-
-    // /welcome is where they choose a username and photo, then setProfile
-    // writes that name on chain. Nothing else may mark them set up.
+    // No contract profile yet: the only next step is /welcome, where they
+    // choose a username and photo and setProfile writes it on chain.
+    // Nothing else in the app opens before that.
     if (hasRedirectedRef.current) return;
     hasRedirectedRef.current = true;
     setRouteState("redirecting_welcome");
@@ -213,12 +168,9 @@ export function usePostAuthRoute() {
     authenticated,
     address,
     isFetchingUsername,
-    isFetchingOnboarded,
-    isIdentityLoading,
     isWhitelisted,
     skippedVerify,
     hasProfile,
-    mustChooseProfile,
     router,
     redirectTarget,
   ]);
@@ -237,6 +189,6 @@ export function usePostAuthRoute() {
     setupError,
     retrySetup,
     address: address ?? "",
-    isCheckingAccount: isFetchingUsername || isIdentityLoading,
+    isCheckingAccount: isFetchingUsername,
   };
 }

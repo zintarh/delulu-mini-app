@@ -14,6 +14,7 @@ import { PrivyWalletSessionBootstrap } from "@/components/privy-wallet-session-b
 import { PresencePing } from "@/components/presence-ping";
 import { NoGasProvider } from "@/contexts/no-gas-context";
 import { NotificationCountProvider } from "@/contexts/notification-count-context";
+import { ProfileRequiredGate } from "@/components/profile-required-gate";
 
 const ServiceWorkerRegister = dynamic(
   () =>
@@ -61,7 +62,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                   <ServiceWorkerRegister />
                   <PullToRefresh />
                   <EmailCaptureGate />
-                  {children}
+                  <ProfileRequiredGate>{children}</ProfileRequiredGate>
                 </NotificationCountProvider>
               </NoGasProvider>
             </ApolloProvider>

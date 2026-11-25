@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useIdentity } from "@/hooks/identityHook";
+import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
@@ -24,6 +26,7 @@ import { requestGasTopup } from "@/lib/faucet/request-client";
 export default function WelcomePage() {
   const router = useRouter();
   const { address, isReady, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
+  const { identityState, isLoading: identityLoading, refresh: refreshIdentity } = useIdentity();
   const { updateUsername, updateProfile } = useUserStore();
 
   const [username, setUsername] = useState("");
@@ -264,6 +267,21 @@ export default function WelcomePage() {
             <br />
             signing?
           </h1>
+
+          {!identityLoading && identityState.state !== "verified" ? (
+            <div className="overflow-hidden rounded-3xl border-2 border-line bg-white">
+              <p className="m-0 px-4 pt-4 text-[13px] font-extrabold">Face check, then your name</p>
+              <p className="m-0 px-4 pb-2 text-[12px] font-semibold text-muted-foreground">
+                The face check sends a little gas so this profile can be saved on chain. Your username and photo are still required.
+              </p>
+              <ClaimPanelContent
+                onClose={() => {}}
+                showCloseButton={false}
+                onWhitelisted={() => void refreshIdentity()}
+                inlineIdentityFlow
+              />
+            </div>
+          ) : null}
 
           <div className="flex animate-rise items-center gap-5 [animation-delay:.1s]">
             <button
