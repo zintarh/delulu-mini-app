@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * The weekly pool, shown where a payout is on the player's mind (Rewards,
- * right after a photo). 1,000,000 G$ shared by everyone who shows up all 7 days.
+ * right after a photo). $100 (1,000,000 G$) shared by everyone who shows up all 7 days.
  */
 export function LeaderboardPrizeCard({ className }: { className?: string }) {
   const facts = useEarnFacts();
@@ -34,7 +34,8 @@ export function LeaderboardPrizeCard({ className }: { className?: string }) {
       </span>
       <span className="relative min-w-0 flex-1">
         <span className="block truncate text-[14px] font-extrabold">
-          <span className="text-yellow">{ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$</span>
+          <span className="text-yellow">${ACTIVE_POT.weeklyUsd}</span>
+          <span className="font-bold text-white/70"> · {ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$</span>
           {ngn ? <span className="font-bold text-white/70"> ≈ {ngn}</span> : null}
         </span>
         <span className="block truncate text-[11px] font-semibold text-white/70">

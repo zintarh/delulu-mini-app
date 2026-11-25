@@ -33,7 +33,7 @@ const CHAPTERS = [
   {
     n: "04",
     title: "The weekly pool is shared by tickets",
-    body: `${fmt(ACTIVE_POT.weeklyG)} G$ is shared each week by everyone who shows up all 7 days on a staked card. Your share is your tickets divided by every ticket that week. In your first ${ACTIVE_POT.newcomerDays} days you get ${ACTIVE_POT.newcomerTickets} tickets just for showing up, and more if your stake earns more. After that you need at least ${fmt(TICKETS[0][0])} G$ staked to be in.`,
+    body: `$${ACTIVE_POT.weeklyUsd} (${fmt(ACTIVE_POT.weeklyG)} G$) is shared each week by everyone who shows up all 7 days on a staked card. Your share is your tickets divided by every ticket that week. In your first ${ACTIVE_POT.newcomerDays} days you get ${ACTIVE_POT.newcomerTickets} tickets just for showing up, and more if your stake earns more. After that you need at least ${fmt(TICKETS[0][0])} G$ staked to be in.`,
   },
 ] as const;
 
@@ -73,7 +73,7 @@ export default function HowItWorksPage() {
             A habit with money on it
           </h2>
           <p className="relative m-0 mt-3 max-w-[20rem] text-[14px] font-semibold leading-snug text-white/80">
-            Pick a card. Stake G$. Show up every day. Your stake comes back with 10% on top, and a full week puts you in the {fmt(ACTIVE_POT.weeklyG)} G$ pool.
+            Pick a card. Stake G$. Show up every day. Your stake comes back with 10% on top, and a full week puts you in the ${ACTIVE_POT.weeklyUsd} pool ({fmt(ACTIVE_POT.weeklyG)} G$).
           </p>
         </section>
 

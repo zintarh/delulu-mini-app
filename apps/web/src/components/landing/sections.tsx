@@ -19,7 +19,7 @@ import { TG_GROUP_URL } from "@/components/get-gas-modal";
 import { cn } from "@/lib/utils";
 import { APP_HOME } from "@/components/main-nav-config";
 import { useEffect, useState } from "react";
-import { fmtUsd, ngnWorthShowing, type EarnFacts } from "@/lib/earn/format";
+import { ngnWorthShowing, type EarnFacts } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { referralRewardNow } from "@/lib/referral/campaign";
 
@@ -127,16 +127,15 @@ export function HeroCopy() {
   );
 }
 
-/** The weekly 1M G$ pot. Compact so it fits the hero and the sign-in page. */
+/** The weekly pool: $100, and what that is in G$. Compact so it fits the hero and the sign-in page. */
 export function WeeklyPotCard({ className }: { className?: string }) {
-  const facts = useLandingFacts();
-  const usd = facts ? fmtUsd(ACTIVE_POT.weeklyG * facts.gdUsd) : null;
   return (
     <div className={cn("flex items-center gap-3.5 rounded-[22px] border-2 border-yellow-line bg-yellow-soft px-4 py-3 shadow-[0_4px_0_#e5b41c]", className)}>
       <Trophy size={44} className="shrink-0" />
       <div className="min-w-0">
         <p className="m-0 font-display text-[28px] font-extrabold leading-none">
-          1M G${usd ? <span className="ml-2 font-body text-[14px] font-extrabold">≈ {usd}</span> : null}
+          ${ACTIVE_POT.weeklyUsd}
+          <span className="ml-2 font-body text-[14px] font-extrabold">{ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$</span>
         </p>
         <p className="m-0 mt-1 text-[13px] font-bold leading-snug text-[#5c4a0a]">
           Split every week by everyone who plays all 7 days. New players are in just for showing up.
@@ -243,7 +242,7 @@ export function TwoWaysSection() {
       <div className="mx-auto flex max-w-[1160px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
         <SectionHead
           title={<>Play a card.<br />Get paid.</>}
-          sub="Each Bingo is a card. Play it — one proof a day — and you get rewarded. Show up all 7 days and you share 1M G$ that week."
+          sub="Each Bingo is a card. Play it — one proof a day — and you get rewarded. Show up all 7 days and you share $100 that week, worth 1,000,000 G$."
         />
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
           <div data-reveal="right" style={revealDelay(0.08)} className={card}>
@@ -302,7 +301,7 @@ export function FeaturesSection() {
     <section id="game" className="mx-auto flex max-w-[1240px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
       <SectionHead title="Every kept day counts." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
-        <Feature title="Leaderboards" line="A weekly board. Everyone who shows up all 7 days shares 1,000,000 G$ that week.">
+        <Feature title="Leaderboards" line="A weekly board. Everyone who shows up all 7 days shares $100 that week, worth 1,000,000 G$.">
           <div className="flex w-full flex-col gap-1">
             <div className="mb-1 flex items-center gap-2">
               <Trophy size={32} />
@@ -389,7 +388,7 @@ export function StoriesSection() {
 /* ---------------------------------------------------------------- FAQ */
 const FAQS: [string, string][] = [
   ["Do I need money to start?", "Claim free G$ every day from GoodDollar after one face check, then play it on a Bingo card."],
-  ["How much can I earn?", `Play a card and you get 10% of your stake back: a share on every proof, the rest when you finish, plus your stake. Show up all 7 days and you also share 1,000,000 G$ that week. Invite friends for ${referralRewardNow().toLocaleString("en-US")} G$ each.`],
+  ["How much can I earn?", `Play a card and you get 10% of your stake back: a share on every proof, the rest when you finish, plus your stake. Show up all 7 days and you also share $100 that week, worth 1,000,000 G$. Invite friends for ${referralRewardNow().toLocaleString("en-US")} G$ each.`],
   ["What happens if I miss a day?", "The card ends and that stake goes to the community pool. You keep everything you've earned so far, and you can start another Bingo."],
   ["How are proofs checked?", "AI checks your proof in seconds. Each day runs midnight to midnight, so you have the whole day to submit it."],
   ["Can I turn it into naira?", "Yes. Cash out G$ to a Nigerian bank with GoodCash. The rate moves with the market."],
@@ -450,7 +449,7 @@ export function FinalCta() {
             <br />
             <span className="text-yellow">Play it.</span>
           </h2>
-          <p className="m-0 text-lg text-[#c9c9c2]">One proof a day. 10% back on the card, and a share of 1M G$ when you show up all week.</p>
+          <p className="m-0 text-lg text-[#c9c9c2]">One proof a day. 10% back on the card, and a share of $100 (1,000,000 G$) when you show up all week.</p>
           <div className="flex flex-wrap gap-3.5">
             <Link href={APP_HOME} className={gameButtonClass({ size: "lg" })}>
               Play now

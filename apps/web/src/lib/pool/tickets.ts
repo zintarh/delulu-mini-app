@@ -10,11 +10,6 @@ export const ACTIVE_POT = {
   stakeCap: 100_000,
 } as const;
 
-/** "$100 · 1,000,000 G$" — the pool on a shared card, not the player's own stake. */
-export function sharePoolLabel(): string {
-  return `$${ACTIVE_POT.weeklyUsd} · ${ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$`;
-}
-
 /**
  * Returning players: [minimum stake, tickets] — the biggest row the stake reaches.
  * Below 1,000 a returning player isn't in the pot: after their first two weeks,

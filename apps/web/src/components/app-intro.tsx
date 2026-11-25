@@ -4,9 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
 import { CheckDot, Coin, Flame, GameButton, Lulu } from "@/components/ds";
-import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { useAuth } from "@/hooks/use-auth";
-import { fmtUsd } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
@@ -67,8 +65,6 @@ function ProveItArt() {
 }
 
 function EarnItArt() {
-  const facts = useEarnFacts();
-  const usd = facts ? fmtUsd(ACTIVE_POT.weeklyG * facts.gdUsd) : null;
   const pot = ACTIVE_POT.weeklyG.toLocaleString("en-US");
   return (
     <div className="flex flex-col items-center gap-3">
@@ -77,9 +73,9 @@ function EarnItArt() {
         <Coin size={34} className="absolute -right-5 top-2 rotate-12 animate-bounce-in" />
       </span>
       <div className="rounded-2xl border-2 border-ink bg-ink px-4 py-2.5 text-white shadow-edge-ink">
-        <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">{pot} G$</p>
-        {usd ? <p className="m-0 mt-1 text-[13px] font-extrabold text-white/80">≈ {usd}</p> : null}
-        <p className="m-0 mt-1 text-[12px] font-bold text-white/70">This will be shared</p>
+        <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">${ACTIVE_POT.weeklyUsd}</p>
+        <p className="m-0 mt-1 text-[13px] font-extrabold text-white/80">{pot} G$</p>
+        <p className="m-0 mt-1 text-[12px] font-bold text-white/70">Shared every week</p>
       </div>
     </div>
   );
@@ -99,7 +95,7 @@ const SLIDES: { title: string; body: string; art: ReactNode; learnMore?: boolean
   },
   {
     title: "Earn it.",
-    body: "Show up all 7 days and share 1,000,000 G$. Cash your G$ to a Naira bank account on the app.",
+    body: "Show up all 7 days and share $100, worth 1,000,000 G$. Cash your G$ to a Naira bank account on the app.",
     art: <EarnItArt />,
     learnMore: true,
   },

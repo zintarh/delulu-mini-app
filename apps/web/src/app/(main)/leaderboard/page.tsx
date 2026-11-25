@@ -214,7 +214,8 @@ function BoardBanner({ win }: { win: BoardWindow }) {
           <div className="min-w-0">
             <p className="m-0 text-[13px] font-bold text-white/70">Round {round.index} · shared every week</p>
             <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">
-              {ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$
+              ${ACTIVE_POT.weeklyUsd}
+              <span className="ml-2 text-[16px] text-white/85">{ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$</span>
               {ngn ? <span className="ml-2 text-[16px] text-white/85">≈ {ngn}</span> : null}
             </p>
             <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Everyone who shows up all 7 days shares it · ranking {ends}</p>
@@ -231,7 +232,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
         <TrophyArt size={40} />
       </span>
       <div className="min-w-0">
-        <p className="m-0 text-[16px] font-extrabold">Week {w.index} · {ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$ shared</p>
+        <p className="m-0 text-[16px] font-extrabold">Week {w.index} · ${ACTIVE_POT.weeklyUsd} shared · {ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$</p>
         <p className="label-mono m-0 mt-0.5 text-[10px] text-muted-foreground">
           Everyone who shows up all 7 days shares it · until {endDay} · {ends}
         </p>

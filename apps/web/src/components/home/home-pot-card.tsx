@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Trophy } from "@/components/ds";
 import { WatchHowItWorks } from "@/components/how-it-works-video";
-import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { TicketLadder } from "@/components/pot/stake-tickets";
 import { useAuth } from "@/hooks/use-auth";

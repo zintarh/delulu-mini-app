@@ -3,8 +3,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { BingoBoard } from "@/components/bingo/bingo-board";
 import { Lulu, Stamp, gameButtonClass } from "@/components/ds";
-import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { fmtUsd } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import type { BingoSquareView } from "@/lib/bingo/view";
 
@@ -114,13 +112,11 @@ function BoardRow({ rank, name, pts, you }: { rank: number; name: string; pts: s
 }
 
 function PoolAmount({ size = "lg" }: { size?: "sm" | "lg" }) {
-  const facts = useEarnFacts();
-  const usd = facts ? fmtUsd(ACTIVE_POT.weeklyG * facts.gdUsd) : null;
   const pot = ACTIVE_POT.weeklyG.toLocaleString("en-US");
   return (
     <>
-      <p className={`m-0 font-display font-extrabold leading-none text-yellow ${size === "lg" ? "text-[32px]" : "text-[22px]"}`}>{pot} G$</p>
-      {usd ? <p className="m-0 mt-1 text-[13px] font-extrabold text-white/80">≈ {usd}</p> : null}
+      <p className={`m-0 font-display font-extrabold leading-none text-yellow ${size === "lg" ? "text-[32px]" : "text-[22px]"}`}>${ACTIVE_POT.weeklyUsd}</p>
+      <p className="m-0 mt-1 text-[13px] font-extrabold text-white/80">{pot} G$</p>
     </>
   );
 }

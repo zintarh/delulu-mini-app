@@ -11,7 +11,7 @@ import { compactCount } from "@/lib/rewards/public-stats";
 import { NAIRA_CASHOUT_MIN_G } from "@/lib/rewards/cash-out";
 import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { ngnWorthShowing, fmtUsd } from "@/lib/earn/format";
+import { ngnWorthShowing } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { TicketLadder } from "@/components/pot/stake-tickets";
 import { useStakeRules } from "@/hooks/use-stake-rules";
@@ -69,7 +69,6 @@ export default function HowToEarnPage() {
   const facts = useEarnFacts();
   const ngn = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null);
   const pot = ACTIVE_POT.weeklyG;
-  const potUsd = facts ? fmtUsd(pot * facts.gdUsd) : null;
   const stats = data?.stats;
   const { address } = useAuth();
   const { rules: stakeRules } = useStakeRules(address);
@@ -88,9 +87,9 @@ export default function HowToEarnPage() {
               <Coin size={110} />
             </span>
             <div className="relative text-center">
-              <p className="label-mono m-0 text-[10px] text-white/60">This week&apos;s pool</p>
-              <p className="m-0 mt-1 font-display text-[34px] font-extrabold leading-none tracking-tight text-yellow tabular-nums">{fmt(pot)} G$</p>
-              {potUsd ? <p className="m-0 mt-1 text-[15px] font-extrabold text-white/80">≈ {potUsd}</p> : null}
+              <p className="label-mono m-0 text-[10px] text-white/60">Shared every week</p>
+              <p className="m-0 mt-1 font-display text-[34px] font-extrabold leading-none tracking-tight text-yellow tabular-nums">${ACTIVE_POT.weeklyUsd}</p>
+              <p className="m-0 mt-1 text-[15px] font-extrabold text-white/80">{fmt(pot)} G$</p>
               <p className="m-0 mx-auto mt-2 max-w-[280px] text-[13px] font-semibold leading-snug text-white/80">
                 This will be shared by everyone who shows up all 7 days. New players are in just for showing up.
               </p>
@@ -153,7 +152,7 @@ export default function HowToEarnPage() {
               art={<span className="text-[30px] leading-none">🏆</span>}
               title="Weekly pool"
               sub="Show up all 7 days and you share it. A bigger stake is a bigger share."
-              badge={`${fmt(pot)} G$`}
+              badge={`$${ACTIVE_POT.weeklyUsd}`}
               href="/home"
             />
             <WayToEarn
