@@ -27,12 +27,28 @@ export function useNoGas() {
 /** After a successful claim, stay quiet so a stale balance reading can't pop the prompt again. */
 const QUIET_MS = 2 * 60_000;
 const COMFORT_WEI = parseEther(String(COMFORT_BALANCE_CELO));
-/** These refusals will not change if we ask again this session. */
-const TERMINAL = new Set(["sent_out", "blocked", "not_eligible", "stage_cap", "paused", "has_enough"]);
+/**
+ * Asking again in the background won't change these. Some only pass from a
+ * tap in the popup (captcha), some need a face check or tomorrow.
+ */
+const TERMINAL = new Set([
+  "sent_out",
+  "blocked",
+  "not_eligible",
+  "stage_cap",
+  "paused",
+  "has_enough",
+  "captcha_required",
+  "captcha_failed",
+  "daily_claimed",
+  "ip_limit",
+  "subnet_limit",
+]);
 
 export function NoGasProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [autoFailed, setAutoFailed] = useState(false);
+  const [autoReason, setAutoReason] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
   const { isLowGas, isLoading, balanceKnown, balanceWei, refetch } = useHasGas();
   const { authenticated, address } = useAuth();
@@ -50,6 +66,7 @@ export function NoGasProvider({ children }: { children: React.ReactNode }) {
     if (balanceWei >= COMFORT_WEI) {
       autoFor.current = null;
       setAutoFailed(false);
+      setAutoReason(null);
       return;
     }
     const key = address.toLowerCase();
@@ -60,6 +77,7 @@ export function NoGasProvider({ children }: { children: React.ReactNode }) {
         quietUntil.current = Date.now() + QUIET_MS;
         shown.current = true;
         setAutoFailed(false);
+        setAutoReason(null);
         setOpen(false);
         void refetch();
         timers.current.push(window.setTimeout(() => void refetch(), 4_000));
@@ -67,6 +85,7 @@ export function NoGasProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       setAutoFailed(true);
+      setAutoReason(res.reason ?? null);
       if (!TERMINAL.has(res.reason ?? "")) {
         timers.current.push(window.setTimeout(() => {
           if (autoFor.current === key) autoFor.current = null;
@@ -123,7 +142,7 @@ export function NoGasProvider({ children }: { children: React.ReactNode }) {
   return (
     <NoGasContext.Provider value={{ trigger, covered }}>
       {children}
-      <NoGasModal open={open} notice={null} onClose={() => setOpen(false)} onClaimed={onClaimed} />
+      <NoGasModal open={open} reason={autoReason} onClose={() => setOpen(false)} onClaimed={onClaimed} />
     </NoGasContext.Provider>
   );
 }

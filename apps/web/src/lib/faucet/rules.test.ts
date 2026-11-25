@@ -88,3 +88,9 @@ test("config: bad fields fall back one by one, issues are caught", () => {
   const bad = resolveFaucetConfig({ stages: { starter: { maxPerDripCelo: 1, capCelo: 0.5 } } });
   assert.equal(faucetConfigIssues(bad).length, 1);
 });
+
+test("unverified daily pool has a default and can be overridden", () => {
+  assert.equal(resolveFaucetConfig(null).limits.unverifiedDailyBudgetCelo, 100);
+  assert.equal(resolveFaucetConfig({ limits: { unverifiedDailyBudgetCelo: 40 } }).limits.unverifiedDailyBudgetCelo, 40);
+  assert.equal(resolveFaucetConfig({ limits: { unverifiedDailyBudgetCelo: -1 } }).limits.unverifiedDailyBudgetCelo, 100);
+});

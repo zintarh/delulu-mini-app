@@ -48,6 +48,8 @@ export type FaucetConfig = {
     signupsPerSubnetPerDay: number;
     /** Faucet keeps at least this much, so it can still pay its own gas. */
     minReserveCelo: number;
+    /** All drips to wallets without a current face check, rolling 24h. Each such wallet gets one drip per 24h. */
+    unverifiedDailyBudgetCelo: number;
   };
   /** Require a Turnstile captcha for signup drips (only enforced when TURNSTILE_SECRET_KEY is set). */
   requireCaptcha: boolean;
@@ -84,7 +86,15 @@ export const DEFAULT_FAUCET_CONFIG: FaucetConfig = {
     },
   },
   // 1,000 CELO/day for face-verified wallets. Each drip still only fills up to 0.4.
-  limits: { dailyBudgetCelo: 1000, signupsPerIpPerDay: 3, signupsPerSubnetPerDay: 10, minReserveCelo: 0.5 },
+  // Without a face check: one claim per wallet per day, from a tap that passed
+  // the captcha, limited per IP, out of its own smaller pool.
+  limits: {
+    dailyBudgetCelo: 1000,
+    signupsPerIpPerDay: 3,
+    signupsPerSubnetPerDay: 10,
+    minReserveCelo: 0.5,
+    unverifiedDailyBudgetCelo: 100,
+  },
   requireCaptcha: true,
 };
 
@@ -131,6 +141,7 @@ export function resolveFaucetConfig(override: unknown, base: FaucetConfig = DEFA
       signupsPerIpPerDay: num(limits.signupsPerIpPerDay, base.limits.signupsPerIpPerDay, 0, 1_000, true),
       signupsPerSubnetPerDay: num(limits.signupsPerSubnetPerDay, base.limits.signupsPerSubnetPerDay, 0, 10_000, true),
       minReserveCelo: num(limits.minReserveCelo, base.limits.minReserveCelo, 0, 1_000),
+      unverifiedDailyBudgetCelo: num(limits.unverifiedDailyBudgetCelo, base.limits.unverifiedDailyBudgetCelo, 0, 10_000),
     },
     requireCaptcha: typeof override.requireCaptcha === "boolean" ? override.requireCaptcha : base.requireCaptcha,
   };
@@ -268,6 +279,7 @@ export type GasRequestReason =
   | "ip_limit"
   | "subnet_limit"
   | "daily_budget"
+  | "daily_claimed"
   | "faucet_empty"
   | "gas_too_high"
   | "in_flight"
@@ -289,7 +301,9 @@ export function gasReasonMessage(reason: GasRequestReason): string {
     case "ip_limit":
     case "subnet_limit":
     case "blocked":
-      return "Free gas isn't available on this device. Verify your face to continue.";
+      return "Free gas isn't available on this device. Verify your face to keep going.";
+    case "daily_claimed":
+      return "You've had today's free gas. Verify your face to keep going, or come back tomorrow.";
     case "daily_budget":
     case "faucet_empty":
     case "paused":
@@ -302,6 +316,6 @@ export function gasReasonMessage(reason: GasRequestReason): string {
     case "stage_cap":
       return "You've used your free gas for now. Keep proving your goals to unlock more.";
     case "not_eligible":
-      return "Free gas is for face-verified accounts. Verify your face to continue.";
+      return "Verify your face to unlock more free gas.";
   }
 }
