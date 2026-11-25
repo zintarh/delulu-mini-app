@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { thumbUrl } from "@/lib/images/supabase-thumb";
 
 export type ImageAccent = {
   /** Deep tone a white label reads on (pills, chips). */
@@ -92,7 +93,8 @@ function sample(url: string): Promise<ImageAccent | null> {
       }
     };
     img.onerror = () => resolve(null);
-    img.src = url;
+    // A tiny copy is plenty for a 24px sample; the full cover decoded here stalled scrolling.
+    img.src = thumbUrl(url, 64);
   }).then((accent) => {
     cache.set(url, accent);
     pending.delete(url);

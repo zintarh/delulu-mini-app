@@ -7,6 +7,7 @@ import type { BingoSquareView } from "@/lib/bingo/view";
 import { squareTilt, squareTint } from "@/lib/bingo/mission-art";
 import { MissionSticker } from "@/components/bingo/mission-stickers";
 import { cn } from "@/lib/utils";
+import { ProofThumb } from "@/components/bingo/proof-thumb";
 
 export type SquareAvailability = "open" | "locked" | "none";
 
@@ -154,13 +155,7 @@ function Square({
     >
       {photo ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={s.photoUrl!}
-            alt=""
-            loading="lazy"
-            className={cn("absolute inset-0 h-full w-full object-cover", s.state === "confirming" && "opacity-50")}
-          />
+          <ProofThumb src={s.photoUrl!} px={320} className={cn("absolute inset-0 h-full w-full object-cover", s.state === "confirming" && "opacity-50")} />
           <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-4">
             <span className="line-clamp-1 text-[9.5px] font-extrabold leading-tight text-white">{s.title}</span>
           </span>
@@ -211,8 +206,7 @@ function Cell({ square: s, sticker, className }: { square: BingoSquareView; stic
       style={photo || missed ? undefined : { background: squareTint(s.index).bg }}
     >
       {photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={s.photoUrl!} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+        <ProofThumb src={s.photoUrl!} px={320} className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <MissionSticker title={s.title} size={sticker} muted={missed} />
       )}

@@ -7,6 +7,7 @@ import { flexStatus, flexTheme } from "@/components/bingo/bingo-flex-card";
 import { squareTint } from "@/lib/bingo/mission-art";
 import type { BingoCardView } from "@/lib/bingo/view";
 import { cn } from "@/lib/utils";
+import { ProofThumb } from "@/components/bingo/proof-thumb";
 
 /**
  * Your running Bingo on Home, small: title, day, and the week as one row of
@@ -44,8 +45,7 @@ export function HomeBingoMini({ card, slug, title, today }: { card: BingoCardVie
               style={{ background: tint.bg, ...(isToday ? { ["--tw-ring-color" as string]: t.fg, ["--tw-ring-offset-color" as string]: t.bg } : {}) }}
             >
               {sq.photoUrl && sq.state !== "missed" ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={sq.photoUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                <ProofThumb src={sq.photoUrl} px={200} className="absolute inset-0 h-full w-full object-cover" />
               ) : (
                 <MissionSticker title={sq.title} size={22} muted={sq.state === "missed"} className={cn(sq.state === "empty" && !isToday && "opacity-60")} />
               )}

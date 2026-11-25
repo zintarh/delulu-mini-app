@@ -8,6 +8,7 @@ import { collageColumns, type CollageTile } from "@/lib/bingo/collage";
 import { squareTint } from "@/lib/bingo/mission-art";
 import type { BingoCardView } from "@/lib/bingo/view";
 import { cn } from "@/lib/utils";
+import { ProofThumb } from "@/components/bingo/proof-thumb";
 
 /**
  * A player's Bingo card as a Pinterest-style collage: their photos are the
@@ -87,8 +88,7 @@ export function BingoCollage({
     if (tile.kind === "photo" && sq.photoUrl) {
       return (
         <div className="relative overflow-hidden rounded-[18px] bg-[#e9e7df] shadow-[0_2px_10px_rgba(0,0,0,0.12)]" style={style}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={sq.photoUrl} alt={sq.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+          <ProofThumb src={sq.photoUrl} px={560} alt={sq.title} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent px-2.5 pb-2 pt-6">
             <p className="m-0 truncate text-[11px] font-extrabold leading-tight text-white">{sq.title}</p>
           </div>

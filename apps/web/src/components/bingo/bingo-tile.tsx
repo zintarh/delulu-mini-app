@@ -158,7 +158,8 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
             href={`/bingo/${bingo.slug}#players`}
             aria-label={`See the ${bingo.players.toLocaleString()} ${bingo.players === 1 ? "player" : "players"}`}
             className={cn(
-              "pointer-events-auto relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/15 font-bold transition-transform active:scale-95 text-white no-underline backdrop-blur-sm hover:bg-white/25",
+              // Solid tint, not backdrop-blur: a blur over the photos re-renders every frame while a row of cards scrolls.
+              "pointer-events-auto relative z-[2] inline-flex items-center gap-1.5 rounded-full bg-black/40 font-bold transition-transform active:scale-95 text-white no-underline hover:bg-black/55",
               pin ? "mt-1.5 py-0.5 pl-0.5 pr-1.5 text-[11px]" : "mt-2 py-1 pl-1 pr-2 text-[12px]",
             )}
           >

@@ -11,6 +11,7 @@ import type { CheerContest } from "@/lib/bingo/cheers-server";
 import { flexStatus } from "@/components/bingo/bingo-flex-card";
 import type { BoardCard } from "@/hooks/use-bingo";
 import { cn } from "@/lib/utils";
+import { ProofThumb } from "@/components/bingo/proof-thumb";
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 /** Top 10 first; the rest a page at a time. */
@@ -112,8 +113,7 @@ export function BingoPlayers({
                 {photos.length ? (
                   <span className="flex shrink-0 -space-x-3">
                     {photos.map((p) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={p.index} src={p.photoUrl!} alt="" loading="lazy" className="h-9 w-9 rounded-lg border-2 border-white object-cover shadow-sm" />
+                      <ProofThumb key={p.index} src={p.photoUrl!} px={120} className="h-9 w-9 rounded-lg border-2 border-white object-cover shadow-sm" />
                     ))}
                   </span>
                 ) : card.photosPrivate && !mine && card.requiredFilled > 0 ? (

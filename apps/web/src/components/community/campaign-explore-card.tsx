@@ -324,7 +324,7 @@ export function CampaignPhotoCard({ campaign, className }: { campaign: CampaignE
         <span
           className={cn(
             "label-mono rounded-full px-2.5 py-1 text-[10px] font-semibold",
-            onDark ? "bg-black/45 text-white backdrop-blur-sm" : "bg-white/80 text-ink",
+            onDark ? "bg-black/50 text-white" : "bg-white/80 text-ink",
           )}
         >
           {campaign.durationDays}-day · {cadence}
