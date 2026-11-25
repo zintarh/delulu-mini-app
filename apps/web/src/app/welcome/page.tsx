@@ -19,6 +19,7 @@ import {
   consumeReferralCode,
 } from "@/lib/auth-redirect";
 import { getEmailValidationMessage } from "@/lib/email-validation";
+import { requestGasTopup } from "@/lib/faucet/request-client";
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -59,6 +60,11 @@ export default function WelcomePage() {
   useEffect(() => {
     if (isReady && !authenticated) router.replace("/sign-in");
   }, [isReady, authenticated, router]);
+
+  // setProfile needs gas. Top the wallet up as soon as this form opens.
+  useEffect(() => {
+    if (authenticated && address) void requestGasTopup();
+  }, [authenticated, address]);
 
   const { data: existingUsername, isFetching: isCheckingProfile } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,

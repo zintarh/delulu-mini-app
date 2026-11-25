@@ -18,7 +18,7 @@ import { useReadContract } from "wagmi";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { AppLoader } from "@/components/app-loader";
-import { gatePassedAddress, hasGatePassed, markGatePassed } from "@/lib/app-gate-pass";
+import { markGatePassed } from "@/lib/app-gate-pass";
 
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
@@ -148,7 +148,12 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   // screenshot from the gallery, signing in the wallet popup, switching apps.
   // Gating on that swapped the whole app for a spinner and back, unmounting
   // whatever was open (proof modal, success card + confetti) mid-flow.
-  const { data: onChainUsername, isLoading: isLoadingUsername, isError: usernameReadFailed } = useReadContract({
+  const {
+    data: onChainUsername,
+    isLoading: isLoadingUsername,
+    isError: usernameReadFailed,
+    refetch: refetchUsername,
+  } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getUsername",
@@ -171,51 +176,49 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(id);
   }, [authenticated]);
 
-  // Returning user on this device: their wallet passed the checks before and
-  // the session is being restored, so show the app now (pages render their
-  // own skeletons while auth finishes) instead of a full-screen loader.
-  // Read after mount: localStorage isn't available in the server render.
-  const [returningPassed, setReturningPassed] = useState(false);
-  useEffect(() => {
-    setReturningPassed(hasStoredAuthSession() && gatePassedAddress() != null);
-  }, []);
-  const trustedReturning = returningPassed && (!address || hasGatePassed(address));
-
-  // Also covers the brief window before auth finishes initializing — we
-  // don't yet know if there's a session to gate, so hold off rendering
-  // protected content rather than risk a flash of it either way.
-  const stillChecking =
-    !isReady ||
-    restoringSession ||
-    (authenticated && address && isLoadingUsername);
-  // An RPC failure is not "no profile". Don't kick a real user out because
-  // the username read failed.
-  const incomplete =
+  // No saved visit skips this. The contract username has to be on screen
+  // before any page renders. A failed read stays on this screen with a retry.
+  const profileMissing =
     isReady &&
     authenticated &&
-    address &&
+    !!address &&
     !isLoadingUsername &&
     !usernameReadFailed &&
     !hasOnChainUsername;
 
   useEffect(() => {
-    if (incomplete) router.replace("/sign-in");
-  }, [incomplete, router]);
+    if (profileMissing) router.replace("/welcome");
+  }, [profileMissing, router]);
 
-  // Once this wallet has been let in, a background re-check must never swap
-  // the app back to a spinner — that unmounts everything the user has open.
-  // Only a confirmed-incomplete result (redirect above) takes them out.
-  // Sign-in records a pass for this session, so arriving from it skips the re-check.
   const passedForRef = useRef<string | null>(null);
-  if (!stillChecking && !incomplete && address && passedForRef.current !== address) {
+  if (hasOnChainUsername && address && passedForRef.current !== address) {
     passedForRef.current = address;
     markGatePassed(address);
   }
-  const alreadyPassed =
-    (!!address && (passedForRef.current === address || hasGatePassed(address))) || trustedReturning;
 
-  if ((stillChecking && !alreadyPassed) || incomplete) {
+  if (!isReady || restoringSession) {
     return <AppLoader />;
+  }
+
+  if (authenticated && address && !hasOnChainUsername) {
+    if (!isLoadingUsername && usernameReadFailed) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+          <h1 className="text-xl font-black text-foreground">Couldn&apos;t check your profile</h1>
+          <p className="max-w-sm text-sm font-semibold text-muted-foreground">
+            The network didn&apos;t answer, so the app stayed closed. Try the check again.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetchUsername()}
+            className="press-edge h-12 rounded-2xl bg-ink px-6 text-sm font-extrabold uppercase text-white"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return <AppLoader label="Set up your profile" />;
   }
 
   return <>{children}</>;
