@@ -24,7 +24,7 @@ import {
   type FaucetStage,
   type GasRequestReason,
 } from "@/lib/faucet/rules";
-import { captchaEnabled, verifyCaptcha } from "@/lib/faucet/turnstile";
+import { readIdentityStatus } from "@/lib/identity/status";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -251,13 +251,19 @@ export async function requestGas(
     return fail("gas_too_high", plan.stage);
   }
 
-  // Bots come in at signup; later steps already need a real on-chain profile.
-  if (plan.stage === "signup" && config.requireCaptcha && captchaEnabled()) {
-    if (!params.captchaToken) return fail("captcha_required", plan.stage);
-    if (!(await verifyCaptcha(params.captchaToken, ip))) {
-      await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason: "captcha_failed" });
-      return fail("captcha_failed", plan.stage);
-    }
+  // The daily pool is for accounts with a current face check. A captcha is
+  // not enough, and a shared mobile network must not block a verified wallet.
+  let faceVerified = false;
+  try {
+    const identity = await readIdentityStatus(faucetPublicClient, address);
+    faceVerified = identity.state === "verified";
+  } catch (err) {
+    console.error("[faucet] could not read face check", err);
+    return fail("unavailable", plan.stage);
+  }
+  if (!faceVerified) {
+    await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason: "not_eligible" });
+    return fail("not_eligible", plan.stage);
   }
 
   let faucetWei: bigint;
@@ -280,8 +286,10 @@ export async function requestGas(
     p_subnet: subnet,
     p_stage_cap: plan.capCelo,
     p_window_hours: plan.windowDays ? plan.windowDays * 24 : null,
-    p_ip_limit: config.limits.signupsPerIpPerDay,
-    p_subnet_limit: config.limits.signupsPerSubnetPerDay,
+    // Verified wallets skip the per-IP cap. A carrier network would otherwise
+    // block the launch after a handful of signups.
+    p_ip_limit: 0,
+    p_subnet_limit: 0,
     p_daily_budget: config.limits.dailyBudgetCelo,
     p_gas_price_gwei: Number(formatGwei(maxFee)),
     p_balance_before: weiToCelo(balanceWei),

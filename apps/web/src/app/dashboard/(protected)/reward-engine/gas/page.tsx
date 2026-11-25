@@ -358,7 +358,7 @@ export default function FaucetAdminPage() {
               suffix="days"
             />
             <Num label="Safety margin" value={draft.gasMargin} onChange={(v) => update((c) => void (c.gasMargin = v))} step={0.1} suffix="×" hint="× live gas cost" />
-            <Num label="Daily budget" value={draft.limits.dailyBudgetCelo} onChange={(v) => update((c) => void (c.limits.dailyBudgetCelo = v))} step={0.5} suffix="CELO" hint="Most lost to bots in a bad day" />
+            <Num label="Daily budget" value={draft.limits.dailyBudgetCelo} onChange={(v) => update((c) => void (c.limits.dailyBudgetCelo = v))} step={0.5} suffix="CELO" hint="For face-verified accounts per day" />
             <Num label="Keep in reserve" value={draft.limits.minReserveCelo} onChange={(v) => update((c) => void (c.limits.minReserveCelo = v))} step={0.1} suffix="CELO" />
             <Num label="Signups per IP · 24h" value={draft.limits.signupsPerIpPerDay} onChange={(v) => update((c) => void (c.limits.signupsPerIpPerDay = v))} />
             <Num label="Signups per network · 24h" value={draft.limits.signupsPerSubnetPerDay} onChange={(v) => update((c) => void (c.limits.signupsPerSubnetPerDay = v))} />

@@ -69,21 +69,22 @@ export const DEFAULT_FAUCET_CONFIG: FaucetConfig = {
   enabled: true,
   gasMargin: 2,
   stages: {
-    // One claim brings an empty wallet to 0.6 CELO. Cap stays above that so a
-    // wallet that already received the old 0.06 drip can still be topped up.
-    signup: { gasUnits: 120_000, maxPerDripCelo: 0.6, capCelo: 1 },
+    // Each drip fills the wallet back up to 0.6. The cap allows that refill
+    // several times, so spending the first drip on fees does not strand them.
+    signup: { gasUnits: 120_000, maxPerDripCelo: 1, capCelo: 5 },
     // First goal: approve + create + a couple of days of proof/resolve.
-    starter: { gasUnits: 600_000, maxPerDripCelo: 0.75, capCelo: 1 },
+    starter: { gasUnits: 600_000, maxPerDripCelo: 1, capCelo: 5 },
     active: {
       gasUnits: 600_000,
-      maxPerDripCelo: 0.75,
-      capCelo: 1,
+      maxPerDripCelo: 1,
+      capCelo: 5,
       windowDays: 30,
       minProofs: 3,
       proofWindowDays: 14,
     },
   },
-  limits: { dailyBudgetCelo: 10, signupsPerIpPerDay: 3, signupsPerSubnetPerDay: 10, minReserveCelo: 0.5 },
+  // 1,000 CELO/day for face-verified wallets. Each drip still only fills up to 0.6.
+  limits: { dailyBudgetCelo: 1000, signupsPerIpPerDay: 3, signupsPerSubnetPerDay: 10, minReserveCelo: 0.5 },
   requireCaptcha: true,
 };
 
@@ -292,14 +293,15 @@ export function gasReasonMessage(reason: GasRequestReason): string {
     case "daily_budget":
     case "faucet_empty":
     case "paused":
-      return "Free gas is out for today. Verify your face to continue, or try again tomorrow.";
+      return "Free gas is out for today. Try again tomorrow.";
     case "send_failed":
     case "unavailable":
       return "Couldn't send gas right now. Try again.";
     case "sent_out":
       return "You sent the gas we gave you to another wallet, so this wallet can't claim gas again.";
     case "stage_cap":
-    case "not_eligible":
       return "You've used your free gas for now. Keep proving your goals to unlock more.";
+    case "not_eligible":
+      return "Free gas is for face-verified accounts. Verify your face to continue.";
   }
 }

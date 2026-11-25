@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseUnits } from "viem";
 import { useChainId } from "wagmi";
@@ -19,6 +19,7 @@ import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES, getForfeitMarketAddress } from "
 import { finishRollingStart } from "@/lib/bingo/rolling-client";
 import { rollingFirstDeadline } from "@/lib/bingo/types";
 import { STARTER_CARDS, STARTER_STAKE } from "@/lib/bingo/starter";
+import { requestGasTopup } from "@/lib/faucet/request-client";
 import { celebrateCampaignJoin } from "@/lib/celebrate";
 import { afterVote } from "@/lib/vote-gate";
 import type { BingoView } from "@/lib/bingo/view";
@@ -166,7 +167,14 @@ function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; o
 
 export default function PlayPage() {
   const router = useRouter();
+  const { address } = useAuth();
   const { bingos } = useBingoList();
+  // New players land here straight after the face check. Top them up to 0.6
+  // CELO even when GoodDollar already dropped a little gas.
+  useEffect(() => {
+    if (!address) return;
+    void requestGasTopup();
+  }, [address]);
   const loading = bingos == null;
   const cards = STARTER_CARDS.map((s) => bingos?.find((b) => b.slug === s.slug)).filter((b): b is BingoView => !!b);
   const goHome = () => {

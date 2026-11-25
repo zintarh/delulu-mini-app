@@ -1,9 +1,12 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import { parseEther } from "viem";
 import { NoGasModal } from "@/components/no-gas-modal";
 import { useHasGas } from "@/hooks/use-has-gas";
 import { useAuth } from "@/hooks/use-auth";
+import { COMFORT_BALANCE_CELO } from "@/lib/faucet/rules";
+import { requestGasTopup } from "@/lib/faucet/request-client";
 
 interface NoGasContextValue {
   /**
@@ -23,15 +26,63 @@ export function useNoGas() {
 
 /** After a successful claim, stay quiet so a stale balance reading can't pop the prompt again. */
 const QUIET_MS = 2 * 60_000;
+const COMFORT_WEI = parseEther(String(COMFORT_BALANCE_CELO));
+/** These refusals will not change if we ask again this session. */
+const TERMINAL = new Set(["sent_out", "blocked", "not_eligible", "stage_cap", "paused", "has_enough"]);
 
 export function NoGasProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { isLowGas, isLoading, balanceKnown, refetch } = useHasGas();
-  const { authenticated } = useAuth();
+  const [autoFailed, setAutoFailed] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
+  const { isLowGas, isLoading, balanceKnown, balanceWei, refetch } = useHasGas();
+  const { authenticated, address } = useAuth();
   const stateRef = useRef({ isLowGas, isLoading, balanceKnown });
   stateRef.current = { isLowGas, isLoading, balanceKnown };
   const shown = useRef(false);
   const quietUntil = useRef(0);
+  const autoFor = useRef<string | null>(null);
+  const timers = useRef<number[]>([]);
+
+  // Any signed-in wallet under 0.6 CELO gets filled back up, including the
+  // 0.01–0.6 band where a fee still fits so the prompt stays closed.
+  useEffect(() => {
+    if (!authenticated || !address || !balanceKnown || balanceWei == null) return;
+    if (balanceWei >= COMFORT_WEI) {
+      autoFor.current = null;
+      setAutoFailed(false);
+      return;
+    }
+    const key = address.toLowerCase();
+    if (autoFor.current === key) return;
+    autoFor.current = key;
+    void requestGasTopup().then((res) => {
+      if (res.success) {
+        quietUntil.current = Date.now() + QUIET_MS;
+        shown.current = true;
+        setAutoFailed(false);
+        setOpen(false);
+        void refetch();
+        timers.current.push(window.setTimeout(() => void refetch(), 4_000));
+        timers.current.push(window.setTimeout(() => void refetch(), 12_000));
+        return;
+      }
+      setAutoFailed(true);
+      if (!TERMINAL.has(res.reason ?? "")) {
+        timers.current.push(window.setTimeout(() => {
+          if (autoFor.current === key) autoFor.current = null;
+          setRetryTick((n) => n + 1);
+        }, QUIET_MS));
+      }
+    });
+  }, [authenticated, address, balanceKnown, balanceWei, refetch, retryTick]);
+
+  useEffect(() => {
+    const pending = timers;
+    return () => {
+      for (const timer of pending.current) window.clearTimeout(timer);
+      pending.current = [];
+    };
+  }, [address]);
 
   useEffect(() => {
     if (!authenticated || !balanceKnown) return;
@@ -42,10 +93,12 @@ export function NoGasProvider({ children }: { children: React.ReactNode }) {
       setOpen(false);
       return;
     }
-    if (shown.current || Date.now() < quietUntil.current) return;
+    // The silent refill is the first try. The prompt is only for a wallet that
+    // still cannot pay a fee after that try.
+    if (!autoFailed || shown.current || Date.now() < quietUntil.current) return;
     shown.current = true;
     setOpen(true);
-  }, [authenticated, balanceKnown, isLowGas]);
+  }, [authenticated, balanceKnown, isLowGas, autoFailed]);
 
   const trigger = useCallback((opts?: { force?: boolean }) => {
     if (opts?.force) {

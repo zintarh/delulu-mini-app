@@ -18,6 +18,7 @@ import {
   safeRedirectPath,
 } from "@/lib/auth-redirect";
 import { markGatePassed } from "@/lib/app-gate-pass";
+import { requestGasTopup } from "@/lib/faucet/request-client";
 
 export type PostAuthRouteState =
   | "loading"
@@ -182,6 +183,9 @@ export function usePostAuthRoute() {
       markGatePassed(address);
       setRouteState("redirecting_home");
       void import("@/components/main-app-header");
+      // Still on the starter cards: top the wallet up to 0.6 CELO. Face-verified
+      // signups used to skip this, so a 0.3 GoodDollar drip was all they got.
+      if ((isWhitelisted || skippedVerify) && needsStarter(address)) void requestGasTopup();
       router.replace(needsStarter(address) ? "/play" : target);
       return;
     }
@@ -235,6 +239,9 @@ export function usePostAuthRoute() {
         } catch {
           /* private mode: this visit still opens the cards */
         }
+        // Face check done (or skipped with a captcha). Bring the wallet up to
+        // 0.6 CELO before they stake. Don't block the cards if the drip fails.
+        await requestGasTopup();
         router.replace("/play");
       } catch (err) {
         hasRedirectedRef.current = false;

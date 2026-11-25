@@ -36,6 +36,7 @@ test("top-up is priced from live fees and only fills the gap", () => {
 
 test("comfort floor tops a player up to 0.6 CELO", () => {
   assert.equal(COMFORT_BALANCE_CELO, 0.6);
+  assert.equal(DEFAULT_FAUCET_CONFIG.limits.dailyBudgetCelo, 1000);
   const empty = applyComfortFloor(celoToWei(0.06), 0n, COMFORT_BALANCE_CELO);
   assert.equal(weiToCelo(empty), 0.6);
   const partial = applyComfortFloor(0n, celoToWei(0.2), COMFORT_BALANCE_CELO);
