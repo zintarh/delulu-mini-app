@@ -3,20 +3,20 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Coin, Trophy } from "@/components/ds";
-import { PRIZE } from "@/lib/leaderboard/windows";
+import { ACTIVE_POT } from "@/lib/pool/tickets";
 
-const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
+const k = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
 
 /**
  * How Delulu pays, as three steps instead of paragraphs: stake (bigger = more
- * points), one photo a day, win (cashback + the 2-week top-10 prize). Taps
+ * points), one photo a day, win (10% back + the weekly pot). Taps
  * through to How to earn for the details.
  */
 export function HomeEarnLoop() {
   const steps = [
     { art: <Coin size={22} />, title: "Stake G$", sub: "Bigger stake, more points" },
     { art: <span className="text-[20px] leading-none">📸</span>, title: "1 photo a day", sub: "Keep your streak" },
-    { art: <Trophy size={24} />, title: "Win G$", sub: `Cashback + top ${PRIZE.winners} share ${k(PRIZE.poolG)}` },
+    { art: <Trophy size={24} />, title: "Win G$", sub: `10% back + share the ${k(ACTIVE_POT.weeklyG)} weekly pot` },
   ];
   return (
     <Link href="/how-to-earn" className="press-edge block rounded-[22px] border-2 border-line bg-white px-3 py-3 text-ink no-underline shadow-edge" aria-label="How to earn">
