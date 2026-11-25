@@ -43,12 +43,12 @@ export type ReferralRound = {
  * GoodBuilders Season 2: six 2-week epochs from Tue 17 Nov 2026, each ending on
  * a Tuesday demo day (1 Dec, 15 Dec, 29 Dec, 12 Jan, 26 Jan, 9 Feb). Referrals
  * run weekly inside them — two rounds per epoch, Tuesday to Tuesday (Lagos
- * midnight). From round 2 (Tue 24 Nov): 5,000 G$ per friend, paid in full the
- * moment they qualify — the 3-day split confused people and left referrers
- * waiting on money they'd been shown. Round 1 keeps its 7,000 = 4,000 on
- * qualify + 3,000 after 3 days in a row, so credits earned then still get the
- * bonus they were promised (lib/referral/streak.ts). Spots per round are set
- * from the admin; `slots` is the default.
+ * midnight). From round 2 (Tue 24 Nov): 2,630 G$ per friend, about $0.30 at
+ * the rate where 5,000 G$ was about $0.57, paid in full the moment they
+ * qualify. Round 1 keeps its 7,000 = 4,000 on qualify + 3,000 after 3 days
+ * in a row, so credits earned then still get the bonus they were promised
+ * (lib/referral/streak.ts). Spots per round are set from the admin; `slots`
+ * is the default.
  */
 export const SEASON_START_LAGOS = "2026-11-17";
 export const EPOCH_COUNT = 6;
@@ -65,10 +65,13 @@ const seasonDay = (days: number) => Date.parse(`${SEASON_START_LAGOS}T00:00:00Z`
  */
 export const DEFAULT_WEEKLY_SPOTS = [50, 50, 100, 100, 125, 125, 150, 150, 175, 175, 200, 200];
 
+/** About $0.30. 5,000 G$ was about $0.57, so 2,630 G$ is 0.30 / 0.57 of that. */
+export const REFERRAL_REWARD_G = 2_630;
+
 export const REFERRAL_ROUNDS: ReferralRound[] = Array.from({ length: EPOCH_COUNT * 2 }, (_, i) => ({
   start: lagosMidnightIso(seasonDay(i * 7)),
   end: lagosMidnightIso(seasonDay((i + 1) * 7)),
-  ...(i === 0 ? { reward: 7_000, firstPayment: 4_000 } : { reward: 5_000 }),
+  ...(i === 0 ? { reward: 7_000, firstPayment: 4_000 } : { reward: REFERRAL_REWARD_G }),
   budget: 50_000,
   slots: DEFAULT_WEEKLY_SPOTS[i] ?? 100,
 }));

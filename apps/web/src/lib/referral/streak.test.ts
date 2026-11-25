@@ -23,10 +23,10 @@ test("round 1 keeps 7,000 = 4,000 first + 3,000 bonus", () => {
   assert.equal(roundCapacity(r), r.slots);
 });
 
-test("from round 2: 5,000 per friend, all at once, no streak bonus", () => {
+test("from round 2: 2,630 per friend, about $0.30, all at once, no streak bonus", () => {
   for (const r of REFERRAL_ROUNDS.slice(1)) {
-    assert.equal(r.reward, 5_000);
-    assert.equal(roundFirstPayment(r), 5_000);
+    assert.equal(r.reward, 2_630);
+    assert.equal(roundFirstPayment(r), 2_630);
     assert.equal(roundHasStreakBonus(r), false);
   }
 });

@@ -1,7 +1,7 @@
 import { BOOST } from "@/lib/bingo/boost";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { DAY_MS, daySlot, rollingMissedDay } from "@/lib/bingo/types";
-import { SEASON_START_LAGOS } from "@/lib/referral/campaign";
+import { referralRoundAt, roundHasStreakBonus, SEASON_START_LAGOS } from "@/lib/referral/campaign";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -356,6 +356,14 @@ export async function loadPeople(
 /** Lagos calendar day (UTC+1). */
 const lagosDay = (ms: number) => new Date(ms + 3_600_000).toISOString().slice(0, 10);
 
+/** A sent payout with no streak held back. Round 1 still owes the 3-day bonus. */
+function paidInFull(c: Record<string, unknown>): boolean {
+  if (c.payout_status !== "sent") return false;
+  const round = referralRoundAt(typeof c.credited_at === "string" ? c.credited_at : null);
+  if (round) return !roundHasStreakBonus(round) || Number(c.gdollars_amount ?? 0) >= round.reward;
+  return Number(c.gdollars_amount ?? 0) >= 5_000;
+}
+
 /** Fills `referrer` (friends + where each is stuck) and `referralQualified`. Pure apart from mutating `people`. */
 export function attachReferrers(people: Person[], seasonFriends: Record<string, unknown>[], seasonCredits: Record<string, unknown>[], nowMs: number) {
   const byWallet = new Map(people.map((p) => [p.wallet, p]));
@@ -393,8 +401,8 @@ export function attachReferrers(people: Person[], seasonFriends: Record<string, 
       if (f && c) f.referralQualified = true;
       if (!f) continue;
       const step: FriendStep = c
-        ? c.streak_status === "sent" || (c.payout_status === "sent" && Number(c.gdollars_amount ?? 0) >= 5000)
-          ? "done" // paid in full (the early credits paid 5,000 at once)
+        ? c.streak_status === "sent" || paidInFull(c)
+          ? "done"
           : "streak"
         : !f.onboardedAt
           ? "setup"
