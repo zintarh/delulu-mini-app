@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   SEASON_2_START_LABEL,
   STAKE_PRESETS_REGULAR,
+  REGULAR_MIN_STAKE,
   isSeason2Live,
   isSeason2PointsLive,
   seasonPointsForStake,
@@ -51,7 +52,7 @@ export function SeasonNotice({
         </div>
         {!rulesLive ? (
           <p className="label-mono m-0 mt-1.5 text-[10px] text-muted-foreground">
-            {live ? `Points on now · min stake 5k from ${SEASON_2_START_LABEL}` : "Min stake 5k · 7 days max · new board"}
+            {live ? `Points on now · min stake ${REGULAR_MIN_STAKE / 1000}k from ${SEASON_2_START_LABEL}` : `Min stake ${REGULAR_MIN_STAKE / 1000}k · 7 days max · new board`}
           </p>
         ) : null}
       </div>
