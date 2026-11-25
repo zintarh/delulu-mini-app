@@ -32,10 +32,14 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 }
 
 
-/** Total a player can earn finishing a 7-day tier: daily photos + weekly bonus + finish bonus. */
-export function sevenDayTierTotal(tier: Pick<BingoTier, "rewardPerSquare" | "completionReward">, dailyAmount: number, weeklyBonus: number): number {
+/**
+ * What a 7-day tier's card pays: 7 photos + the finishing reward. The weekly
+ * streak bonus is a separate reward (not the card's), so it isn't counted —
+ * the card must never promise more than finishing it pays (25 Nov 2026).
+ */
+export function sevenDayTierTotal(tier: Pick<BingoTier, "rewardPerSquare" | "completionReward">, dailyAmount: number): number {
   const perPhoto = typeof tier.rewardPerSquare === "number" ? tier.rewardPerSquare : dailyAmount;
-  return perPhoto * 7 + weeklyBonus + (tier.completionReward ?? 0);
+  return perPhoto * 7 + (tier.completionReward ?? 0);
 }
 
 export async function getEarnFacts(admin: Admin): Promise<EarnFacts> {
@@ -55,12 +59,11 @@ export async function getEarnFacts(admin: Admin): Promise<EarnFacts> {
 
   // What a live 7-day Bingo really pays, from its tier config.
   const daily = config.dailyProof.enabled ? config.dailyProof.amount : 0;
-  const weekly = config.weeklyConsistency.enabled ? config.weeklyConsistency.amount : 0;
   const sevenDayOf = async (row: { slug: string; title: string; status: string; current_version_id: string | null } | null) => {
     if (row?.status !== "live" || !row.current_version_id) return null;
     const { data: v } = await admin.from("bingo_versions").select("tiers").eq("id", row.current_version_id).maybeSingle();
     const tiers = (v?.tiers ?? []) as BingoTier[];
-    const totals = tiers.map((t) => sevenDayTierTotal(t, daily, weekly));
+    const totals = tiers.map((t) => sevenDayTierTotal(t, daily));
     if (!totals.length) return null;
     const entryTier = tiers[totals.indexOf(Math.min(...totals))];
     return {
