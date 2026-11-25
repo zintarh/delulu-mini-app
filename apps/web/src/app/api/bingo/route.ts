@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
-import { buildBingoView } from "@/lib/bingo/read";
+import { buildBingoView, liveBingoCampaigns } from "@/lib/bingo/read";
 import { viewerWallet } from "@/lib/bingo/viewer";
 import { getAuthenticatedWallet } from "@/lib/auth/wallet-session";
 import type { BingoCampaignRow } from "@/lib/bingo/types";
@@ -14,12 +14,7 @@ export async function GET(request: NextRequest) {
   const viewer = viewerWallet(request);
   const session = getAuthenticatedWallet(request);
 
-  const { data, error } = await admin
-    .from("bingo_campaigns")
-    .select("*")
-    .in("status", ["live", "paused"])
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+  const { data, error } = await liveBingoCampaigns(admin);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const views = (await Promise.all(((data ?? []) as BingoCampaignRow[]).map((c) => buildBingoView(admin, c, viewer, session)))).filter(

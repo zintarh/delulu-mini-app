@@ -26,6 +26,46 @@ import {
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
+/**
+ * Short per-instance cache for what every viewer sees the same (cycles, versions,
+ * tiers, player counts, faces). Each Bingo used to cost ~4 sequential database
+ * round trips per request even before the viewer's own card; under load the same
+ * rows were fetched thousands of times a minute. Concurrent misses share one
+ * in-flight query, and failed reads are never cached. The viewer's own card,
+ * squares and privacy are always read live.
+ */
+const SHARED_TTL_MS = 15_000;
+const sharedCache = new Map<string, { at: number; value: Promise<unknown> }>();
+function shared<T>(key: string, load: () => PromiseLike<T>, ttlMs = SHARED_TTL_MS): Promise<T> {
+  const hit = sharedCache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.value as Promise<T>;
+  const value = Promise.resolve(load()).then((v) => {
+    // A Supabase result carrying an error is returned but not kept.
+    if (v && typeof v === "object" && (v as { error?: unknown }).error) sharedCache.delete(key);
+    return v;
+  });
+  value.catch(() => sharedCache.delete(key));
+  sharedCache.set(key, { at: Date.now(), value });
+  if (sharedCache.size > 500) for (const [k, e] of sharedCache) if (Date.now() - e.at >= ttlMs) sharedCache.delete(k);
+  return value;
+}
+
+/** The live Bingo list (one row per campaign), shared across viewers for a few seconds. */
+export function liveBingoCampaigns(admin: Admin) {
+  return shared("campaigns:live", () =>
+    admin
+      .from("bingo_campaigns")
+      .select("*")
+      .in("status", ["live", "paused"])
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+  );
+}
+
+/** A version's missions and tiers rarely change; an edit shows within a minute. */
+const versionById = (admin: Admin, id: string) =>
+  shared(`version:${id}`, () => admin.from("bingo_versions").select("*").eq("id", id).maybeSingle(), 60_000);
+
 /** Bingos are announced the day before they start — a later cycle stays out of sight until then. */
 export const ANNOUNCE_AHEAD_MS = DAY_MS;
 export function announced(cycle: { starts_at: string }, nowMs = Date.now()) {
@@ -147,6 +187,23 @@ async function myCard(
   return { card, phase, today, todayUsed, nextSquareAt };
 }
 
+/** A few faces for the facepile: the latest players, people with a profile photo first. Shared across viewers. */
+function facesFor(admin: Admin, p: { campaignId: string; cycleId: string | null; nowIso: string }): Promise<NonNullable<BingoView["faces"]>> {
+  return shared(`faces:${p.campaignId}:${p.cycleId ?? "rolling"}`, async () => {
+    const base = admin.from("bingo_attempts").select("wallet").order("started_at", { ascending: false }).limit(12);
+    const { data: recent, error } = p.cycleId
+      ? await base.eq("cycle_id", p.cycleId)
+      : await base.eq("campaign_id", p.campaignId).is("cycle_id", null).gt("ends_at", p.nowIso);
+    if (error) throw error;
+    const wallets = [...new Set((recent ?? []).map((r) => String(r.wallet).toLowerCase()))];
+    const profiles = await profilesFor(admin, wallets);
+    return wallets
+      .map((w) => ({ address: w, username: profiles.get(w)?.username ?? null, pfpUrl: profiles.get(w)?.avatar ?? null }))
+      .sort((a, b) => Number(!!b.pfpUrl) - Number(!!a.pfpUrl))
+      .slice(0, 3);
+  }).catch(() => []);
+}
+
 /**
  * Everything one Bingo card on screen needs, in three parallel rounds:
  * (cycles, version, config, rolling stats) → (tiers, players, my attempt) → my squares.
@@ -161,18 +218,18 @@ export async function buildBingoView(
   const rolling = campaign.enrollment === "rolling";
   const nowIso = new Date().toISOString();
   const [cyclesRes, currentVersionRes, config, rollingCount, rollingMine] = await Promise.all([
-    rolling ? Promise.resolve({ data: [] }) : admin.from("bingo_cycles").select("*").eq("campaign_id", campaign.id),
-    campaign.current_version_id
-      ? admin.from("bingo_versions").select("*").eq("id", campaign.current_version_id).maybeSingle()
-      : Promise.resolve({ data: null }),
+    rolling ? Promise.resolve({ data: [] }) : shared(`cycles:${campaign.id}`, () => admin.from("bingo_cycles").select("*").eq("campaign_id", campaign.id)),
+    campaign.current_version_id ? versionById(admin, campaign.current_version_id) : Promise.resolve({ data: null }),
     loadRewardsConfig(admin),
     rolling
-      ? admin
-          .from("bingo_attempts")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", campaign.id)
-          .is("cycle_id", null)
-          .gt("ends_at", nowIso)
+      ? shared(`rolling-count:${campaign.id}`, () =>
+          admin
+            .from("bingo_attempts")
+            .select("id", { count: "exact", head: true })
+            .eq("campaign_id", campaign.id)
+            .is("cycle_id", null)
+            .gt("ends_at", nowIso),
+        )
       : Promise.resolve({ count: 0 }),
     rolling && viewer
       ? admin
@@ -194,17 +251,20 @@ export async function buildBingoView(
   let joinable = false;
   let firstWeekOk = true;
   let v = currentVersionRes.data as BingoVersionRow | null;
+  // Started as soon as the player count is known, so it runs alongside the viewer's own card.
+  let facesPromise: Promise<NonNullable<BingoView["faces"]>> = Promise.resolve([]);
 
   if (rolling) {
     if (!v) return null;
     players = (rollingCount as { count: number | null }).count ?? 0;
+    if (players > 0) facesPromise = facesFor(admin, { campaignId: campaign.id, cycleId: null, nowIso });
     const mine = ((rollingMine as { data: unknown[] | null }).data?.[0] as BingoAttemptRow | undefined) ?? null;
     const mineOver = mine ? attemptClosed(mine, campaign.duration_days, false) : true;
     // Show the last attempt for a day after it ends (results), then move on.
     if (mine && (!mineOver || Date.now() - Date.parse(mine.ends_at) < DAY_MS)) {
       // A card keeps the terms it started on (stake, reward), even after the Bingo is edited.
       if (mine.version_id !== v.id) {
-        const { data: own } = await admin.from("bingo_versions").select("*").eq("id", mine.version_id).maybeSingle();
+        const { data: own } = await versionById(admin, mine.version_id);
         if (own) v = own as BingoVersionRow;
       }
       const label = v.tiers.find((t) => t.key === mine.tier_key)?.label ?? mine.tier_key;
@@ -244,18 +304,19 @@ export async function buildBingoView(
     }
   } else if (cycle) {
     const [{ data: t }, { count }, mineRes, cycleVersion] = await Promise.all([
-      admin.from("bingo_cycle_tiers").select("*").eq("cycle_id", cycle.id).order("sort_order"),
-      admin.from("bingo_attempts").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      shared(`tiers:${cycle.id}`, () => admin.from("bingo_cycle_tiers").select("*").eq("cycle_id", cycle.id).order("sort_order")),
+      shared(`cycle-count:${cycle.id}`, () => admin.from("bingo_attempts").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id)),
       viewer
         ? admin.from("bingo_attempts").select("*").eq("cycle_id", cycle.id).eq("wallet", viewer).maybeSingle()
         : Promise.resolve({ data: null }),
       // A running cycle keeps the version it started on, even after an edit.
-      v && v.id === cycle.version_id ? Promise.resolve({ data: v }) : admin.from("bingo_versions").select("*").eq("id", cycle.version_id).maybeSingle(),
+      v && v.id === cycle.version_id ? Promise.resolve({ data: v }) : versionById(admin, cycle.version_id),
     ]);
     v = cycleVersion.data as BingoVersionRow | null;
     if (!v) return null;
     tiers = (t ?? []) as BingoCycleTierRow[];
     players = count ?? 0;
+    if (players > 0) facesPromise = facesFor(admin, { campaignId: campaign.id, cycleId: cycle.id, nowIso });
     const mine = mineRes.data as BingoAttemptRow | null;
     if (mine) {
       const label = tiers.find((x) => x.tier_key === mine.tier_key)?.label ?? mine.tier_key;
@@ -270,22 +331,7 @@ export async function buildBingoView(
   }
   const photos: string[] = [];
 
-  // A few faces for the facepile: the latest players, people with a profile photo first.
-  let faces: NonNullable<BingoView["faces"]> = [];
-  if (players > 0) {
-    const base = admin.from("bingo_attempts").select("wallet").order("started_at", { ascending: false }).limit(12);
-    const { data: recent } = rolling
-      ? await base.eq("campaign_id", campaign.id).is("cycle_id", null).gt("ends_at", nowIso)
-      : cycle
-        ? await base.eq("cycle_id", cycle.id)
-        : { data: [] };
-    const wallets = [...new Set((recent ?? []).map((r) => String(r.wallet).toLowerCase()))];
-    const profiles = await profilesFor(admin, wallets);
-    faces = wallets
-      .map((w) => ({ address: w, username: profiles.get(w)?.username ?? null, pfpUrl: profiles.get(w)?.avatar ?? null }))
-      .sort((a, b) => Number(!!b.pfpUrl) - Number(!!a.pfpUrl))
-      .slice(0, 3);
-  }
+  const faces = await facesPromise;
 
   const completionTiers = rolling ? config.goalCompletion : config.campaignCompletion;
   return {
