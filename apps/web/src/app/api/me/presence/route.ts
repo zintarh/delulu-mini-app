@@ -28,6 +28,9 @@ export async function POST(request: NextRequest) {
   if (standalone) update.last_standalone_at = now;
   if (platform) update.platform = platform;
   await admin.from("profiles").update(update).eq("address", wallet);
+  // A row per day the app was open (Lagos calendar day): "came back on N days" for referral partners.
+  const lagosDay = new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
+  await admin.from("presence_days").upsert({ wallet: wallet.toLowerCase(), day: lagosDay }, { onConflict: "wallet,day", ignoreDuplicates: true }).then(() => {}, () => {});
   if (standalone || installed) {
     await admin.from("profiles").update({ pwa_installed_at: now }).eq("address", wallet).is("pwa_installed_at", null);
   }

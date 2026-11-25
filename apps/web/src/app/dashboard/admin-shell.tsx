@@ -18,7 +18,7 @@ import {
   Bell,
   Building2,
   Flame,
-  Coins, CalendarRange } from "lucide-react";
+  Coins, CalendarRange, Link2 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { isPlatformAdminRole, type GlobalRole } from "@/lib/dashboard/authorize-types";
 import { DashboardToastProvider } from "@/components/dashboard/dashboard-toast";
@@ -94,6 +94,7 @@ function pageTitle(pathname: string): string {
     return "People";
   }
   if (pathname.startsWith(`${BASE}/season`)) return "Season";
+  if (pathname.startsWith(`${BASE}/partners`)) return "Partner links";
   if (pathname.startsWith(`${BASE}/forfeit`)) return "Forfeit";
   if (pathname.startsWith(`${BASE}/reward-engine`)) return "Rewards";
   if (pathname.startsWith(`${BASE}/communities/new`)) return "Communities";
@@ -228,6 +229,13 @@ export function AdminShell({
                 label="Season"
                 href={`${BASE}/season`}
                 active={pathname.startsWith(`${BASE}/season`)}
+                onNavigate={closeMobile}
+              />
+              <NavItem
+                icon={Link2}
+                label="Partner links"
+                href={`${BASE}/partners`}
+                active={pathname.startsWith(`${BASE}/partners`)}
                 onNavigate={closeMobile}
               />
               <NavItem
