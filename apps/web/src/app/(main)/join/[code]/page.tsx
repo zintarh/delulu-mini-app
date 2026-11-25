@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useReadContract } from "wagmi";
 import { useAuth } from "@/hooks/use-auth";
-import { buildSignInWithCommunityUrl } from "@/lib/auth-redirect";
+import { buildSignInWithCommunityUrl, persistReferralCode } from "@/lib/auth-redirect";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
@@ -19,6 +19,28 @@ export default function JoinCommunityPage() {
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
 
   const code = params.code?.toUpperCase() ?? "";
+  // A partner's referral link (/join/BIGJAY) or an older community invite? null = still checking.
+  const [kind, setKind] = useState<"partner" | "community" | null>(null);
+
+  useEffect(() => {
+    if (!code) return;
+    let live = true;
+    fetch(`/api/join/${encodeURIComponent(code)}`)
+      .then((r) => (r.ok ? r.json() : { kind: "community" }))
+      .then((j: { kind?: string }) => live && setKind(j.kind === "partner" ? "partner" : "community"))
+      .catch(() => live && setKind("community"));
+    return () => {
+      live = false;
+    };
+  }, [code]);
+
+  // Partner link: keep the code (cookie + storage, read when the profile is created) and
+  // sign up with it like any referral link; already signed in → straight home.
+  useEffect(() => {
+    if (kind !== "partner" || !isReady) return;
+    persistReferralCode(code);
+    router.replace(authenticated && address ? "/home" : `/sign-in?ref=${encodeURIComponent(code)}`);
+  }, [kind, isReady, authenticated, address, code, router]);
 
   const { data: existingUsername, isFetching: isCheckingProfile } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
@@ -34,7 +56,7 @@ export default function JoinCommunityPage() {
     existingUsername.trim().length > 0;
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || kind !== "community") return;
     if (!code) {
       setMessage("Invalid invite link.");
       setStatus("error");
@@ -43,10 +65,10 @@ export default function JoinCommunityPage() {
     if (!authenticated || !address) {
       router.replace(buildSignInWithCommunityUrl(code, `/join/${code}`));
     }
-  }, [isReady, authenticated, address, code, router]);
+  }, [isReady, authenticated, address, code, router, kind]);
 
   useEffect(() => {
-    if (!authenticated || !address || !code || status !== "idle") return;
+    if (kind !== "community" || !authenticated || !address || !code || status !== "idle") return;
     if (isCheckingProfile) return;
     if (!hasProfile) {
       router.replace("/welcome");
@@ -78,18 +100,18 @@ export default function JoinCommunityPage() {
     };
 
     void join();
-  }, [authenticated, address, code, status, router, hasProfile, isCheckingProfile]);
+  }, [authenticated, address, code, status, router, hasProfile, isCheckingProfile, kind]);
 
   const goToCommunity = () => {
     router.replace(successSlug ? `/communities/${successSlug}` : "/");
   };
 
-  if (!isReady || !authenticated || isCheckingProfile) {
+  if (kind !== "community" || !isReady || !authenticated || isCheckingProfile) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
         <Loader2 className="h-8 w-8 animate-spin text-blue" />
         <p className="text-sm font-semibold text-foreground">
-          {!isReady || !authenticated ? "Redirecting to sign in…" : "Checking your profile…"}
+          {kind !== "community" ? "Opening your invite…" : !isReady || !authenticated ? "Redirecting to sign in…" : "Checking your profile…"}
         </p>
       </main>
     );
