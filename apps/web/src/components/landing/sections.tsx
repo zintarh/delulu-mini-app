@@ -241,7 +241,7 @@ export function TwoWaysSection() {
           <div data-reveal="left" className="reveal relative flex flex-col gap-3 rounded-[28px] border-2 border-yellow-line bg-yellow-soft p-7 shadow-[0_8px_0_#e5b41c]">
             <span className="label-mono text-[11px] text-[#6b5300]">New here</span>
             <span className="text-2xl font-extrabold">Your first week pays you</span>
-            <span className="font-display text-[56px] font-extrabold leading-[0.9]">{facts?.firstWeek ? fmtNgn(facts.firstWeek.entry.ngn) : "≈ ₦1,500"}</span>
+            <span className="font-display text-[56px] font-extrabold leading-[0.9]">{facts?.firstWeek ? fmtNgn(facts.firstWeek.entry.ngn) : "≈ ₦700"}</span>
             <span className="text-[15px] leading-snug text-[#5c4a0a]">Show up 7 days in a row on Your First Week — paid as you go, plus a bonus when you finish. Once per person.</span>
           </div>
 
