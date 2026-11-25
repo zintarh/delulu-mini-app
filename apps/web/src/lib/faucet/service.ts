@@ -237,8 +237,10 @@ export async function requestGas(
     return fail("unavailable");
   }
   if (!plan) {
-    await logRejection(admin, { address, stage: null, ip, subnet, reason: "not_eligible" });
-    return fail("not_eligible");
+    // Starter gas used up and no recent proofs. Not a face-check problem, so
+    // the popup must not send a verified player to verify again.
+    await logRejection(admin, { address, stage: null, ip, subnet, reason: "stage_cap" });
+    return fail("stage_cap");
   }
 
   const priced = computeTopUp({ gasUnits: plan.gasUnits, maxFeePerGasWei: maxFee, margin: config.gasMargin, balanceWei });

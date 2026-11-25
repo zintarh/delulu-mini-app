@@ -30,6 +30,10 @@ export function useIdentity() {
   // as a confirmed "never verified" — otherwise a transient RPC blip forces
   // a real, already-verified user out of the app.
   const [identityCheckFailed, setIdentityCheckFailed] = useState(false);
+  // The address the current status was read for. Until it matches the
+  // signed-in address, the status is left over (from before the address
+  // arrived, or from another account) and must not drive a redirect.
+  const [checkedAddress, setCheckedAddress] = useState<string | null>(null);
   const [fvLink, setFvLink] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -60,6 +64,7 @@ export function useIdentity() {
       setStatus("not_verified");
       setIdentityState(NONE);
       setIdentityCheckFailed(false);
+      setCheckedAddress(null);
       return;
     }
 
@@ -87,6 +92,7 @@ export function useIdentity() {
 
       setIdentityState(result);
       setIdentityCheckFailed(false);
+      setCheckedAddress(address.toLowerCase());
 
       if (result.state === "verified") {
         setStatus("verified");
@@ -98,6 +104,7 @@ export function useIdentity() {
       console.error("Identity check failed:", error);
       setStatus("error");
       setIdentityCheckFailed(true);
+      setCheckedAddress(address.toLowerCase());
     }
   };
 
@@ -261,6 +268,8 @@ export function useIdentity() {
     refresh: checkVerification,
     generateLink,
     isLoading: status === "loading",
+    /** The status belongs to the signed-in address and isn't mid-read. Gate redirects on this, not on isLoading. */
+    isSettled: !!address && status !== "loading" && checkedAddress === address.toLowerCase(),
     isVerifying,
     setIsVerifying,
     isGeneratingLink,

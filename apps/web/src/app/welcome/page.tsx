@@ -67,8 +67,8 @@ export default function WelcomePage() {
   // for setProfile. Other gates send anyone without a profile here, so send
   // a wallet that is confirmed unverified back to the check on /sign-in.
   // A failed identity read ("error") stays, so a flaky RPC can't loop them.
-  const { status: identityStatus } = useIdentity();
-  const mustVerifyFirst = identityStatus === "not_verified";
+  const { status: identityStatus, isSettled: identitySettled } = useIdentity();
+  const mustVerifyFirst = authenticated && !!address && identitySettled && identityStatus === "not_verified";
 
   // setProfile needs gas. Top the wallet up as soon as this form opens.
   useEffect(() => {
@@ -95,9 +95,32 @@ export default function WelcomePage() {
     router.replace(redirect.startsWith("/join/") ? "/home" : redirect);
   };
 
+  // Sign-in also trusts GoodDollar's claim SDK. If it ever disagrees with the
+  // identity read here, send them back at most once a minute so the two
+  // pages can't bounce them in a loop; past that the form stays open.
+  const [bounceBlocked, setBounceBlocked] = useState(false);
+  // Never spin forever on the identity read: after 10s show the form.
+  const [identityTimedOut, setIdentityTimedOut] = useState(false);
   useEffect(() => {
-    if (mustVerifyFirst && !isCheckingProfile && !alreadyOnboarded) router.replace("/sign-in");
-  }, [mustVerifyFirst, isCheckingProfile, alreadyOnboarded, router]);
+    if (identitySettled) return;
+    const id = window.setTimeout(() => setIdentityTimedOut(true), 10_000);
+    return () => window.clearTimeout(id);
+  }, [identitySettled]);
+  useEffect(() => {
+    if (!mustVerifyFirst || isCheckingProfile || alreadyOnboarded || !address) return;
+    const key = `delulu:welcome-bounced:${address.toLowerCase()}`;
+    try {
+      const last = Number(sessionStorage.getItem(key) ?? 0);
+      if (Date.now() - last < 60_000) {
+        setBounceBlocked(true);
+        return;
+      }
+      sessionStorage.setItem(key, String(Date.now()));
+    } catch {
+      /* storage blocked: still send them to the check */
+    }
+    router.replace("/sign-in");
+  }, [mustVerifyFirst, isCheckingProfile, alreadyOnboarded, address, router]);
 
   useEffect(() => {
     if (!alreadyOnboarded) return;
@@ -240,7 +263,7 @@ export default function WelcomePage() {
   };
 
   const isCheckingOnboarding =
-    !isReady || (authenticated && (!address || isCheckingProfile || identityStatus === "loading" || mustVerifyFirst));
+    !isReady || (authenticated && (!address || isCheckingProfile || (!identitySettled && !identityTimedOut) || (mustVerifyFirst && !bounceBlocked)));
 
   if (isCheckingOnboarding) {
     return (

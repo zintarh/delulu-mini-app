@@ -68,7 +68,7 @@ export function usePostAuthRoute() {
   // Routing and the main-app gate MUST agree: setProfile is the only profile.
   const {
     identityState,
-    isLoading: isIdentityLoading,
+    isSettled: isIdentitySettled,
     refresh: refreshIdentity,
   } = useIdentity();
   // Still consulted after the in-page verify flow, which updates this first.
@@ -99,7 +99,7 @@ export function usePostAuthRoute() {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername || (!hasProfile && isIdentityLoading && !isClaimWhitelisted)) {
+    if (isFetchingUsername || (!hasProfile && !isIdentitySettled && !isClaimWhitelisted)) {
       setRouteState("loading");
       return;
     }
@@ -152,7 +152,7 @@ export function usePostAuthRoute() {
     authenticated,
     address,
     isFetchingUsername,
-    isIdentityLoading,
+    isIdentitySettled,
     isClaimWhitelisted,
     isWhitelisted,
     hasProfile,
@@ -173,6 +173,6 @@ export function usePostAuthRoute() {
     setupError,
     retrySetup,
     address: address ?? "",
-    isCheckingAccount: isFetchingUsername || (!hasProfile && isIdentityLoading && !isClaimWhitelisted),
+    isCheckingAccount: isFetchingUsername || (!hasProfile && !isIdentitySettled && !isClaimWhitelisted),
   };
 }

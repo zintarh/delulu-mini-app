@@ -14,6 +14,10 @@ import { hasChosenUsername, isInventedUsername } from "@/lib/profile/invented-us
 function profileExempt(pathname: string): boolean {
   return (
     pathname === "/welcome" ||
+    // Sign-in routes a wallet with no profile itself: the face check first,
+    // then /welcome. Sending it to /welcome from here would skip the check
+    // (and /welcome sends unverified wallets back, which would loop).
+    pathname.startsWith("/sign-in") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/signin") ||
     pathname.startsWith("/how-it-works/clip") ||
