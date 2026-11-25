@@ -2,8 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { BingoBoard } from "@/components/bingo/bingo-board";
-import { Coin, Lulu, Stamp, gameButtonClass } from "@/components/ds";
+import { Lulu, Stamp, gameButtonClass } from "@/components/ds";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
+import { fmtUsd } from "@/lib/earn/format";
+import { ACTIVE_POT } from "@/lib/pool/tickets";
 import type { BingoSquareView } from "@/lib/bingo/view";
 
 const BEAT_MS = 5600;
@@ -111,12 +113,24 @@ function BoardRow({ rank, name, pts, you }: { rank: number; name: string; pts: s
   );
 }
 
+function PoolAmount({ size = "lg" }: { size?: "sm" | "lg" }) {
+  const facts = useEarnFacts();
+  const usd = facts ? fmtUsd(ACTIVE_POT.weeklyG * facts.gdUsd) : null;
+  const pot = ACTIVE_POT.weeklyG.toLocaleString("en-US");
+  return (
+    <>
+      <p className={`m-0 font-display font-extrabold leading-none text-yellow ${size === "lg" ? "text-[32px]" : "text-[22px]"}`}>{pot} G$</p>
+      {usd ? <p className="m-0 mt-1 text-[13px] font-extrabold text-white/80">≈ {usd}</p> : null}
+    </>
+  );
+}
+
 function PointsScene() {
   return (
     <div className="w-full rounded-[22px] border-2 border-ink bg-white p-2.5 shadow-[0_4px_0_#161615]">
       <div className="rounded-2xl bg-ink px-3 py-2.5 text-white">
-        <p className="label-mono m-0 text-[10px] text-white/60">Shared this week</p>
-        <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">1M G$</p>
+        <p className="label-mono m-0 text-[10px] text-white/60">This will be shared</p>
+        <PoolAmount size="sm" />
       </div>
       <div className="mt-1.5 flex flex-col">
         <BoardRow rank={4} name="@veenom33" pts="9,590 pts" />
@@ -131,30 +145,15 @@ function PointsScene() {
   );
 }
 
-function gForUsd(usd: number, gdUsd: number) {
-  return gdUsd > 0 ? Math.round(usd / gdUsd) : null;
-}
-
 function ShareScene() {
-  const facts = useEarnFacts();
-  const low = facts ? gForUsd(5, facts.gdUsd) : null;
-  const high = facts ? gForUsd(20, facts.gdUsd) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3 text-center">
       <div className="w-full rounded-[22px] border-2 border-ink bg-ink px-4 py-3 text-white shadow-[0_4px_0_#000]">
-        <p className="label-mono m-0 text-[11px] text-white/60">The pool this week</p>
-        <p className="m-0 mt-1 font-display text-[40px] font-extrabold leading-none text-yellow">1M G$</p>
+        <p className="label-mono m-0 text-[11px] text-white/60">This will be shared</p>
+        <PoolAmount />
       </div>
-      <Lulu size={88} mood="kept" />
-      <div className="w-full rounded-[22px] border-2 border-ink bg-yellow px-4 py-3 shadow-[0_4px_0_#161615]">
-        <p className="m-0 font-display text-[36px] font-extrabold leading-none">$5 – $20</p>
-        {low && high ? (
-          <p className="m-0 mt-1 flex items-center justify-center gap-1.5 text-[14px] font-extrabold">
-            <Coin size={18} />
-            {low.toLocaleString("en-US")} – {high.toLocaleString("en-US")} G$
-          </p>
-        ) : null}
-      </div>
+      <Lulu size={72} mood="kept" />
+      <p className="m-0 text-[13px] font-extrabold leading-snug">Cash your G$ to a Naira bank account on the app.</p>
     </div>
   );
 }
@@ -181,7 +180,7 @@ const STEPS: { n: string; title: string; body: string; art: ReactNode }[] = [
   {
     n: "Step 4",
     title: "Share the pool",
-    body: "Show up all 7 days and you share 1M G$. About $5 to $20.",
+    body: "Show up all 7 days and this is shared. Cash your G$ to a Naira bank account on the app.",
     art: <ShareScene />,
   },
 ];

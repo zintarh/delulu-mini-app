@@ -44,7 +44,7 @@ function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; o
   const { address } = useAuth();
   const chainId = useChainId();
   const ubi = useGoodDollarClaim();
-  const { refetch: refetchBalance } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  const { formatted, refetch: refetchBalance } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const market = (() => {
     try {
       return chainId === CELO_MAINNET_ID ? getForfeitMarketAddress(chainId) : undefined;
@@ -58,6 +58,9 @@ function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; o
   const [error, setError] = useState<string | null>(null);
 
   const alreadyIn = !!bingo.me && bingo.me.status === "active" && bingo.me.phase !== "ended";
+  const gBalance = Number(formatted);
+  const canClaimToday = ubi.isWhitelisted && !ubi.hasClaimed && (ubi.entitlement ?? 0n) > 0n;
+  const joinOnly = !canClaimToday && (ubi.hasClaimed || gBalance >= STARTER_STAKE);
 
   const run = async () => {
     if (phase !== "idle") return;
@@ -128,7 +131,15 @@ function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; o
     }
   };
 
-  const label = alreadyIn ? "You're in" : phase === "claiming" ? "Claiming…" : phase === "joining" ? "Joining…" : "Claim and join";
+  const label = alreadyIn
+    ? "You're in"
+    : phase === "claiming"
+      ? "Claiming…"
+      : phase === "joining"
+        ? "Joining…"
+        : joinOnly
+          ? "Join"
+          : "Claim and join";
 
   return (
     <div>
@@ -173,7 +184,7 @@ export default function PlayPage() {
       <PageBackHeader
         title="Pick a card"
         eyebrow="Your first 7 days"
-        subtitle={`Claim today's G$ and join one card for ${STARTER_STAKE} G$. Finish the week and the stake comes back.`}
+        subtitle="Claim today's G$ and join one card for 100 G$. Already claimed, and the G$ is in your wallet? Just join."
       />
       <div className="mx-auto max-w-3xl px-5 pb-12 pt-2">
         {loading && cards.length === 0 ? (

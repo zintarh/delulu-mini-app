@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { HomeBingoMini } from "@/components/home/home-bingo-mini";
 import { NextStepCard } from "@/components/next-step-card";
-import { FirstWeekOffer } from "@/components/first-week-offer";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { useIdentity } from "@/hooks/identityHook";
 import { useBingoList } from "@/hooks/use-bingo";
@@ -43,12 +42,7 @@ export function HomeNextStep() {
     <section aria-label="Your next step" className="flex flex-col gap-3">
       <div>
         <p className="label-mono m-0 mb-2 text-[10px] text-muted-foreground">Your next step</p>
-        {next.step.kind === "first-week" && next.step.cta?.href ? (
-          // New and invited players: the welcome week is the step — the big card, not a line.
-          <FirstWeekOffer variant="home" href={next.step.cta.href} />
-        ) : (
-          <NextStepCard step={next.step} onAction={onAction} compact={waiting} />
-        )}
+        <NextStepCard step={next.step} onAction={onAction} compact={waiting} />
       </div>
       {/* Your card, small — the full board is one tap away on the Bingo page. */}
       {featured?.me ? <HomeBingoMini card={featured.me} slug={featured.slug} title={featured.title} today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null} /> : null}

@@ -163,7 +163,7 @@ export function pickNudge(p: Person, nowMs = Date.now(), history: NudgeHistory =
     ...n,
     title: `Earn ${amount} in 7 days 💸`,
     body: `${friend}show up 7 days in a row, one photo a day. A welcome bonus for new players — once.`,
-    path: `/bingo/${fw.slug}`,
+    path: "/play",
     emailSubject: subjects[sentBefore % subjects.length],
     emailHeading: `${name(p)}did you know you can earn ${amount}?`,
     emailBody:
@@ -618,7 +618,7 @@ export function referralNudge(p: Person, nowMs: number, history: NudgeHistory, f
       n = {
         title: `Start your First Week: ${fwAmount} 💸`,
         body: `One photo a day for 7 days. ${friend} gets rewarded when you start too.`,
-        path: `/bingo/${fw.slug}`,
+        path: "/play",
         emailSubject: `Your First Week pays ${fwAmount} — start today`,
         emailHeading: `${name(p)}your money is waiting`,
         emailBody: `Your 1,000 G$ gift is in your wallet. Put it into Your First Week: post one photo a day for 7 days (a minute between classes).\n\n📸 +${fw.perPhoto.toLocaleString("en-US")} G$ every day you post\n🏁 Finish all 7: ${fwAmount} in total, plus your stake back\n\n${friend} invited you, and gets rewarded once you get going.`,

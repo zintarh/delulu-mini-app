@@ -2,6 +2,7 @@
 
 import { afterVote } from "@/lib/vote-gate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera, ChevronLeft, Share2, Sparkles, Users } from "lucide-react";
 import { GameButton, Lulu, ShieldBadge } from "@/components/ds";
@@ -30,7 +31,6 @@ import { buildSquares, type BingoSquareView, type BingoView } from "@/lib/bingo/
 import { finishRollingStart, pendingRollingStart } from "@/lib/bingo/rolling-client";
 import { fmtDay, fmtG, fmtRange } from "@/lib/bingo/format";
 import { cn } from "@/lib/utils";
-import { FirstWeekOffer } from "@/components/first-week-offer";
 import { BingoFinishSheet, finishSeen } from "@/components/bingo/bingo-finish-sheet";
 import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
@@ -50,6 +50,7 @@ function statusLine(b: BingoView) {
 }
 
 export function BingoPageClient({ slug }: { slug: string }) {
+  const router = useRouter();
   const { address } = useAuth();
   const { bingo, setBingo, loading, error, reload } = useBingo(slug);
   const rolling = bingo?.enrollment === "rolling";
@@ -67,6 +68,12 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
   const me = bingo?.me ?? null;
   const myLive = me?.phase === "live" && me.status === "active" && !me.missedDay;
+  // The old single First Week card is not a 100 G$ starter. Send anyone who
+  // isn't already playing it to the four 100 G$ cards.
+  const leaveForStarterCards = slug === FIRST_WEEK_SLUG && !loading && !myLive;
+  useEffect(() => {
+    if (leaveForStarterCards) router.replace("/play");
+  }, [leaveForStarterCards, router]);
   const required = bingo ? bingo.missions.filter((m) => !m.bonus).length : 0;
   // An approved photo whose on-chain step never finished: open it straight away, ready to sign —
   // one tap from done, before the day closes. Once per visit.
@@ -190,6 +197,7 @@ export function BingoPageClient({ slug }: { slug: string }) {
       </MainPage>
     );
   }
+  if (leaveForStarterCards) return null;
   if (!bingo || error) {
     return (
       <MainPage className="bg-wash min-h-full">
@@ -262,11 +270,9 @@ export function BingoPageClient({ slug }: { slug: string }) {
           </div>
         </header>
 
-        {/* First Week: lead with what the week pays and what a miss costs. */}
-        {slug === FIRST_WEEK_SLUG && !myLive ? <FirstWeekOffer variant="home" className="mt-4 animate-rise" /> : null}
         {/* What this Bingo pays: the full table before you join, one line for your stake after. */}
-        {slug !== FIRST_WEEK_SLUG && !myLive ? <BingoEarnings bingo={bingo} className="mt-4 animate-rise" /> : null}
-        {slug !== FIRST_WEEK_SLUG && myLive && me ? <BingoEarningsLine bingo={bingo} stake={me.stake} className="mt-4" /> : null}
+        {!myLive ? <BingoEarnings bingo={bingo} className="mt-4 animate-rise" /> : null}
+        {myLive && me ? <BingoEarningsLine bingo={bingo} stake={me.stake} className="mt-4" /> : null}
 
         {me ? (
           <>

@@ -18,6 +18,6 @@ test("welcome email names the inviter, the $ and ₦, the daily + finish split, 
   assert.match(e.body, /\+8,000 G\$ more/);
   assert.match(e.body, /you keep what you've earned and can start again/);
   assert.match(e.body, /@metakay23 \$9\.54/);
-  assert.equal(e.path, "/bingo/first-week");
+  assert.equal(e.path, "/play");
   assert.match(firstWeekWelcomeEmail({ username: null, invitedBy: null }, facts).subject, /^Welcome to Delulu/);
 });

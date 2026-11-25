@@ -31,7 +31,7 @@ export function firstWeekWelcomeEmail(p: { username: string | null; invitedBy: s
     heading: `${hi}your first week pays ${amount}`,
     body,
     cta: "Start my first week",
-    path: `/bingo/${fw.slug}`,
+    path: "/play",
   };
 }
 

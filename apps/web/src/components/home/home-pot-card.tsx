@@ -9,12 +9,11 @@ import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Join a Bingo", "Play the card", "Earn points", "Share the pot"];
-
-const g = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}M` : n >= 10_000 ? `${Math.round(n / 1000)}k` : n.toLocaleString("en-US"));
+const POT = ACTIVE_POT.weeklyG.toLocaleString("en-US");
 
 /**
- * The weekly pot on Home. One card for everyone: the pot, what it's worth in
- * dollars, and how you qualify. No personal share or payout estimate.
+ * The weekly pot on Home and sign-in. The pool in full, what it's worth in
+ * dollars, and that G$ cashes to a Naira bank account on the app.
  */
 export function HomePotCard({ className }: { className?: string }) {
   const facts = useEarnFacts();
@@ -27,9 +26,10 @@ export function HomePotCard({ className }: { className?: string }) {
           <Trophy size={52} />
         </span>
         <p className="label-mono m-0 text-[10px] text-[#5c4a0a]">What you get</p>
-        <p className="m-0 mt-0.5 font-display text-[30px] font-extrabold leading-none">{g(ACTIVE_POT.weeklyG)} G$</p>
+        <p className="m-0 mt-0.5 font-display text-[26px] font-extrabold leading-none tracking-tight">{POT} G$</p>
         {usd ? <p className="m-0 mt-1 text-[13px] font-extrabold">≈ {usd}</p> : null}
-        <p className="m-0 mt-1 max-w-[85%] text-[12px] font-bold leading-snug">Shared every week by everyone who shows up all 7 days</p>
+        <p className="m-0 mt-1 max-w-[85%] text-[12px] font-bold leading-snug">This is shared every week by everyone who shows up all 7 days.</p>
+        <p className="m-0 mt-1 max-w-[85%] text-[12px] font-bold leading-snug">Cash your G$ to a Naira bank account on the app.</p>
       </Link>
       <ol className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">
         {STEPS.map((label, i) => (

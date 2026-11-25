@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { Coin } from "@/components/ds";
@@ -16,6 +16,7 @@ const key = (wallet: string) => `delulu:first-week-welcome:${wallet.toLowerCase(
  * four 100 G$ cards. "Not now" hides it for a day.
  */
 export function FirstWeekWelcome() {
+  const router = useRouter();
   const { address } = useAuth();
   const { points, isLoading } = useUserTotalPoints(address);
   const [open, setOpen] = useState(false);
@@ -54,13 +55,16 @@ export function FirstWeekWelcome() {
         <p className="m-0 text-[14px] font-semibold leading-snug text-muted-foreground">
           Pick one of the four cards. Claim today&apos;s G$ and stake 100 G$ for 7 days.
         </p>
-        <Link
-          href="/play"
-          onClick={() => setOpen(false)}
-          className="press-edge flex h-12 items-center justify-center gap-2 rounded-2xl bg-ink text-[14px] font-extrabold uppercase text-white no-underline shadow-[0_3px_0_#000]"
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            router.push("/play");
+          }}
+          className="press-edge flex h-12 items-center justify-center gap-2 rounded-2xl bg-ink text-[14px] font-extrabold uppercase text-white shadow-[0_3px_0_#000]"
         >
           Start my first week <ArrowRight className="h-4 w-4" />
-        </Link>
+        </button>
         <button type="button" onClick={snooze} className="h-10 text-[13px] font-bold text-muted-foreground">
           Not now
         </button>

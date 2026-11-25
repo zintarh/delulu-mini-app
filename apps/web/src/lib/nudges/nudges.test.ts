@@ -147,14 +147,14 @@ test("new and invited players get the First Week offer ($ and ₦ from live conf
   });
   const n = pickNudge(friend, live, [], facts)!;
   assert.equal(n.rule, "referred_back");
-  assert.equal(n.path, "/bingo/first-week");
+  assert.equal(n.path, "/play");
   assert.match(n.title, /\$1\.50/);
   assert.match(n.emailBody, /₦2,030/);
   assert.match(n.emailBody, /monthly leaderboard/);
   assert.match(n.emailBody, /@metakay23 \$9\.54/);
   assert.match(n.emailBody, /@kaddy invited you/);
   // Missed a day on it (played, not finished) → still offered; finished → back to the regular copy.
-  assert.equal(pickNudge({ ...friend, playedSlugs: ["first-week"] }, live, [], facts)!.path, "/bingo/first-week");
+  assert.equal(pickNudge({ ...friend, playedSlugs: ["first-week"] }, live, [], facts)!.path, "/play");
   assert.notEqual(pickNudge({ ...friend, playedSlugs: ["first-week"], finishedSlugs: ["first-week"] }, live, [], facts)!.path, "/bingo/first-week");
   // An old, uninvited regular never gets it.
   const regular = base({ createdAt: "2026-08-01T08:00:00Z", giftClaimedAt: "2026-08-02T08:00:00Z", installedAt: "x" });
@@ -170,10 +170,10 @@ test("a new player with the gift but no card, or who missed a First Week day, is
   const fresh = base({ createdAt: new Date(live - 20 * H).toISOString(), onboardedAt: new Date(live - 19 * H).toISOString(), giftClaimedAt: new Date(live - 18 * H).toISOString(), everStartedBingo: false, lastProofAt: null, bestDays: 0 });
   const gift = pickNudge(fresh, live, [], facts)!;
   assert.equal(gift.rule, "gift_not_played");
-  assert.equal(gift.path, "/bingo/first-week");
+  assert.equal(gift.path, "/play");
   const missed = pickNudge({ ...fresh, everStartedBingo: true, playedSlugs: ["first-week"], recentMiss: { attemptId: "fw1", slug: "first-week", title: "Your First Week", oneTime: true } }, live, [], facts)!;
   assert.equal(missed.rule, "missed_day");
-  assert.equal(missed.path, "/bingo/first-week");
+  assert.equal(missed.path, "/play");
 });
 
 test("last call: ~2h before the day closes with today's photo missing, naming the stake", () => {

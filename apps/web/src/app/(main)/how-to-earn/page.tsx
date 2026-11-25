@@ -2,23 +2,19 @@
 
 import Link from "next/link";
 import { usePublicRewards } from "@/hooks/use-public-rewards";
-import { ChevronRight, Send } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { WatchHowItWorks } from "@/components/how-it-works-video";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
-import { Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
+import { Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { compactCount } from "@/lib/rewards/public-stats";
-import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
+import { NAIRA_CASHOUT_MIN_G } from "@/lib/rewards/cash-out";
 import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { ngnWorthShowing } from "@/lib/earn/format";
+import { ngnWorthShowing, fmtUsd } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
-import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
-import { referralRoundForCopy, roundFirstPayment } from "@/lib/referral/campaign";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-const compactG = (n: number) =>
-  n >= 1_000_000 && n % 1_000_000 === 0 ? `${n / 1_000_000}M` : n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : fmt(n);
 
 function Stat({ value, label, sub }: { value: string; label: string; sub?: string | null }) {
   return (
@@ -68,12 +64,9 @@ function WayToEarn({
 export default function HowToEarnPage() {
   const { data, isLoading } = usePublicRewards();
   const facts = useEarnFacts();
-  // Earnings read in naira when the amount is worth showing; otherwise G$.
   const ngn = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null);
-  const money = (g: number) => ngn(g) ?? `${compactG(g)} G$`;
-  const round = referralRoundForCopy();
-  const referralTotal = round.reward;
-  const referralFirst = roundFirstPayment(round);
+  const pot = ACTIVE_POT.weeklyG;
+  const potUsd = facts ? fmtUsd(pot * facts.gdUsd) : null;
   const stats = data?.stats;
 
   return (
@@ -81,21 +74,30 @@ export default function HowToEarnPage() {
       <PageBackHeader title="How to earn on Delulu" eyebrow="Real money for showing up" />
       <div className="mx-auto flex max-w-3xl flex-col gap-8 px-5 pb-12 pt-4">
         {/* Proof we pay — live from payout records */}
-        {isLoading ? (
-          <div className="h-[132px] animate-pulse rounded-[24px] bg-ink/10" />
-        ) : stats ? (
-          <div className="relative animate-rise overflow-hidden rounded-[24px] bg-ink px-4 pb-4 pt-5 text-white shadow-edge-ink">
+        <div className="relative animate-rise overflow-hidden rounded-[24px] bg-ink px-4 pb-4 pt-5 text-white shadow-edge-ink">
             <span className="absolute -right-4 -top-5 rotate-12 opacity-20" aria-hidden>
               <Coin size={110} />
             </span>
-            <div className="relative flex gap-2">
-              <Stat value={compactCount(stats.totalG)} label="G$ paid out" sub={ngn(stats.totalG) ? `≈ ${ngn(stats.totalG)}` : null} />
-              <Stat value={fmt(stats.people)} label="People rewarded" />
-              <Stat value={compactCount(stats.biggestG)} label="Biggest payout" sub={ngn(stats.biggestG) ? `G$ ≈ ${ngn(stats.biggestG)}` : "G$"} />
+            <div className="relative text-center">
+              <p className="label-mono m-0 text-[10px] text-white/60">This week&apos;s pool</p>
+              <p className="m-0 mt-1 font-display text-[34px] font-extrabold leading-none tracking-tight text-yellow tabular-nums">{fmt(pot)} G$</p>
+              {potUsd ? <p className="m-0 mt-1 text-[15px] font-extrabold text-white/80">≈ {potUsd}</p> : null}
+              <p className="m-0 mx-auto mt-2 max-w-[280px] text-[13px] font-semibold leading-snug text-white/80">
+                This will be shared by everyone who shows up all 7 days. New players are in just for showing up.
+              </p>
+              <p className="m-0 mx-auto mt-2 max-w-[280px] text-[13px] font-semibold leading-snug text-white/80">
+                Cash your G$ to a Naira bank account on the app.
+              </p>
             </div>
-            <p className="label-mono relative m-0 mt-4 text-center text-[9px] text-white/50">Live from our payout records</p>
+            {isLoading ? (
+              <div className="relative mt-4 h-14 animate-pulse rounded-xl bg-white/10" />
+            ) : stats ? (
+              <div className="relative mt-4 flex gap-2 border-t border-white/10 pt-3">
+                <Stat value={compactCount(stats.totalG)} label="Already paid out" sub={ngn(stats.totalG) ? `≈ ${ngn(stats.totalG)}` : null} />
+                <Stat value={fmt(stats.people)} label="People rewarded" />
+              </div>
+            ) : null}
           </div>
-        ) : null}
 
         <div className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-ink shadow-edge">
           <Lulu size={36} animated={false} />
@@ -110,41 +112,17 @@ export default function HowToEarnPage() {
             {/* The two rewards everything else hangs off: the weekly pot and 10% cashback. */}
             <WayToEarn
               art={<span className="text-[30px] leading-none">🏆</span>}
-              title="Weekly pot"
-              sub="Shared every week by everyone who shows up all 7 days · new players are in just for showing up · a bigger stake is a bigger share"
-              badge={`${compactG(ACTIVE_POT.weeklyG)} G$`}
+              title="Weekly pool"
+              sub="Show up all 7 days and you share it. A bigger stake is a bigger share."
+              badge={`${fmt(pot)} G$`}
               href="/home"
             />
             <WayToEarn
               art={<Trophy size={38} />}
               title="10% cashback"
-              sub="On every stake: a little each day you keep, the rest when you finish · plus your stake back"
+              sub="On every stake: a little each day you keep, the rest when you finish, plus your stake back."
               badge="10%"
               href="/explore"
-            />
-            <WayToEarn art={<Chest size={40} />} title="Free daily money" sub="Claim every day with GoodDollar, then stake it" badge="Free" href="/daily-claim" />
-            {facts?.firstWeek ? (
-              <WayToEarn
-                art={<Lulu size={40} mood="kept" animated={false} />}
-                title="Your first week"
-                sub={facts.firstWeek.stake ? `Stake ${facts.firstWeek.stake.toLocaleString("en-US")} G$ · 7 days · new players` : "7 days in a row · new players"}
-                badge={`up to ${compactG(facts.firstWeek.entry.g)} G$`}
-                href="/bingo/first-week"
-              />
-            ) : null}
-            <WayToEarn
-              art={<span className="text-[30px] leading-none">🔥</span>}
-              title="Cheers on your card"
-              sub="People cheer your card · the best card each week wins"
-              badge={money(BEST_CARD_PRIZE_G)}
-              href="/explore"
-            />
-            <WayToEarn
-              art={<span className="text-[30px] leading-none">🤝</span>}
-              title="Invite friends"
-              sub={referralFirst < referralTotal ? `+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3` : "Paid once they verify, stake G$ and earn 1,000 points"}
-              badge={money(referralTotal)}
-              href="/referrals"
             />
           </div>
           <p className="m-0 mt-2 text-center text-[11px] font-semibold text-muted-foreground">G$ is a token — its price moves, so ₦ amounts are at today&apos;s rate.</p>
@@ -162,25 +140,15 @@ export default function HowToEarnPage() {
               ₦
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="m-0 text-[18px] font-extrabold leading-tight">Turn G$ into naira</h2>
+              <h2 className="m-0 text-[18px] font-extrabold leading-tight">Cash your G$ to Naira</h2>
               <p className="label-mono m-0 mt-1 text-[10px] text-green-edge">
-                From {fmt(NAIRA_CASHOUT_MIN_G)} G${ngn(NAIRA_CASHOUT_MIN_G) ? ` (≈ ${ngn(NAIRA_CASHOUT_MIN_G)})` : ""}
+                To a Nigerian bank account on the app · from {fmt(NAIRA_CASHOUT_MIN_G)} G$
               </p>
             </div>
           </div>
           <p className="m-0 mt-3 text-sm leading-snug text-ink/80">
-            Message us on Telegram and we&apos;ll convert it for you.
+            Cash your rewards to a Naira bank account on the app.
           </p>
-          {NAIRA_CASHOUT_TELEGRAM_URL ? (
-            <a
-              href={NAIRA_CASHOUT_TELEGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(gameButtonClass({ variant: "green", full: true }), "mt-3 no-underline")}
-            >
-              <Send className="h-4 w-4" strokeWidth={2.4} /> Message us on Telegram
-            </a>
-          ) : null}
         </section>
 
         <Link href="/explore" className={cn(gameButtonClass({ full: true }), "no-underline")}>
