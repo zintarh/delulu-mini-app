@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
-import { REFERRAL_MIN_POINTS, evaluateAndCreditReferral } from "@/lib/referral/evaluate";
+import { REFERRAL_MIN_POINTS, evaluateAndCreditReferral, hasStaked } from "@/lib/referral/evaluate";
 import { hasConsecutiveDays, payReferralStreakBonus } from "@/lib/referral/streak";
 import { referralRoundAt, roundFirstPayment } from "@/lib/referral/campaign";
 
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 export type MyReferralSteps = {
   signedUp: boolean;
   verified: boolean;
+  /** Staked G$ on a card (key kept as "joined" for older clients). */
   joined: boolean;
   proofApproved: boolean;
   /** Showed up 3 days in a row — unlocks the second part of the reward. */
@@ -110,11 +111,10 @@ export async function GET(request: NextRequest) {
         };
       }
 
-      const [verified, joins, forfeits, bingo, points] = await Promise.all([
+      const [verified, staked, points] = await Promise.all([
         isGoodDollarVerified(wallet),
-        admin.from("campaign_participants").select("id").eq("wallet_address", wallet).limit(1),
-        admin.from("forfeit_commitments").select("id").eq("creator_wallet", wallet).limit(1),
-        admin.from("bingo_attempts").select("id").eq("wallet", wallet).limit(1),
+        // Same bar as the evaluator: G$ staked on a card (25 Nov 2026).
+        hasStaked(admin, wallet),
         totalProofPointsOnGraph(wallet),
       ]);
       // Same bar as the evaluator: 1,000 proof points in total (missions, Bingo, Forfeit goals).
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
       // Every step done but never credited (a missed trigger) — the evaluator
       // is idempotent, so self-heal it here instead of leaving it stuck.
-      if (verified && proofApproved) {
+      if (verified && staked && proofApproved) {
         try {
           const result = await evaluateAndCreditReferral(admin, wallet);
           if (result.credited) {
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
         steps: {
           signedUp: true,
           verified,
-          joined: proofApproved || (joins.data ?? []).length > 0 || (forfeits.data ?? []).length > 0 || (bingo.data ?? []).length > 0,
+          joined: staked,
           proofApproved,
           streak3: await streakOf(wallet),
         },

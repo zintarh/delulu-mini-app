@@ -53,12 +53,12 @@ export function buildReferralLaunchHtml(appUrlRaw: string, e: ReferralLaunchEmai
     </table>
 
     ${p(`Last time you brought <b>${e.friends} friends</b> to Delulu. That put you at the top — so before anyone else, here's the news: <b>referrals are back tomorrow, and every friend is now worth ${reward} G$</b>.`)}
-    ${p(`And it's easier for your friends than ever: they start with <b>1,000 G$ free</b> to play their first Bingo.`)}
+    ${p(`And it's easier for your friends than ever: they start with <b>500 G$ free</b> to play their first Bingo.`)}
 
     <p style="margin:6px 0 10px;font-family:${font};font-size:15px;font-weight:800;color:#161615;">How you earn:</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
       ${step(1, `Grab your link: <b>Rewards → Invite friends</b> (it unlocks at midnight).`)}
-      ${step(2, `Your friend signs up, does a quick face check and gets <b>1,000 G$ free</b>.`)}
+      ${step(2, `Your friend signs up, does a quick face check and gets <b>500 G$ free</b>.`)}
       ${step(3, `They put it into their first Bingo and post their first photo — <b>${reward} G$ lands with you</b>.`)}
     </table>
 
@@ -87,10 +87,10 @@ export function buildReferralLaunchText(appUrlRaw: string, e: ReferralLaunchEmai
     `REFERRALS REOPEN ${e.opensOn.toUpperCase()}: ${reward} G$ FOR EVERY FRIEND YOU BRING`,
     `Round 1 runs until ${e.roundEnds}. Each week's budget is limited — earliest invites count first.`,
     ``,
-    `Last time you brought ${e.friends} friends to Delulu. Your friends now start with 1,000 G$ free to play their first Bingo.`,
+    `Last time you brought ${e.friends} friends to Delulu. Your friends now start with 500 G$ free to play their first Bingo.`,
     ``,
     `1. Grab your link: Rewards → Invite friends (unlocks at midnight).`,
-    `2. Your friend signs up, does a quick face check and gets 1,000 G$ free.`,
+    `2. Your friend signs up, does a quick face check and gets 500 G$ free.`,
     `3. They put it into their first Bingo and post their first photo — ${reward} G$ lands with you.`,
     ``,
     `Get my invite link: ${appUrl}/rewards#invite`,

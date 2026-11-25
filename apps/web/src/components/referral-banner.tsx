@@ -42,7 +42,7 @@ export function ReferralBanner({ address, className }: { address: string; classN
     const url = `${window.location.origin}/sign-in?ref=${code}`;
     try {
       if (typeof navigator.share === "function") {
-        await navigator.share({ title: "Delulu", text: `Join me on Delulu — you get 1,000 G$ free to start 🎁`, url });
+        await navigator.share({ title: "Delulu", text: `Join me on Delulu — you get 500 G$ free to start 🎁`, url });
         return;
       }
     } catch (err) {

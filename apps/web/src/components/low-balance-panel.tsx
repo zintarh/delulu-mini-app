@@ -40,7 +40,7 @@ export function LowBalancePanel({
         <>
           <p className="label-mono m-0 mt-1 text-center text-[10px] text-muted-foreground">
             Or invite friends · {fmt(referralRewardNow())} G$ each ·{" "}
-            {roundHasStreakBonus(referralRoundForCopy()) ? "paid as they verify, earn points and show up 3 days" : "paid once they verify and earn points"}
+            {roundHasStreakBonus(referralRoundForCopy()) ? "paid as they verify, earn points and show up 3 days" : "paid once they verify and stake"}
           </p>
           <ReferralInviteCard address={address} />
         </>

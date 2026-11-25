@@ -35,7 +35,7 @@ export function useLuluHomeNews(): LuluMessage[] {
       out.push({
         id: `ref:${phase.round.start}`,
         tone: "tip",
-        text: `Invite friends: ${phase.round.reward.toLocaleString("en-US")} G$ each when they verify and play.`,
+        text: `Invite friends: ${phase.round.reward.toLocaleString("en-US")} G$ each once they verify and stake.`,
         cta: { label: "Invite", href: "/referrals" },
       });
     }

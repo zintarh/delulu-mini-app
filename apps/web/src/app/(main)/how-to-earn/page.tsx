@@ -198,7 +198,7 @@ export default function HowToEarnPage() {
             <WayToEarn
               art={<span className="text-[30px] leading-none">🤝</span>}
               title="Invite friends"
-              sub={referralFirst < referralTotal ? `+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3` : "Paid in full once they verify and earn 1,000 points"}
+              sub={referralFirst < referralTotal ? `+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3` : "Paid once they verify, stake G$ and earn 1,000 points"}
               badge={money(referralTotal)}
               href="/referrals"
             />

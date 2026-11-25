@@ -229,7 +229,7 @@ export function homeNextStep(input: {
       step: {
         tone: "go",
         title: "One quick face check unlocks your rewards",
-        body: "Verify once — then every Bingo photo pays G$, and new players get 1,000 G$ free to start.",
+        body: "Verify once — then every Bingo photo pays G$, and new players get 500 G$ free to start.",
         cta: { label: "Verify now", action: "verify" },
       },
       featuredSlug: null,

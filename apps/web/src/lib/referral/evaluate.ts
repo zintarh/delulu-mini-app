@@ -33,7 +33,9 @@ export type ReferralEvaluationResult =
         | "not_verified"
         | "campaign_ended"
         | "budget_reached"
-        | "signed_up_outside_campaign";
+        | "signed_up_outside_campaign"
+        | "partner_referral"
+        | "not_staked";
     };
 
 /**
@@ -63,6 +65,10 @@ export async function evaluateAndCreditReferral(
   if (!isInCurrentReferralCampaign(profile.created_at as string | null)) {
     return { credited: false, reason: "signed_up_outside_campaign" };
   }
+
+  // Partner links (e.g. /join/BIGJAY) have their own deal: their friends are tracked on the
+  // partner's page, never credited the per-friend referral reward (25 Nov 2026).
+  if (await isPartnerWallet(admin, String(profile.referred_by))) return { credited: false, reason: "partner_referral" };
 
   const { data: existingCredit } = await admin
     .from("referral_credits")
@@ -118,6 +124,9 @@ export async function evaluateAndCreditReferral(
   const verified = await isGoodDollarVerified(wallet);
   if (!verified) return { credited: false, reason: "not_verified" };
 
+  // We pay for friends who put G$ in: they must have staked on a card themselves (25 Nov 2026).
+  if (!(await hasStaked(admin, wallet))) return { credited: false, reason: "not_staked" };
+
   // Each weekly round has a G$ budget: once it's used up, referrals wait for the next round.
   const round = currentReferralRound();
   if (!round) return { credited: false, reason: "campaign_ended" };
@@ -147,4 +156,27 @@ export async function evaluateAndCreditReferral(
   }
 
   return { credited: true };
+}
+
+/** The wallet owns a partner referral code (lib/referral/partners.ts). False before that table exists. */
+export async function isPartnerWallet(admin: SupabaseAdmin, wallet: string): Promise<boolean> {
+  const { data, error } = await admin.from("referral_partners").select("code").eq("owner_wallet", wallet.toLowerCase()).limit(1);
+  return !error && (data ?? []).length > 0;
+}
+
+/** Staked real G$ on a card: a Bingo (weekly or daily) or a money Forfeit goal — word pledges don't count. */
+export async function hasStaked(admin: SupabaseAdmin, wallet: string): Promise<boolean> {
+  const w = wallet.toLowerCase();
+  const [{ data: bingo }, { data: goals }] = await Promise.all([
+    admin.from("bingo_attempts").select("id").eq("wallet", w).gt("stake_amount", 0).limit(1),
+    admin.from("forfeit_commitments").select("stake_amount_wei").eq("creator_wallet", w).limit(50),
+  ]);
+  if ((bingo ?? []).length) return true;
+  return (goals ?? []).some((g) => {
+    try {
+      return BigInt(String(g.stake_amount_wei ?? "0")) > 0n;
+    } catch {
+      return false;
+    }
+  });
 }

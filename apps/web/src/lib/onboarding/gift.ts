@@ -6,7 +6,7 @@ import { findGiftJoinTarget } from "@/lib/onboarding/gift-join";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
-export const ONBOARDING_GIFT_GDOLLARS = 1000;
+export const ONBOARDING_GIFT_GDOLLARS = 500;
 
 /**
  * New-users-only cutoff — an account that signed up before this never
@@ -26,7 +26,7 @@ export type OnboardingGiftEvaluation = {
 };
 
 /**
- * One-time 1000 G$ gift for any wallet that is both GoodDollar-verified and
+ * One-time 500 G$ gift (1,000 until 25 Nov 2026) for any wallet that is both GoodDollar-verified and
  * has finished account setup (profiles.onboarded_at) — seed funding they can
  * use to join a paid campaign, granted before any campaign join rather than
  * as a reward for one. Safe to call redundantly from multiple trigger points
