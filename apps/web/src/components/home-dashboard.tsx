@@ -7,15 +7,14 @@ import { hasStoredAuthSession } from "@/lib/auth-session-hint";
 import { ForfeitDayCard } from "@/components/forfeit/forfeit-day-card";
 import { LuluHero } from "@/components/home/lulu-hero";
 import { HomeReadyGate } from "@/components/home/home-ready";
-import { DailyMoneyCard } from "@/components/home/daily-money-card";
-import { HomeCampaigns, useHomeCampaignLists } from "@/components/home/home-campaigns";
 import { HomeBingo } from "@/components/home/home-bingo";
-import { HomeNextStep, useHomeNextStep } from "@/components/home/home-next-step";
-import { FlowStateCard } from "@/components/home/flow-state-card";
-import { ReferralBanner } from "@/components/referral-banner";
-import { AtStakeCard } from "@/components/home/at-stake-card";
+import { HomeBingoMini } from "@/components/home/home-bingo-mini";
+import { useHomeNextStep } from "@/components/home/home-next-step";
 import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
+import { HomeWalletStrip } from "@/components/home/home-wallet-strip";
+import { HomeEarnLoop } from "@/components/home/home-earn-loop";
+import { useLuluHomeNews } from "@/components/home/home-lulu-news";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
 import { cn } from "@/lib/utils";
@@ -26,10 +25,10 @@ interface HomeDashboardProps {
 }
 
 /**
- * Home (redesign — docs/redesign/screens/Home.dc.html): greeting, free daily
- * money, daily goal with Lulu's mood, today's quests, then campaigns (see
- * HomeCampaigns for which ones). The HUD (level, streak, points, alerts) lives in the
- * shared mobile top bar.
+ * Home, kept short (25 Nov 2026): Lulu says the one thing to do (next step,
+ * referral news) instead of a stack of cards; today's card in small; your G$
+ * (balance, price, free claim, get more); how you earn in three steps; your
+ * goals; Bingos in one swipeable row. Missions live in Explore.
  */
 export function HomeDashboard({ className }: HomeDashboardProps) {
   const { authenticated, address, isReady } = useAuth();
@@ -37,11 +36,9 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
   // null until the forfeit lists load.
   const [noForfeits, setNoForfeits] = useState<boolean | null>(null);
-  const campaigns = useHomeCampaignLists(address);
   const next = useHomeNextStep();
-  const { bingos: homeBingos } = useBingoList();
-  // New = no goals of their own and never had a Bingo card.
-  const newcomer = noForfeits === true && !!homeBingos && !homeBingos.some((b) => b.me);
+  const news = useLuluHomeNews();
+  const { bingos } = useBingoList();
 
   useEffect(() => {
     if (!sessionHint || authenticated) {
@@ -58,9 +55,10 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
     return sessionHint ? <HomeSignedInSkeleton className={className} /> : <HomeGuestSkeleton />;
   }
 
-  // Signed in: wait for Lulu + daily money (they report in) and for forfeits + campaigns (known here).
-  // Guests: just campaigns. Either way one skeleton, then the whole page at once.
-  const pageDataReady = address ? noForfeits !== null && !campaigns.isLoading : !campaigns.isLoading;
+  // Signed in: wait for Lulu + your G$ (they report in) and your goals. Guests: nothing to wait for.
+  const pageDataReady = address ? noForfeits !== null : true;
+  // Today's card, small — the one Lulu's next step is about.
+  const featured = next?.featuredSlug ? (bingos?.find((b) => b.slug === next.featuredSlug && b.me) ?? null) : null;
 
   return (
     <HomeReadyGate
@@ -68,46 +66,35 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
       extraReady={pageDataReady}
       skeleton={address ? <HomeSignedInSkeleton className={className} /> : <HomeGuestSkeleton className={className} />}
     >
-      <div className={cn("mx-auto flex w-full flex-col gap-10 px-5 pb-10 pt-3", className)}>
+      <div className={cn("mx-auto flex w-full flex-col gap-5 px-5 pb-10 pt-3", className)}>
         <HomeGreeting address={address} />
         {/* New and invited players: the First Week offer comes before everything else. */}
-        <HomeFirstWeek guest={!address} hidden={next?.step.kind === "first-week"} />
+        <HomeFirstWeek guest={!address} />
         {/* …and a pop-up the first time, so nobody has to find which Bingo has the welcome bonus. */}
         {address ? <FirstWeekWelcome /> : null}
 
         {address ? (
           <>
-            {/* Lulu's card, then the referral link (the campaign that's running), then today:
-                the ONE next step (hidden once the at-stake card says "done"), then money. */}
-            <div className="flex flex-col gap-4">
-              <LuluHero address={address} />
-              <ReferralBanner address={address} />
-              <HomeNextStep />
-              <AtStakeCard />
-              {/* Only until they've voted — after that it lives in Activity. */}
-              <FlowStateCard />
-              <DailyMoneyCard />
-            </div>
-            {/* Your own delulus — the empty "create your first" row is gone: a first
-                delulu is the next step after a 7-day Bingo ("make it a habit"). */}
+            <LuluHero address={address} extra={news} />
+            {featured?.me ? (
+              <HomeBingoMini
+                card={featured.me}
+                slug={featured.slug}
+                title={featured.title}
+                today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null}
+              />
+            ) : null}
+            <HomeWalletStrip />
+            <HomeEarnLoop />
             <div id="forfeit-day-card">
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
             </div>
-            <HomeBingo exclude={next?.featuredSlug ?? null} />
-            {/* Missions once someone has played — a newcomer has one thing to do. */}
-            {newcomer ? null : (
-              <HomeCampaigns
-                address={address}
-                lists={noForfeits === null ? { ...campaigns, isLoading: true } : campaigns}
-                noForfeits={noForfeits === true}
-              />
-            )}
+            <HomeBingo exclude={featured?.slug ?? null} />
           </>
         ) : (
           <>
-            {/* Guests: the first Bingo is the way in, then missions to browse. */}
+            <HomeEarnLoop />
             <HomeBingo newcomer />
-            <HomeCampaigns address={undefined} lists={campaigns} noForfeits />
           </>
         )}
       </div>

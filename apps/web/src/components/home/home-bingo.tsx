@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { BingoBannerCard } from "@/components/bingo/bingo-tile";
-import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 import { useBingoList } from "@/hooks/use-bingo";
 import type { BingoView } from "@/lib/bingo/view";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
@@ -47,16 +46,19 @@ export function HomeBingo({ newcomer = false, exclude = null }: { newcomer?: boo
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-xl font-extrabold uppercase">{newcomer ? "Bingo" : "More to play"}</h2>
+        <h2 className="font-display text-xl font-extrabold uppercase">{newcomer ? "Bingo" : "Bingos"}</h2>
         <Link href="/explore" className="label-mono text-[11px] text-muted-foreground no-underline">
           See all →
         </Link>
       </div>
-      <PinBoard twoUp>
-        {list.map((b, i) => (
-          <BingoBannerCard key={b.id} bingo={b} pin={pinAspect(i + 1)} />
+      {/* One swipeable row instead of a tall grid — Home stays short; Explore has them all. */}
+      <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 scrollbar-hide lg:mx-0 lg:px-0">
+        {list.map((b) => (
+          <div key={b.id} className="w-[46%] max-w-[220px] shrink-0 snap-start">
+            <BingoBannerCard bingo={b} pin="aspect-[3/4]" />
+          </div>
         ))}
-      </PinBoard>
+      </div>
     </section>
   );
 }

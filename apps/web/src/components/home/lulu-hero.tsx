@@ -597,7 +597,14 @@ function readDoneToday(): Set<string> {
 /** Lulu's entrance plays once per session, not every time Home is opened again. */
 let luluIntroPlayed = false;
 
-export function LuluHero({ address }: { address: string }) {
+export function LuluHero({
+  address,
+  extra = [],
+}: {
+  address: string;
+  /** Home's own news for Lulu to say (next step, first week, referrals) — after anything urgent, before tips. */
+  extra?: LuluMessage[];
+}) {
   const { kept, total, pendingItems, isLoading } = useTodayQuests(address);
   const { currentStreak, daysSinceKept, isLoading: streakLoading } = useUserStreak(address);
   const { data: campaigns, isLoading: campaignsLoading } = useJoinedCampaignDashboard(address);
@@ -698,6 +705,15 @@ export function LuluHero({ address }: { address: string }) {
       }),
     [kept, total, currentStreak, goals, campaigns, seenMissed, doneToday, pendingReward, user?.username, user?.displayName, now],
   );
+  // Deadlines and misses first, then Home's news, then the rest — never more than MAX_MESSAGES.
+  const extraKey = extra.map((m) => m.id).join("|");
+  const allMessages = useMemo(() => {
+    const urgent = messages.filter((m) => m.tone === "urgent" || m.tone === "bad");
+    const rest = messages.filter((m) => m.tone !== "urgent" && m.tone !== "bad");
+    const fresh = extra.filter((m) => !doneToday.has(m.id) && !messages.some((x) => x.id === m.id));
+    return [...urgent, ...fresh, ...rest].slice(0, MAX_MESSAGES);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, extraKey, doneToday]);
 
   // First load waits for everything Lulu talks about, so her line doesn't switch a
   // second after she appears. After that she never falls back to the skeleton —
@@ -722,7 +738,7 @@ export function LuluHero({ address }: { address: string }) {
       total={total}
       streak={currentStreak ?? 0}
       pendingReward={pendingReward}
-      messages={messages}
+      messages={allMessages}
       now={now}
       celebrating={celebrating}
       intro={intro}
