@@ -413,6 +413,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
           onNextAction={onStepAction}
           reward={bingo.rewards.perProof}
           closesAt={step.untilLabel === "closes" ? (step.until ?? null) : null}
+          bingo={bingo}
+          onBoosted={reload}
         />
       ) : null}
       <CheerPrompt contest={cheers.data} onPick={() => document.getElementById("players-list")?.scrollIntoView({ behavior: "smooth" })} />

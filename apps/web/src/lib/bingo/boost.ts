@@ -10,8 +10,8 @@
  * Fairness rules:
  *  - Only boosts before that day's photo count (the contract refuses once the
  *    day is resolved; the server only records what the contract accepted).
- *  - A day's boost counts toward the pot up to dailyBoostCap(); more is still
- *    returned on finishing, it just earns no cashback.
+ *  - The whole top-up joins the stake, at any starting level. Cashback is on
+ *    that bigger stake. The player chooses the amount from their balance.
  *  - A boosted day adds to the % only if that day's photo was kept.
  *
  * `live` is the switch: off until the contract upgrade with boostCommitment is
@@ -59,11 +59,8 @@ export function boostSummary(input: {
   startStake: number;
   boosts: BoostDay[];
   keptSlots: Iterable<number>;
-  /** Free claim per day isn't known historically, so the cap uses the stake half only. */
-  capPerDay?: number;
   days: number;
 }): BoostSummary {
-  const cap = input.capPerDay ?? dailyBoostCap(input.startStake, 0);
   const kept = new Set(input.keptSlots);
   const bySlot = new Map<number, number>();
   for (const b of input.boosts) bySlot.set(b.slot, (bySlot.get(b.slot) ?? 0) + b.amount);
@@ -72,7 +69,7 @@ export function boostSummary(input: {
   let boostedKeptDays = 0;
   for (const [slot, amount] of bySlot) {
     pot += amount;
-    countedPot += Math.min(amount, cap);
+    countedPot += amount;
     if (kept.has(slot) && amount > 0) boostedKeptDays++;
   }
   const pct = Math.min(BOOST.maxPct, BOOST.basePct + BOOST.stepPct * boostedKeptDays);

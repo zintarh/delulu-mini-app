@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BOOST, boostSummary, dailyBoostCap } from "@/lib/bingo/boost";
+import { BOOST, boostSummary } from "@/lib/bingo/boost";
 
 test("no boosts: 10% of the stake", () => {
   const s = boostSummary({ startStake: 3000, boosts: [], keptSlots: [0, 1, 2], days: 3 });
@@ -22,13 +22,11 @@ test("a boosted day that wasn't kept adds nothing to the %", () => {
   assert.equal(s.pct, 10);
 });
 
-test("a day's boost earns cashback only up to the cap; the rest still comes back", () => {
-  assert.equal(dailyBoostCap(3000, 800), 1500);
-  assert.equal(dailyBoostCap(3000, 2000), 2000);
-  const s = boostSummary({ startStake: 3000, boosts: [{ slot: 0, amount: 100_000 }], keptSlots: [0], days: 3 });
-  assert.equal(s.pot, 103_000);
-  assert.equal(s.countedPot, 4500);
-  assert.equal(s.cashback, Math.floor((4500 * 11) / 100));
+test("the whole top-up earns cashback, at any stake", () => {
+  const s = boostSummary({ startStake: 100, boosts: [{ slot: 0, amount: 5_000 }], keptSlots: [0], days: 7 });
+  assert.equal(s.pot, 5_100);
+  assert.equal(s.countedPot, 5_100);
+  assert.equal(s.cashback, Math.floor((5_100 * 11) / 100));
 });
 
 test("every day boosted and kept: the 17% club on a 7-day card, capped at max", () => {

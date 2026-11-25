@@ -22,7 +22,7 @@ export async function bingoRewardPerSquare(admin: Admin, goalKind: "campaign" | 
  * amount (e.g. 7-day Pro: 1,200), or null → engine default.
  */
 export async function bingoCompletionReward(admin: Admin, goalKind: "campaign" | "forfeit", goalRef: string): Promise<number | null> {
-  if (BOOST.live && goalKind === "forfeit") {
+  if (goalKind === "forfeit") {
     const boosted = await boostCashbackForGoal(admin, goalRef).catch(() => null);
     if (boosted != null) return boosted;
   }
@@ -87,6 +87,8 @@ async function boostCashbackForGoal(admin: Admin, goalRef: string): Promise<numb
     loadBoosts(admin, String(attempt.id)),
     admin.from("bingo_squares").select("square_index").eq("attempt_id", attempt.id).eq("status", "filled"),
   ]);
+  // No top-ups yet: keep the card's own finish reward. A top-up pays on the bigger stake.
+  if (!boosts.length && !BOOST.live) return null;
   return boostSummary({
     startStake: Number(attempt.stake_amount),
     boosts,

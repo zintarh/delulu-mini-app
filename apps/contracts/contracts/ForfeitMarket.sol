@@ -146,6 +146,9 @@ contract ForfeitMarket is
     address public rewardVault;
     /// @dev token => community-pool G$ sent to the reward vault since v3.
     mapping(address => uint256) public sweptToVaultByToken;
+    /// @dev v4 (appended after sweptToVaultByToken — never reorder slots above). Daily
+    ///      top-up: G$ the creator added to a commitment during each period.
+    mapping(uint256 => mapping(uint32 => uint256)) public boostedAmount;
 
     // --- EVENTS ---
     event CommitmentCreated(
@@ -201,6 +204,13 @@ contract ForfeitMarket is
     event RewardVaultUpdated(address indexed rewardVault);
     event CommunityPoolSweptToVault(address indexed token, address indexed rewardVault, uint256 amount, address indexed caller);
     event CommitmentStakedByVault(uint256 indexed commitmentId, address indexed creator, uint256 stakeAmount);
+    event CommitmentBoosted(
+        uint256 indexed commitmentId,
+        uint32 indexed periodIndex,
+        address indexed creator,
+        uint256 amount,
+        uint256 newStakeAmount
+    );
     /// @dev Emitted when a forfeiture's destination transfer fails (e.g. the token
     ///      blacklisted or paused that address) and the remainder was routed to the
     ///      community pool instead, so it doesn't get permanently stuck.
@@ -684,6 +694,27 @@ contract ForfeitMarket is
         emit CommitmentCancelled(commitmentId, remainder);
     }
 
+    /// @notice The creator adds G$ to an active commitment during the current period,
+    ///         before that period is resolved. The top-up joins the stake: it comes back
+    ///         with the rest on a finish, and it is forfeited with the rest on a miss.
+    function boostCommitment(uint256 commitmentId, uint256 amount) external nonReentrant whenNotPaused {
+        Commitment storage c = commitments[commitmentId];
+        if (c.creator == address(0)) revert CommitmentNotFound();
+        if (msg.sender != c.creator) revert Unauthorized();
+        if (!c.active || c.cancelled) revert NotActive();
+        if (amount == 0 || c.stakeAmount == 0) revert InvalidInput();
+        if (block.timestamp > c.currentPeriodDeadline) revert DeadlinePassed();
+        if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
+            revert PeriodAlreadyResolved();
+        }
+        _requirePeriodOpen(c);
+
+        IERC20(c.token).safeTransferFrom(msg.sender, address(this), amount);
+        c.stakeAmount += amount;
+        boostedAmount[commitmentId][c.currentPeriodIndex] += amount;
+        emit CommitmentBoosted(commitmentId, c.currentPeriodIndex, msg.sender, amount, c.stakeAmount);
+    }
+
     // --- VIEW HELPERS ---
 
     function isPeriodOverdue(uint256 commitmentId) external view returns (bool) {
@@ -707,7 +738,7 @@ contract ForfeitMarket is
         return "ACTIVE";
     }
 
-    /// @dev Reserved for future storage without breaking upgrades. 44 → 42: v3 added
-    ///      rewardVault and sweptToVaultByToken above.
-    uint256[42] private __gap;
+    /// @dev Reserved for future storage without breaking upgrades. 42 → 41: v4 added
+    ///      boostedAmount above.
+    uint256[41] private __gap;
 }

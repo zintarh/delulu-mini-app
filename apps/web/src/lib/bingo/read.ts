@@ -6,7 +6,7 @@ import { loadSquares } from "@/lib/bingo/attempts";
 import { perSquareFor } from "@/lib/bingo/reward";
 import { buildSquares, type BingoCardView, type BingoView } from "@/lib/bingo/view";
 import { arePhotosPrivate, privatePhotoWallets } from "@/lib/bingo/privacy";
-import { BOOST, boostSummary, dailyBoostCap } from "@/lib/bingo/boost";
+import { boostSummary, dailyBoostCap } from "@/lib/bingo/boost";
 import { boostersToday, loadBoosts } from "@/lib/bingo/boost-server";
 export type { BingoCardView, BingoSquareView, BingoTierView, BingoView } from "@/lib/bingo/view";
 import {
@@ -271,8 +271,9 @@ export async function buildBingoView(
       const r = await myCard(admin, mine, v.missions, label, { startsAt: mine.started_at, endsAt: mine.ends_at, cycleOver: false }, campaign.duration_days, session);
       const missedDay = mine.required_filled < campaign.duration_days && rollingMissedDay(mine);
       me = { ...r.card, phase: mineOver ? "ended" : r.phase, today: r.today, todayUsed: r.todayUsed, nextSquareAt: r.nextSquareAt, dayOrdered: true, missedDay };
-      // Daily Boost: only money cards with an on-chain commitment, once the upgrade is live.
-      if (BOOST.live && mine.forfeit_commitment_id != null && Number(mine.stake_amount) > 0) {
+      // Daily top-up: money cards with an on-chain commitment. The button stays hidden
+      // until the live market accepts boostCommitment.
+      if (mine.forfeit_commitment_id != null && Number(mine.stake_amount) > 0) {
         const [boosts, boosters] = await Promise.all([loadBoosts(admin, mine.id), boostersToday(admin)]);
         const kept = r.card.squares.filter((sq) => sq.state === "filled").map((sq) => sq.index);
         const stake = Number(mine.stake_amount);

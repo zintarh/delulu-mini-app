@@ -1,12 +1,19 @@
 /** Weekly Active Pot settings and tickets — client-safe (lib/pool/active-pot.ts is server-only). */
 export const ACTIVE_POT = {
   weeklyG: 1_000_000,
+  /** How the weekly pool is said in dollars on the card people share. */
+  weeklyUsd: 100,
   /** "New" = joined within this many days of the week's end. */
   newcomerDays: 14,
   /** New players' tickets just for being active all 7 days, whatever their stake. */
   newcomerTickets: 5,
   stakeCap: 100_000,
 } as const;
+
+/** "$100 · 1,000,000 G$" — the pool on a shared card, not the player's own stake. */
+export function sharePoolLabel(): string {
+  return `$${ACTIVE_POT.weeklyUsd} · ${ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$`;
+}
 
 /**
  * Returning players: [minimum stake, tickets] — the biggest row the stake reaches.

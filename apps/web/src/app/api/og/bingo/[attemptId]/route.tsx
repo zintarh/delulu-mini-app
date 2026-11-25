@@ -125,7 +125,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             <img src={`${origin}/favicon_io/android-chrome-192x192.png`} width={84} height={84} style={{ borderRadius: 42, background: "#fff", border: `4px solid ${t.frame}` }} />
             <span style={{ marginLeft: 22, fontSize: 44, fontWeight: 800, flex: 1 }}>{name}</span>
             <span style={{ fontSize: 28, fontWeight: 800, padding: "10px 22px", borderRadius: 40, background: t.chipBg, color: t.chipFg, textTransform: "uppercase" }}>
-              {`${tier?.label ?? "Bingo"} · ${Number(a.stake_amount).toLocaleString("en-US")} G$`}
+              {tier?.label ?? "Bingo"}
             </span>
           </div>
           <span style={{ marginTop: 22, fontSize: 76, fontFamily: "Display", fontWeight: 900, textTransform: "uppercase", lineHeight: 1 }}>{camp.title}</span>

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Trophy } from "@/components/ds";
 import { WatchHowItWorks } from "@/components/how-it-works-video";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { fmtUsd } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { TicketLadder } from "@/components/pot/stake-tickets";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,12 +14,10 @@ const STEPS = ["Join a Bingo", "Play the card", "Earn points", "Share the pot"];
 const POT = ACTIVE_POT.weeklyG.toLocaleString("en-US");
 
 /**
- * The weekly pot on Home and sign-in. The pool in full, what it's worth in
- * dollars, and that G$ cashes to a Naira bank account on the app.
+ * The weekly pot on Home and sign-in. $100 shared each week, and what that
+ * is in G$. G$ still cashes to a Naira bank account on the app.
  */
 export function HomePotCard({ className }: { className?: string }) {
-  const facts = useEarnFacts();
-  const usd = facts ? fmtUsd(ACTIVE_POT.weeklyG * facts.gdUsd) : null;
   const { address } = useAuth();
   const { rules: stakeRules } = useStakeRules(address);
 
@@ -31,8 +28,8 @@ export function HomePotCard({ className }: { className?: string }) {
           <Trophy size={52} />
         </span>
         <p className="label-mono m-0 text-[10px] text-[#5c4a0a]">What you get</p>
-        <p className="m-0 mt-0.5 font-display text-[26px] font-extrabold leading-none tracking-tight">{POT} G$</p>
-        {usd ? <p className="m-0 mt-1 text-[13px] font-extrabold">≈ {usd}</p> : null}
+        <p className="m-0 mt-0.5 font-display text-[26px] font-extrabold leading-none tracking-tight">${ACTIVE_POT.weeklyUsd}</p>
+        <p className="m-0 mt-1 text-[13px] font-extrabold">{POT} G$</p>
         <p className="m-0 mt-1 max-w-[85%] text-[12px] font-bold leading-snug">This is shared every week by everyone who shows up all 7 days.</p>
         <p className="m-0 mt-1 max-w-[85%] text-[12px] font-bold leading-snug">Cash your G$ to a Naira bank account on the app.</p>
       </Link>

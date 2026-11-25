@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 import { requireAuthenticatedWallet, walletAuthErrorResponse } from "@/lib/auth/wallet-session";
 import { loadAttempt } from "@/lib/bingo/attempts";
-import { BOOST } from "@/lib/bingo/boost";
 import { boostsInTx } from "@/lib/bingo/boost-server";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +16,6 @@ const TX = /^0x[0-9a-f]{64}$/;
  * accepted counts. Retry-safe (tx_hash + log_index is unique).
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!BOOST.live) return NextResponse.json({ error: "Boosting isn't open yet." }, { status: 404 });
   let wallet: string;
   try {
     wallet = requireAuthenticatedWallet(request);
@@ -33,7 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!admin) return NextResponse.json({ error: "DB unavailable" }, { status: 500 });
   const attempt = await loadAttempt(admin, id);
   if (!attempt || attempt.wallet !== wallet) return NextResponse.json({ error: "This Bingo card isn't yours." }, { status: 403 });
-  if (attempt.forfeit_commitment_id == null) return NextResponse.json({ error: "Only daily cards can be boosted." }, { status: 400 });
+  if (attempt.forfeit_commitment_id == null) return NextResponse.json({ error: "This card can't be topped up." }, { status: 400 });
 
   const found = await boostsInTx(txHash as `0x${string}`);
   if (found === "pending") return NextResponse.json({ error: "Still confirming — try again in a moment.", retryable: true }, { status: 503 });

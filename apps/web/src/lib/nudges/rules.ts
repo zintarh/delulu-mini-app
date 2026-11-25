@@ -250,13 +250,13 @@ function pickNudgeBase(p: Person, nowMs: number, history: NudgeHistory, facts: E
       return {
         rule: "boost_ready",
         dedupeKey: `${card.attemptId}:${card.today}:boost`,
-        title: "🚀 Your free money is ready — boost today",
-        body: `Claim it and add it to ${card.title} before your photo: +1% cashback for today.`,
+        title: "Claim and top up — a bigger stake pays more",
+        body: `Claim today's G$ and add it to ${card.title} before your photo. The higher your stake, the higher your reward.`,
         path: `/bingo/${card.slug}`,
         emailSubject: `Boost day ${card.today + 1} of ${card.title} for +1%`,
         emailHeading: `Boost today, ${p.username ?? "friend"}`,
-        emailBody: withOffers(`Your free money for today is ready. Claim it and add it to ${card.title} before today's photo — every boosted day adds 1% to the cashback you get when you finish.`, nowMs, "photo", p),
-        cta: "Claim & boost",
+        emailBody: withOffers(`Claim today's G$ and add it to ${card.title} before your photo. The higher your stake, the higher your reward. Finish every day and the bigger stake comes back, plus more on it.`, nowMs, "photo", p),
+        cta: "Claim and top up",
       };
     }
   }

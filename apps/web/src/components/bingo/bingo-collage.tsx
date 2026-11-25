@@ -166,7 +166,7 @@ export function BingoCollage({
           </span>
         ) : null}
         <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide" style={{ background: t.chipBg, color: t.chipFg }}>
-          {card.tierLabel} · {card.stake.toLocaleString("en-US")} G$
+          {card.tierLabel}
         </span>
       </div>
       <p className="m-0 mt-2 font-display text-[24px] font-extrabold uppercase leading-[0.95] tracking-tight">{bingoTitle}</p>

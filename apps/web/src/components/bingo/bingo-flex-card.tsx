@@ -90,7 +90,7 @@ export function BingoFlexCard({
         ) : null}
         {!sm ? (
           <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide" style={{ background: t.chipBg, color: t.chipFg }}>
-            {card.tierLabel} · {card.stake.toLocaleString("en-US")} G$
+            {card.tierLabel}
           </span>
         ) : null}
       </div>
