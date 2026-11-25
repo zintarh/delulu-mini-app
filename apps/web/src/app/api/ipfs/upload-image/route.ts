@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { optimizeUpload } from "@/lib/images/optimize-upload";
+
+export const runtime = "nodejs";
 
 const DEFAULT_BUCKET = "delulu-images";
 
@@ -51,19 +54,22 @@ export async function POST(request: NextRequest) {
     }
 
     const bucket = process.env.SUPABASE_DELULU_IMAGES_BUCKET || DEFAULT_BUCKET;
-    const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-    const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const uploadedExt = file.name.includes(".") ? file.name.split(".").pop()! : "jpg";
+    // Stored shrunk (≤2048px, ~150–250 KB instead of 1–2 MB) with only the EXIF the proof
+    // checks read — capture time, zone, camera — so GPS and the rest never go public.
+    const image = await optimizeUpload(Buffer.from(await file.arrayBuffer()), file.type, uploadedExt);
+    const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${image.ext}`;
 
     const uploadOptions = {
       cacheControl: "3600",
-      contentType: file.type,
+      contentType: image.contentType,
       upsert: false,
     };
 
     // Prefer direct upload — listing buckets on every frame was a major hang source.
     let { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file, uploadOptions);
+      .upload(filePath, image.bytes, uploadOptions);
 
     if (uploadError) {
       const msg = String(uploadError.message || "").toLowerCase();
@@ -79,7 +85,7 @@ export async function POST(request: NextRequest) {
         }
         ({ error: uploadError } = await supabase.storage
           .from(bucket)
-          .upload(filePath, file, uploadOptions));
+          .upload(filePath, image.bytes, uploadOptions));
       }
     }
 
