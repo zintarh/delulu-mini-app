@@ -419,6 +419,12 @@ export function FaqSection() {
             </details>
           ))}
         </div>
+        <p className="m-0 text-center text-base font-semibold text-muted-foreground">
+          Still unsure what the app is?{" "}
+          <Link href="/how-it-works" className="font-extrabold text-ink underline decoration-2 underline-offset-2">
+            Read how Delulu works
+          </Link>
+        </p>
       </div>
     </section>
   );
@@ -468,7 +474,7 @@ export function LandingFooter() {
         <div className="flex flex-wrap gap-14">
           <div className="flex flex-col gap-3">
             <span className="label-mono text-muted-foreground">Product</span>
-            <a href="#ways" className="no-underline">How it works</a>
+            <Link href="/how-it-works" className="no-underline">How it works</Link>
             <Link href="/explore" className="no-underline">Challenges</Link>
             <Link href="/profile/flex" className="no-underline">Share cards</Link>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
@@ -87,6 +88,12 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             <HomePotCard />
             <HomeWalletStrip />
             <div id="forfeit-day-card" className="flex flex-col gap-5">
+              <Link href="/how-it-works" className="flex items-center gap-3 rounded-2xl border-2 border-ink bg-white py-2.5 pl-3 pr-3 text-ink no-underline shadow-[0_3px_0_#161615]">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-extrabold leading-tight">How Delulu works</span>
+                  <span className="block truncate text-[11px] font-semibold text-muted-foreground">GoodDollar, staking, points, and the weekly pool</span>
+                </span>
+              </Link>
               <FlowStateCard />
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
             </div>

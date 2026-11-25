@@ -39,8 +39,13 @@ export function HomePotCard({ className }: { className?: string }) {
           </li>
         ))}
       </ol>
-      <p className="m-0 mt-2 text-[12px] font-bold text-[#5c4a0a]">Stick with the habit by joining a Bingo. Plus 10% back on the stake. New players are in just for showing up.</p>
-      <WatchHowItWorks className="mt-3 text-[13px]" />
+        <p className="m-0 mt-2 text-[12px] font-bold text-[#5c4a0a]">Stick with the habit by joining a Bingo. Plus 10% back on the stake. New players are in just for showing up.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <WatchHowItWorks className="text-[13px]" />
+          <Link href="/how-it-works" className="text-[13px] font-extrabold text-ink underline decoration-2 underline-offset-2">
+            How Delulu works
+          </Link>
+        </div>
     </section>
   );
 }

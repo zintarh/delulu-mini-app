@@ -101,6 +101,14 @@ export default function HowToEarnPage() {
 
         <div className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-ink shadow-edge">
           <Lulu size={36} animated={false} />
+          <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-muted-foreground">What GoodDollar is, how staking works, how points are earned, and how the weekly pool is shared.</span>
+          <Link href="/how-it-works" className="shrink-0 text-[13px] font-extrabold text-ink underline decoration-2 underline-offset-2">
+            Read it
+          </Link>
+        </div>
+
+        <div className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-ink shadow-edge">
+          <Lulu size={36} animated={false} />
           <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-muted-foreground">A short video of joining, points, and the share. It stays in the app.</span>
           <WatchHowItWorks className="shrink-0 text-[13px]" />
         </div>
