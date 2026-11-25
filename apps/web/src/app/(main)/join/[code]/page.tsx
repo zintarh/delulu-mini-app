@@ -34,6 +34,11 @@ export default function JoinCommunityPage() {
     };
   }, [code]);
 
+  // Not a partner's code: community invites are gone from the app — Explore, as before.
+  useEffect(() => {
+    if (kind === "community") router.replace("/explore");
+  }, [kind, router]);
+
   // Partner link: keep the code (cookie + storage, read when the profile is created) and
   // sign up with it like any referral link; already signed in → straight home.
   useEffect(() => {

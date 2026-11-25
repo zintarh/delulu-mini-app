@@ -76,7 +76,8 @@ const nextConfig = {
       { source: "/communities", destination: "/explore", permanent: false },
       { source: "/communities/joined", destination: "/explore", permanent: false },
       { source: "/communities/:slug", destination: "/explore", permanent: false },
-      { source: "/join/:code", destination: "/explore", permanent: false },
+      // /join/:code is a partner referral link now (app/(main)/join/[code]); other
+      // codes (old community invites) are sent to /explore by that page.
     ];
   },
   transpilePackages: ["@repo/ui"],
