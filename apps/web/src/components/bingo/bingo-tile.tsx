@@ -48,7 +48,7 @@ export function BingoTile({ bingo, className }: { bingo: BingoView; className?: 
   return (
     <Link
       href={`/bingo/${bingo.slug}`}
-      className={cn("press-edge flex gap-3.5 rounded-[20px] border-2 border-line bg-white p-3 text-ink no-underline shadow-edge", className)}
+      className={cn("press-edge flex gap-3.5 rounded-[20px] border-2 border-line bg-white p-3 text-ink no-underline shadow-edge [content-visibility:auto] [contain-intrinsic-size:auto_112px]", className)}
     >
       {/* The card fills the thumbnail top to bottom: photos as they come in, our stickers until then. */}
       <span className="relative w-[92px] shrink-0 self-stretch overflow-hidden rounded-xl ring-2 ring-line">
@@ -111,7 +111,8 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
       className={cn(
         "group relative block min-w-0 animate-rise overflow-hidden bg-ink text-white no-underline",
         pin ? `${pin} w-full rounded-[22px]` : "aspect-[16/11] min-h-[264px] rounded-[32px]",
-        "shadow-[0_14px_30px_-12px_rgba(22,22,21,0.45)] transition-transform active:scale-[0.98]",
+        // Flat edge, one layer, and skip cards that are off screen. A blurred shadow under a drawn board repaints on every scroll frame.
+        "shadow-[0_4px_0_#161615] [content-visibility:auto] [contain-intrinsic-size:auto_320px] active:scale-[0.98]",
         className,
       )}
     >

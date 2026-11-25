@@ -18,6 +18,7 @@ import { BingoEarnings, BingoEarningsLine } from "@/components/bingo/bingo-earni
 import { CheerContestBanner, CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
 import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
+import { StreakFreezeButton } from "@/components/bingo/streak-freeze-button";
 import { useAuth } from "@/hooks/use-auth";
 import { useBingo, useBingoBoard, useBingoList, type BoardCard } from "@/hooks/use-bingo";
 import { NextStepCard } from "@/components/next-step-card";
@@ -302,6 +303,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
                 <Share2 className="h-5 w-5" /> Flex my BINGO
               </GameButton>
             ) : null}
+
+            {addTarget && rolling && me ? <StreakFreezeButton attemptId={me.attemptId} onFrozen={reload} /> : null}
 
             {openBonus.length > 0 ? (
               <div className="mt-3 flex flex-col gap-2">

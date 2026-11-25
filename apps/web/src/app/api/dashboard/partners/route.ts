@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   if (body.action === "save") {
     const name = String(body.name ?? "").trim();
-    const minPoints = Math.round(Number(body.minPoints ?? 10000));
+    const minPoints = Math.round(Number(body.minPoints ?? 100));
     if (!name) return NextResponse.json({ error: "Give the partner a name." }, { status: 400 });
     if (!(minPoints >= 0 && minPoints <= 1_000_000)) return NextResponse.json({ error: "Points target must be 0–1,000,000." }, { status: 400 });
     const { error: e } = await admin.from("referral_partners").upsert({ code, name, min_points: minPoints, active: body.active !== false, updated_at: new Date().toISOString() }, { onConflict: "code" });

@@ -92,6 +92,11 @@ export const FORFEIT_MARKET_ABI = [
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "NothingToClaim",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -129,6 +134,11 @@ export const FORFEIT_MARKET_ABI = [
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "RewardVaultNotSet",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -147,11 +157,6 @@ export const FORFEIT_MARKET_ABI = [
   {
     "inputs": [],
     "name": "TokenNotApproved",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NothingToClaim",
     "type": "error"
   },
   {
@@ -320,6 +325,62 @@ export const FORFEIT_MARKET_ABI = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint256",
+        "name": "commitmentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stakeAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "CommitmentStakedByVault",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "rewardVault",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "CommunityPoolSweptToVault",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "token",
         "type": "address"
@@ -363,6 +424,62 @@ export const FORFEIT_MARKET_ABI = [
       }
     ],
     "name": "ForfeitedDestinationFallback",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "FriendRewardClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "commitmentId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "FriendRewardCredited",
     "type": "event"
   },
   {
@@ -495,62 +612,6 @@ export const FORFEIT_MARKET_ABI = [
       },
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "FriendRewardCredited",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "FriendRewardClaimed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "commitmentId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
         "internalType": "uint32",
         "name": "periodIndex",
         "type": "uint32"
@@ -613,6 +674,19 @@ export const FORFEIT_MARKET_ABI = [
       }
     ],
     "name": "ProofSubmitted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "rewardVault",
+        "type": "address"
+      }
+    ],
+    "name": "RewardVaultUpdated",
     "type": "event"
   },
   {
@@ -803,6 +877,19 @@ export const FORFEIT_MARKET_ABI = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "claimFriendReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -902,43 +989,6 @@ export const FORFEIT_MARKET_ABI = [
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "pendingFriendReward",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "claimFriendReward",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
         "name": "token",
         "type": "address"
       },
@@ -989,6 +1039,70 @@ export const FORFEIT_MARKET_ABI = [
       }
     ],
     "name": "createCommitment",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "commitmentId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "stakeAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ForfeitMarket.DestinationType",
+        "name": "destinationType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "destinationAddr",
+        "type": "address"
+      },
+      {
+        "internalType": "enum ForfeitMarket.Cadence",
+        "name": "cadence",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint32",
+        "name": "totalPeriods",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint64",
+        "name": "periodSeconds",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "firstDeadline",
+        "type": "uint64"
+      },
+      {
+        "internalType": "address",
+        "name": "verifier",
+        "type": "address"
+      }
+    ],
+    "name": "createCommitmentFor",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1123,6 +1237,30 @@ export const FORFEIT_MARKET_ABI = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "pendingFriendReward",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -1246,6 +1384,19 @@ export const FORFEIT_MARKET_ABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "rewardVault",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -1315,6 +1466,19 @@ export const FORFEIT_MARKET_ABI = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_rewardVault",
+        "type": "address"
+      }
+    ],
+    "name": "setRewardVault",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "commitmentId",
         "type": "uint256"
@@ -1328,6 +1492,43 @@ export const FORFEIT_MARKET_ABI = [
     "name": "submitProof",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "sweepCommunityPoolToVault",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "sweptToVaultByToken",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

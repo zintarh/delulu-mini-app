@@ -1,4 +1,6 @@
-import { createPublicClient, http, parseUnits } from "viem";
+import { createPublicClient, decodeEventLog, http, parseUnits } from "viem";
+import { REWARD_VAULT_ABI } from "@/lib/abi/reward-vault";
+import { CELO_MAINNET_ID, getRewardVaultAddress } from "@/lib/constant";
 import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
@@ -55,7 +57,10 @@ export async function recordCheer(admin: Admin, voter: string, attemptId: string
   }
   if (!receipt) throw new CheerError("Still confirming — your cheer will count in a moment. Pull to refresh.");
   if (receipt.status !== "success") throw new CheerError("That transfer failed, nothing was sent.");
-  const match = matchTransfer(receipt.logs, { token: G, from, to, amountWei: parseUnits(String(amount), 18) });
+  // Either a direct G$ transfer (older app) or a cheer through Delulu's RewardVault
+  // (on-chain on our contract: the player gets it minus the pot's small cut).
+  const wei = parseUnits(String(amount), 18);
+  const match = matchTransfer(receipt.logs, { token: G, from, to, amountWei: wei }) || matchVaultCheer(receipt.logs, from, to, wei);
   if (!match) throw new CheerError("That transfer doesn't match this cheer.");
 
   const { error } = await admin.from("card_cheers").insert({
@@ -183,4 +188,25 @@ export async function loadCheerContest(admin: Admin, campaignId: string, viewer:
       ? [...new Set((cheers.data ?? []).filter((r) => r.from_wallet === viewer.toLowerCase() && r.lagos_day === today).map((r) => String(r.attempt_id)))]
       : [],
   };
+}
+
+/** A RewardVault `Cheered` event from `from` to `to` worth at least `amountWei` in total. */
+function matchVaultCheer(logs: readonly { address: string; data: `0x${string}`; topics: readonly `0x${string}`[] }[], from: string, to: string, amountWei: bigint): boolean {
+  let vault: string;
+  try {
+    vault = getRewardVaultAddress(CELO_MAINNET_ID).toLowerCase();
+  } catch {
+    return false;
+  }
+  return logs.some((log) => {
+    if (log.address.toLowerCase() !== vault) return false;
+    try {
+      const ev = decodeEventLog({ abi: REWARD_VAULT_ABI, data: log.data, topics: log.topics as [`0x${string}`, ...`0x${string}`[]] });
+      if (ev.eventName !== "Cheered") return false;
+      const a = ev.args as { from: string; to: string; token: string; toPlayer: bigint; toPot: bigint };
+      return a.from.toLowerCase() === from && a.to.toLowerCase() === to && a.token.toLowerCase() === G.toLowerCase() && a.toPlayer + a.toPot >= amountWei;
+    } catch {
+      return false;
+    }
+  });
 }

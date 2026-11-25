@@ -90,6 +90,7 @@ export async function payReferralCredit(
       referrerWallet: referrerWallet as `0x${string}`,
       referralCreditId,
       amountWhole: amount,
+      creditedAt: credit.credited_at as string,
     });
     await admin
       .from("referral_credits")

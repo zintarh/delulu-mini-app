@@ -13,7 +13,7 @@ export default function PartnersPage() {
   const [list, setList] = useState<Partner[] | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ code: "", name: "", minPoints: "10000" });
+  const [form, setForm] = useState({ code: "", name: "", minPoints: "100" });
   const [assign, setAssign] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {

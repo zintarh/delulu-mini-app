@@ -205,6 +205,8 @@ async function serverVerifiedProof(
     .maybeSingle();
   const att = sq ? ((Array.isArray(sq.bingo_attempts) ? sq.bingo_attempts[0] : sq.bingo_attempts) as { wallet: string; forfeit_commitment_id: number | null }) : null;
   if (!sq || !att || String(att.forfeit_commitment_id) !== resolved.commitmentId.toString()) return null;
+  // A paid streak freeze keeps the day alive but is not a proof: no photo reward.
+  if (String(sq.proof_url ?? "").startsWith("freeze:")) return null;
   return { commitmentId: resolved.commitmentId, periodIndex: Number(sq.slot_index), creator: String(att.wallet).toLowerCase(), proofLink: String(sq.proof_url) };
 }
 

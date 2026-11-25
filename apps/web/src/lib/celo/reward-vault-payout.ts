@@ -91,6 +91,8 @@ export async function submitPoolCredit(params: {
   amountWhole: number;
   rewardId: `0x${string}`;
   context: string;
+  /** "stake": stake-only credit (grantStakeCredit, vault v3) — usable to stake, never claimable. */
+  kind?: "cash" | "stake";
 }): Promise<PoolCreditSubmission> {
   const account = getRewarderAccount();
   const vault = getRewardVaultAddress(CELO_MAINNET_ID);
@@ -118,7 +120,7 @@ export async function submitPoolCredit(params: {
   const txHash = await walletClient.writeContract({
     address: vault,
     abi: REWARD_VAULT_ABI,
-    functionName: "creditReward",
+    functionName: params.kind === "stake" ? "grantStakeCredit" : "creditReward",
     args: [params.recipientWallet, token, amountWei, params.rewardId],
   });
   return { kind: "submitted", txHash, amountWei: amountWei.toString() };
@@ -192,6 +194,7 @@ async function creditFromRewardPool(params: {
   amountWhole: number;
   rewardId: `0x${string}`;
   revertContext: string;
+  kind?: "cash" | "stake";
 }): Promise<VaultDepositResult> {
   const { rewardId } = params;
   const submission = await submitPoolCredit({
@@ -199,6 +202,7 @@ async function creditFromRewardPool(params: {
     amountWhole: params.amountWhole,
     rewardId,
     context: params.revertContext,
+    kind: params.kind,
   });
   if (submission.kind === "already_used") {
     return { txHash: null, amountWei: submission.amountWei, rewardId, alreadyUsed: true };
@@ -219,30 +223,109 @@ export function engineRewardId(dedupeKey: string): `0x${string}` {
   return keccak256(toHex(`rewards-engine:${dedupeKey}`));
 }
 
+/**
+ * Referrals earned from this moment get part of the reward as stake-only credit
+ * (it can only be staked on a goal, so it stays in play on-chain); referrals
+ * earned before keep exactly what they were shown.
+ */
+export const REFERRAL_STAKE_CREDIT_FROM = "2026-11-25T00:00:00+01:00";
+/** Of a new referral's reward, this much is cash; the rest is stake credit. */
+export const REFERRAL_CASH_PART = 2_000;
+
 export async function payoutReferralReward(params: {
   referrerWallet: `0x${string}`;
   referralCreditId: string;
   amountWhole: number;
+  /** When the referral was earned — decides whether part of it is stake credit. */
+  creditedAt?: string;
 }): Promise<ReferralPayoutResult> {
-  return creditFromRewardPool({
+  const split =
+    !!params.creditedAt &&
+    Date.parse(params.creditedAt) >= Date.parse(REFERRAL_STAKE_CREDIT_FROM) &&
+    params.amountWhole > REFERRAL_CASH_PART &&
+    (await vaultV3Live());
+  const cash = split ? REFERRAL_CASH_PART : params.amountWhole;
+  const result = await creditFromRewardPool({
     recipientWallet: params.referrerWallet,
-    amountWhole: params.amountWhole,
+    amountWhole: cash,
     rewardId: referralRewardId(params.referralCreditId),
     revertContext: `referral credit ${params.referralCreditId}`,
   });
+  if (split) {
+    await creditFromRewardPool({
+      recipientWallet: params.referrerWallet,
+      amountWhole: params.amountWhole - cash,
+      rewardId: keccak256(toHex(`referral-stake-credit:${params.referralCreditId}`)),
+      revertContext: `referral stake credit ${params.referralCreditId}`,
+      kind: "stake",
+    });
+  }
+  return result;
 }
 
-/** Credits the one-time 1000 G$ onboarding gift from the RewardVault pool for `wallet`. */
+/**
+ * The one-time 1000 G$ onboarding gift. Once the vault runs v3 it's stake-only
+ * credit — the gift is for joining a first Bingo, so it can't walk out of the app.
+ */
 export async function payoutOnboardingGift(params: {
   wallet: `0x${string}`;
   amountWhole: number;
-}): Promise<VaultDepositResult> {
-  return creditFromRewardPool({
+}): Promise<VaultDepositResult & { stakeCredit: boolean }> {
+  const stake = await vaultV3Live();
+  const r = await creditFromRewardPool({
     recipientWallet: params.wallet,
     amountWhole: params.amountWhole,
     rewardId: onboardingGiftRewardId(params.wallet),
     revertContext: `onboarding gift for ${params.wallet}`,
+    kind: stake ? "stake" : "cash",
   });
+  return { ...r, stakeCredit: stake };
+}
+
+let v3Cache: { at: number; live: boolean } | null = null;
+/** Whether the RewardVault on mainnet is the v3 (sustainability) build — read from the chain, cached 10 min. */
+export async function vaultV3Live(): Promise<boolean> {
+  if (v3Cache && Date.now() - v3Cache.at < 600_000) return v3Cache.live;
+  let live = false;
+  try {
+    const treasury = (await vaultPublicClient().readContract({
+      address: getRewardVaultAddress(CELO_MAINNET_ID),
+      abi: REWARD_VAULT_ABI,
+      functionName: "treasury",
+    })) as string;
+    live = /^0x[0-9a-fA-F]{40}$/.test(treasury) && !/^0x0+$/.test(treasury);
+  } catch {
+    live = false;
+  }
+  v3Cache = { at: Date.now(), live };
+  return live;
+}
+
+export type Sustainability = {
+  playerForfeits: number;
+  playerPurchases: number;
+  team: number;
+  sponsor: number;
+  granted: number;
+  rolledOver: number;
+  deluluRevenue: number;
+  playerFundedPct: number;
+};
+
+/** The vault's own on-chain sustainability ledger (v3), or null before the upgrade. */
+export async function readSustainability(): Promise<Sustainability | null> {
+  if (!(await vaultV3Live())) return null;
+  const r = (await vaultPublicClient().readContract({
+    address: getRewardVaultAddress(CELO_MAINNET_ID),
+    abi: REWARD_VAULT_ABI,
+    functionName: "sustainability",
+    args: [GOODDOLLAR_ADDRESSES.mainnet],
+  })) as readonly bigint[];
+  const g = (x: bigint) => Number(formatUnits(x, 18));
+  return {
+    playerForfeits: g(r[0]), playerPurchases: g(r[1]), team: g(r[2]), sponsor: g(r[3]),
+    granted: g(r[4]), rolledOver: g(r[5]), deluluRevenue: g(r[6]), playerFundedPct: Number(r[7]) / 100,
+  };
 }
 
 /** Credits a per-proof G$ reward from the RewardVault pool for `wallet`. */

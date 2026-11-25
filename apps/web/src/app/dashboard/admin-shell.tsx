@@ -18,7 +18,7 @@ import {
   Bell,
   Building2,
   Flame,
-  Coins, CalendarRange, Link2 } from "lucide-react";
+  Coins, CalendarRange, Landmark, PieChart, Link2 } from "lucide-react";
 import { cn, formatAddress } from "@/lib/utils";
 import { isPlatformAdminRole, type GlobalRole } from "@/lib/dashboard/authorize-types";
 import { DashboardToastProvider } from "@/components/dashboard/dashboard-toast";
@@ -94,6 +94,8 @@ function pageTitle(pathname: string): string {
     return "People";
   }
   if (pathname.startsWith(`${BASE}/season`)) return "Season";
+  if (pathname.startsWith(`${BASE}/cashouts`)) return "Cash outs";
+  if (pathname.startsWith(`${BASE}/ecosystem`)) return "Ecosystem";
   if (pathname.startsWith(`${BASE}/partners`)) return "Partner links";
   if (pathname.startsWith(`${BASE}/forfeit`)) return "Forfeit";
   if (pathname.startsWith(`${BASE}/reward-engine`)) return "Rewards";
@@ -236,6 +238,20 @@ export function AdminShell({
                 label="Partner links"
                 href={`${BASE}/partners`}
                 active={pathname.startsWith(`${BASE}/partners`)}
+                onNavigate={closeMobile}
+              />
+              <NavItem
+                icon={PieChart}
+                label="Ecosystem"
+                href={`${BASE}/ecosystem`}
+                active={pathname.startsWith(`${BASE}/ecosystem`)}
+                onNavigate={closeMobile}
+              />
+              <NavItem
+                icon={Landmark}
+                label="Cash outs"
+                href={`${BASE}/cashouts`}
+                active={pathname.startsWith(`${BASE}/cashouts`)}
                 onNavigate={closeMobile}
               />
               <NavItem

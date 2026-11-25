@@ -12,6 +12,8 @@ import { useLogoutSheetOptional } from "@/contexts/logout-sheet-context";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { usePfp } from "@/hooks/use-profile-pfp";
 import { TransferSheet } from "@/components/transfer-sheet";
+import { CashOutSheet } from "@/components/cashout/cash-out-sheet";
+import { useCashOutInfo } from "@/hooks/use-cash-out-info";
 import { AddEmailSheet } from "@/components/add-email-sheet";
 
 const DEFAULT_AVATAR = "/user-avatar.jpg";
@@ -100,6 +102,8 @@ export function NavbarProfileMenu({
   const [open, setOpen] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [cashOutOpen, setCashOutOpen] = useState(false);
+  const cashOut = useCashOutInfo();
   const [addEmailOpen, setAddEmailOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -282,6 +286,17 @@ export function NavbarProfileMenu({
                   >
                     Transfer
                   </MenuAction>
+                  {cashOut.enabled && cashOut.inNigeria ? (
+                    <MenuAction
+                      className="px-1"
+                      onClick={() => {
+                        close();
+                        setCashOutOpen(true);
+                      }}
+                    >
+                      Cash out to bank
+                    </MenuAction>
+                  ) : null}
                   <MenuAction href="/support" className="px-1" onClick={close}>
                     Support
                   </MenuAction>
@@ -351,6 +366,15 @@ export function NavbarProfileMenu({
       )}
 
       <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} />
+      <CashOutSheet
+        open={cashOutOpen}
+        onOpenChange={setCashOutOpen}
+        inNigeria={cashOut.inNigeria}
+        onSend={() => {
+          setCashOutOpen(false);
+          setTransferOpen(true);
+        }}
+      />
       <AddEmailSheet open={addEmailOpen} onOpenChange={setAddEmailOpen} />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
-import { TryItPhone } from "@/components/landing/try-it-phone";
+import { LandingBingoShowcase } from "@/components/landing/try-it-phone";
 import { useReveal } from "@/components/landing/use-reveal";
 import {
   FaqSection,
@@ -40,7 +40,7 @@ export function LandingPage() {
       <LandingHeader signedIn={signedIn} />
       <section id="top" className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-8 px-6 pb-12 pt-10 sm:gap-14 sm:pb-[88px] sm:pt-14">
         <HeroCopy />
-        <TryItPhone />
+        <LandingBingoShowcase />
       </section>
       <FreeMoneyBanner />
       <ProblemSection />

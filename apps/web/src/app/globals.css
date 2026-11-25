@@ -14,6 +14,10 @@ body {
   overflow: hidden;
 }
 
+html.delulu-clip [data-app-splash] {
+  display: none;
+}
+
 /*
  * Pins native UI (scrollbars, form controls, autofill) to whichever theme is
  * actually applied via the .dark class — without this, the viewport's

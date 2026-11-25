@@ -2,144 +2,123 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DollarSign, MessageCircle, X } from "lucide-react";
-import { Chip, ConfettiStatic, Lulu, gameButtonClass } from "@/components/ds";
-import { cn } from "@/lib/utils";
+import { BingoBoard } from "@/components/bingo/bingo-board";
+import { buildSquares, type BingoView } from "@/lib/bingo/view";
 
-const HABITS = [
-  { id: "read", label: "Read", word: "read for 30 minutes" },
-  { id: "sugar", label: "No sugar", word: "skip sugar" },
-  { id: "journal", label: "Journal", word: "write one journal page" },
-  { id: "gym", label: "Workout", word: "work out for 20 minutes" },
-  { id: "walk", label: "Walk 10k", word: "walk 10,000 steps" },
-] as const;
-
-type HabitId = (typeof HABITS)[number]["id"];
-type Stake = "word" | "money";
+/** The three cards the homepage rotates: the same board you see when you open one. */
+const SHOWCASE = ["workout-week", "reading-week", "prayer-week"] as const;
 
 /**
- * Hero demo: a phone running a mini "New contract" screen. Habits auto-cycle
- * until the visitor taps one; the stake toggle switches Lulu's mood.
+ * Hero visual: a real Bingo card (workout, then reading, then prayer), built
+ * with the same board as the Bingo page. Falls back to those cards' missions
+ * if the list hasn't loaded yet.
  */
-export function TryItPhone() {
-  const [habit, setHabit] = useState<HabitId>("read");
-  const [auto, setAuto] = useState(true);
-  const [stake, setStake] = useState<Stake>("money");
+type Card = { slug: string; title: string; durationDays: number; perProof: number; missions: { title: string; bonus: boolean }[] };
+
+const FALLBACK: Card[] = [
+  {
+    slug: "workout-week",
+    title: "Workout Week",
+    durationDays: 7,
+    perProof: 10,
+    missions: [
+      "Morning stretch",
+      "A 20-minute walk or run",
+      "30 squats",
+      "Your workout selfie",
+      "A healthy meal after you train",
+      "Plank for 60 seconds",
+      "Your post-workout glow",
+    ].map((title) => ({ title, bonus: false })),
+  },
+  {
+    slug: "reading-week",
+    title: "Read Every Day",
+    durationDays: 7,
+    perProof: 10,
+    missions: [
+      "The book you're reading",
+      "Your reading spot",
+      "A page that made you think",
+      "Read with your favourite drink",
+      "A line you love from your book",
+      "How far you've read",
+      "Finished a chapter selfie",
+    ].map((title) => ({ title, bonus: false })),
+  },
+  {
+    slug: "prayer-week",
+    title: "Prayer Week",
+    durationDays: 7,
+    perProof: 10,
+    missions: [
+      "You praying this morning",
+      "Your prayer spot",
+      "You praying before a meal",
+      "A prayer you wrote down",
+      "You praying with someone",
+      "You praying at night",
+      "Your end-of-week prayer selfie",
+    ].map((title) => ({ title, bonus: false })),
+  },
+];
+
+function fromBingo(b: BingoView): Card {
+  const entry = [...b.tiers].sort((a, c) => a.stake - c.stake)[0];
+  return {
+    slug: b.slug,
+    title: b.title,
+    durationDays: b.durationDays,
+    perProof: entry?.rewardPerSquare ?? b.rewards.perProof,
+    missions: b.missions.filter((m) => !m.bonus).slice(0, 9).map((m) => ({ title: m.title, bonus: false })),
+  };
+}
+
+export function LandingBingoShowcase() {
+  const [cards, setCards] = useState<Card[]>(FALLBACK);
+  const [i, setI] = useState(0);
 
   useEffect(() => {
-    if (!auto) return;
-    const id = window.setInterval(() => {
-      setHabit((h) => {
-        const i = HABITS.findIndex((x) => x.id === h);
-        return HABITS[(i + 1) % HABITS.length].id;
-      });
-    }, 2600);
-    return () => window.clearInterval(id);
-  }, [auto]);
+    let alive = true;
+    fetch("/api/bingo")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { bingos?: BingoView[] } | null) => {
+        if (!alive || !body?.bingos) return;
+        const picked = SHOWCASE.map((slug) => body.bingos!.find((b) => b.slug === slug)).filter((b): b is BingoView => !!b).map(fromBingo);
+        if (picked.length) setCards(picked);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  const word = stake === "word";
-  const current = HABITS.find((h) => h.id === habit)!;
+  useEffect(() => {
+    const id = window.setInterval(() => setI((n) => (n + 1) % cards.length), 3200);
+    return () => window.clearInterval(id);
+  }, [cards.length]);
+
+  const card = cards[i] ?? cards[0];
+  const squares = buildSquares(card.missions, [], false);
 
   return (
     <div className="relative flex min-w-0 flex-[1_1_420px] justify-center py-5">
-      <ConfettiStatic
-        pieces={[
-          { left: "6%", top: "10%", color: "#161615", rotate: 20 },
-          { left: "90%", top: "6%", color: "#EC5B8D", rotate: -25, w: 10, h: 16 },
-          { left: "94%", top: "70%", color: "#2DB36F", rotate: 35 },
-          { left: "2%", top: "78%", color: "#F6C324", rotate: -15, w: 14, h: 20 },
-        ]}
-      />
-      <div className="absolute right-[calc(50%-230px)] top-0 z-[3]">
-        <span key={stake} className="inline-block animate-bounce-in">
-          <span className="inline-block">
-            <Lulu size={104} mood={word ? "dream" : "kept"} />
-          </span>
-        </span>
-      </div>
-
-      <div className="relative z-[2] w-[340px] max-w-full animate-rise rounded-[50px] bg-ink p-[11px] shadow-lift">
-        <div className="absolute left-1/2 top-5 z-[2] -ml-[46px] h-[26px] w-[92px] rounded-[14px] bg-ink" aria-hidden />
-        <div className="flex min-h-[440px] flex-col gap-3.5 overflow-hidden rounded-[40px] bg-paper px-4 pb-[18px] pt-[54px] sm:min-h-[600px]">
-          <div className="flex items-center justify-between">
-            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-line bg-white" aria-hidden>
-              <X className="h-4 w-4" strokeWidth={2.4} />
-            </span>
-            <span className="text-[15px] font-bold">New contract</span>
-            <span className="w-[34px]" />
+      <Link
+        href={`/bingo/${card.slug}`}
+        aria-label={`${card.title} Bingo`}
+        className="block w-full max-w-[420px] text-ink no-underline"
+      >
+        <div key={card.slug} className="animate-rise">
+          <p className="label-mono m-0 text-[11px] text-muted-foreground">{card.durationDays}-day Bingo</p>
+          <h2 className="m-0 mt-1 font-display text-[34px] font-extrabold uppercase leading-[0.92]" aria-live="polite">
+            {card.title}
+          </h2>
+          <div className="mt-4">
+            <BingoBoard squares={squares} reward={card.perProof > 0 ? { perSquare: card.perProof } : undefined} />
           </div>
-
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pick a habit">
-            {HABITS.map((h) => (
-              <Chip
-                key={h.id}
-                selected={habit === h.id}
-                className="h-7 px-2.5 text-[11px]"
-                onClick={() => {
-                  setHabit(h.id);
-                  setAuto(false);
-                }}
-              >
-                {h.label}
-              </Chip>
-            ))}
-          </div>
-
-          <div className="rounded-[20px] border-2 border-line bg-white p-4 shadow-edge">
-            <div className="label-mono mb-2 text-[9px] text-muted-foreground">Contract Nº 0001</div>
-            <p className="m-0 text-lg font-semibold leading-[1.6]" aria-live="polite">
-              I&apos;ll{" "}
-              <span
-                key={current.id}
-                className="inline-block animate-bounce-in rounded-t-md border-b-[3px] border-yellow bg-yellow-soft px-1.5 font-bold"
-              >
-                {current.word}
-              </span>{" "}
-              every day for 7 days. If I miss a day,{" "}
-              <span
-                className={cn(
-                  "rounded-t-md border-b-[3px] px-1.5 font-bold",
-                  word ? "border-pink-bright bg-pink-soft" : "border-yellow bg-yellow-soft",
-                )}
-              >
-                {word ? "I'll call my dad and admit I quit" : "I lose the money I put down"}
-              </span>
-              .
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2" role="group" aria-label="What's on the line">
-            <button
-              type="button"
-              aria-pressed={!word}
-              onClick={() => setStake("money")}
-              className={cn(
-                "press-edge flex h-[50px] items-center justify-center gap-1.5 rounded-[14px] border-2 text-sm font-extrabold",
-                !word ? "border-ink bg-yellow-soft shadow-[0_3px_0_#161615]" : "border-line bg-white shadow-edge-sm",
-              )}
-            >
-              <DollarSign className="h-[18px] w-[18px] text-green" strokeWidth={2.6} />
-              Money
-            </button>
-            <button
-              type="button"
-              aria-pressed={word}
-              onClick={() => setStake("word")}
-              className={cn(
-                "press-edge flex h-[50px] items-center justify-center gap-1.5 rounded-[14px] border-2 text-sm font-extrabold",
-                word ? "border-ink bg-pink-soft shadow-[0_3px_0_#161615]" : "border-line bg-white shadow-edge-sm",
-              )}
-            >
-              <MessageCircle className="h-[18px] w-[18px] text-pink" strokeWidth={2.4} />
-              My word
-            </button>
-          </div>
-
-          <Link href="/sign-in" className={gameButtonClass({ variant: "ink", full: true, className: "mt-auto h-[54px] text-sm" })}>
-            Sign this contract
-          </Link>
+          <p className="m-0 mt-3 text-[13px] font-extrabold text-muted-foreground">Play this card · one proof a day</p>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }

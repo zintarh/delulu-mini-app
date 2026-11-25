@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { erc20Abi, parseUnits } from "viem";
+import { erc20Abi, keccak256, parseUnits, toHex } from "viem";
+import { useVaultFunds, useVaultStake } from "@/hooks/use-vault-stake";
 import { Loader2 } from "lucide-react";
 import { Coin, Lulu, Trophy } from "@/components/ds";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
@@ -101,6 +102,8 @@ export function CheerPanel({
   const { formatted } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const balance = Number(formatted) || 0;
   const { writeContractAsync } = useUnifiedWriteContract();
+  const vault = useVaultFunds(address);
+  const { cheerAndWait } = useVaultStake();
   const [amount, setAmount] = useState<number>(CHEER_AMOUNTS[0]);
   const [step, setStep] = useState<"pick" | "sending" | "counting" | "done">("pick");
   const [error, setError] = useState<string | null>(null);
@@ -119,12 +122,16 @@ export function CheerPanel({
       setStep("sending");
       let hash: `0x${string}`;
       try {
-        hash = await writeContractAsync({
-          address: GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`,
-          abi: erc20Abi,
-          functionName: "transfer",
-          args: [ownerWallet as `0x${string}`, parseUnits(String(amount), 18)],
-        });
+        // Through Delulu's RewardVault once it's live: the cheer lands on our contract
+        // (counted on-chain), the player gets it minus a small cut that feeds the pot.
+        hash = vault.live
+          ? await cheerAndWait(ownerWallet as `0x${string}`, parseUnits(String(amount), 18), keccak256(toHex(`cheer:${attemptId}`)))
+          : await writeContractAsync({
+              address: GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`,
+              abi: erc20Abi,
+              functionName: "transfer",
+              args: [ownerWallet as `0x${string}`, parseUnits(String(amount), 18)],
+            });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
         setError(/reject|denied|cancel/i.test(msg) ? "Cancelled — nothing was sent." : "Couldn't send. Check you have a little CELO for gas.");
@@ -213,7 +220,7 @@ export function CheerPanel({
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔥"}
         {step === "sending" ? "Confirm in your wallet…" : step === "counting" ? "Counting your vote…" : address && balance < amount ? "Not enough G$" : `Cheer ${k(amount)} G$`}
       </button>
-      <p className="m-0 mt-1.5 text-center text-[10px] font-semibold text-muted-foreground">Goes straight to {ownerName} · 1 cheer per card a day</p>
+      <p className="m-0 mt-1.5 text-center text-[10px] font-semibold text-muted-foreground">{vault.live ? `Goes to ${ownerName} · 5% feeds the pot` : `Goes straight to ${ownerName}`} · 1 cheer per card a day</p>
     </div>
   );
 }

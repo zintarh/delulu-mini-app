@@ -2,26 +2,34 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Check, CheckCircle2, Copy, Loader2, Search, ShieldCheck, Ticket, UserRound, X } from "lucide-react";
+import { Check, CheckCircle2, Coins, Copy, Loader2, Search, ShieldCheck, Ticket, UserRound, Wallet, X } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { GameCard, Lulu, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
-import type { PartnerFriend, PartnerReport } from "@/lib/referral/partners";
+import type { PartnerFriend, PartnerMissing, PartnerReport } from "@/lib/referral/partners";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "completed" | "in_progress" | "not_verified" | "not_joined" | "profile" | "back3" | "back7";
+type Filter = "all" | "completed" | "fell_off" | PartnerMissing;
+
+const MISSING_LABEL: Record<PartnerMissing, string> = {
+  verify: "Face check left",
+  claim: "Hasn't claimed G$",
+  stake: "Hasn't staked G$",
+  join: "Hasn't joined",
+  points: "Short on points",
+};
 
 const FILTERS: { key: Filter; label: string; test: (f: PartnerFriend) => boolean }[] = [
   { key: "all", label: "All", test: () => true },
-  { key: "completed", label: "Completed", test: (f) => f.completed },
-  { key: "in_progress", label: "In progress", test: (f) => !f.completed },
-  { key: "not_verified", label: "Not verified", test: (f) => !f.verified },
-  { key: "not_joined", label: "Not joined", test: (f) => !f.joined },
-  { key: "profile", label: "Profile not done", test: (f) => !f.profileComplete },
-  { key: "back3", label: "Back 3+ days", test: (f) => f.daysBack >= 3 },
-  { key: "back7", label: "Back 7+ days", test: (f) => f.daysBack >= 7 },
+  { key: "completed", label: "Counted", test: (f) => f.completed },
+  { key: "fell_off", label: "Fell off", test: (f) => !f.completed },
+  { key: "verify", label: "No face check", test: (f) => f.missing === "verify" },
+  { key: "claim", label: "Didn't claim", test: (f) => f.missing === "claim" },
+  { key: "stake", label: "Didn't stake", test: (f) => f.missing === "stake" },
+  { key: "join", label: "Didn't join", test: (f) => f.missing === "join" },
+  { key: "points", label: "Short on points", test: (f) => f.missing === "points" },
 ];
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -37,6 +45,7 @@ export default function PartnerPage() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -94,7 +103,7 @@ export default function PartnerPage() {
 
   return (
     <MainPage>
-      <PageBackHeader title={`${data.partner.name}'s referrals`} subtitle={`${fmt(t.brought)} joined · ${fmt(t.completed)} completed`} />
+      <PageBackHeader title={`${data.partner.name}'s referrals`} subtitle={`${fmt(t.brought)} signed up · ${fmt(t.completed)} counted`} />
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pb-10 pt-2">
         <GameCard tone="yellow" className="p-4">
           <p className="label-mono m-0 text-[10px] text-[#8a6a00]">Your link</p>
@@ -102,20 +111,35 @@ export default function PartnerPage() {
             <span className="min-w-0 flex-1 truncate font-display text-[22px] font-extrabold uppercase">{data.partner.link.replace(/^https?:\/\/(www\.)?/, "")}</span>
             <button
               type="button"
-              onClick={() => void navigator.clipboard.writeText(data.partner.link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })}
+              onClick={() => {
+                setCopyError("");
+                void navigator.clipboard.writeText(data.partner.link).then(
+                  () => { setCopied(true); setTimeout(() => setCopied(false), 1500); },
+                  () => setCopyError("Couldn't copy the link. Select it and copy it yourself."),
+                );
+              }}
               className={gameButtonClass({ variant: "ink", size: "sm" })}
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
             </button>
           </div>
+          {copyError ? <p className="m-0 mt-2 text-[12px] font-bold text-orange">{copyError}</p> : null}
+          <p className="m-0 mt-3 text-[13px] font-extrabold text-[#5f4a00]">A friend counts only after all of this</p>
+          <ol className="m-0 mt-1.5 list-decimal space-y-1 pl-4 text-[12px] font-semibold text-[#5f4a00]">
+            <li>They open your link and sign up.</li>
+            <li>They pass the GoodDollar face check.</li>
+            <li>They claim their free G$.</li>
+            <li>They stake that G$ on a Delulu campaign. Staking is what GoodDollar counts as actually using the contracts.</li>
+            <li>They earn {fmt(data.partner.minPoints)} points. That is one kept photo on a 100 G$ card.</li>
+          </ol>
           <p className="m-0 mt-2 text-[12px] font-semibold text-[#5f4a00]">
-            Completed = signed up, face-verified, joined a campaign and earned {fmt(data.partner.minPoints)} points.
+            Fell off means they signed up and stopped before that. Search a name or wallet, then use Fell off to see the step they still need.
           </p>
         </GameCard>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Brought" value={t.brought} />
-          <Stat label="Completed" value={t.completed} sub={`${pct(t.completed)}%`} strong />
+          <Stat label="Counted" value={t.completed} sub={`${pct(t.completed)}%`} strong />
           <Stat label="Back 3+ days" value={t.back3} sub={`${pct(t.back3)}%`} />
           <Stat label="Back 7+ days" value={t.back7} sub={`${pct(t.back7)}%`} />
         </div>
@@ -124,10 +148,11 @@ export default function PartnerPage() {
           <p className="label-mono m-0 text-[10px] text-muted-foreground">How far they got</p>
           <div className="mt-3 flex flex-col gap-2.5">
             <Step icon={UserRound} label="Signed up" n={t.brought} of={t.brought} />
-            <Step icon={UserRound} label="Finished their profile" n={t.brought - t.profileIncomplete} of={t.brought} />
-            <Step icon={ShieldCheck} label="Face-verified" n={t.verified} of={t.brought} />
+            <Step icon={ShieldCheck} label="Face check" n={t.verified} of={t.brought} />
+            <Step icon={Coins} label="Claimed free G$" n={t.claimed} of={t.brought} />
+            <Step icon={Wallet} label="Staked that G$" n={t.staked} of={t.brought} />
             <Step icon={Ticket} label="Joined a campaign" n={t.joined} of={t.brought} />
-            <Step icon={CheckCircle2} label={`Completed (${fmt(data.partner.minPoints)} pts)`} n={t.completed} of={t.brought} />
+            <Step icon={CheckCircle2} label={`Counted (${fmt(data.partner.minPoints)} pts)`} n={t.completed} of={t.brought} />
           </div>
         </GameCard>
 
@@ -183,14 +208,17 @@ export default function PartnerPage() {
                       <p className="m-0 mt-0.5 font-mono text-[11px] text-muted-foreground">{short(f.wallet)} · joined {date(f.signedUpAt)}</p>
                     </div>
                     {f.completed ? (
-                      <span className="shrink-0 rounded-full bg-green px-2.5 py-1 text-[11px] font-extrabold text-ink">Completed</span>
+                      <span className="shrink-0 rounded-full bg-green px-2.5 py-1 text-[11px] font-extrabold text-ink">Counted</span>
                     ) : (
-                      <span className="shrink-0 rounded-full bg-yellow-soft px-2.5 py-1 text-[11px] font-extrabold text-[#8a6a00]">In progress</span>
+                      <span className="shrink-0 rounded-full bg-yellow-soft px-2.5 py-1 text-[11px] font-extrabold text-[#8a6a00]">
+                        {f.missing ? MISSING_LABEL[f.missing] : "Fell off"}
+                      </span>
                     )}
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    <Badge ok={f.profileComplete} label="Profile" />
-                    <Badge ok={f.verified} label="Verified" />
+                    <Badge ok={f.verified} label="Face check" />
+                    <Badge ok={f.claimed} label="Claimed" />
+                    <Badge ok={f.staked} label="Staked" />
                     <Badge ok={f.joined} label="Joined" />
                     <Badge ok={f.points >= data.partner.minPoints} label={`${fmt(f.points)} / ${fmt(data.partner.minPoints)} pts`} />
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold">

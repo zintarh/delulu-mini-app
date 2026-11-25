@@ -8,6 +8,8 @@ export type BingoSquareView = {
   /** filled = approved and on-chain; confirming = approved, proof tx pending; missed = cycle over, never filled */
   state: "empty" | "confirming" | "filled" | "missed";
   photoUrl: string | null;
+  /** Kept alive by a paid streak freeze (no photo). */
+  frozen?: boolean;
   filledAt: string | null;
 };
 
@@ -134,7 +136,8 @@ export function buildSquares(missions: BingoMission[], squares: BingoSquareRow[]
       bonus: m.bonus,
       state,
       // A pending proof is the player's own photo — shown only on their card (see callers).
-      photoUrl: s ? s.proof_url : null,
+      photoUrl: s && !String(s.proof_url ?? "").startsWith("freeze:") ? s.proof_url : null,
+      frozen: !!s && String(s.proof_url ?? "").startsWith("freeze:"),
       filledAt: s?.filled_at ?? null,
     };
   });

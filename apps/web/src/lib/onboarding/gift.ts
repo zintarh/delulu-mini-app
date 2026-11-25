@@ -101,6 +101,9 @@ export async function evaluateAndCreditOnboardingGift(
         onboarding_gift_reward_id: result.rewardId,
         onboarding_gift_tx_hash: result.txHash,
         onboarding_gift_paid_at: new Date().toISOString(),
+        // Stake credit has nothing to claim: it's already "theirs" to stake, so the
+        // welcome flow skips the claim and goes straight to joining a Bingo with it.
+        ...(result.stakeCredit ? { onboarding_gift_claimed_at: new Date().toISOString() } : {}),
       })
       .eq("address", wallet);
     return { status: "sent", claimedAt: null, justGranted: true };

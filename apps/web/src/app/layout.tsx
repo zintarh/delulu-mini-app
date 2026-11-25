@@ -98,6 +98,11 @@ export default function RootLayout({
         />
         {/* Time-of-day background, set before first paint (see lib/daypart). */}
         <script dangerouslySetInnerHTML={{ __html: DAYPART_BOOT_SCRIPT }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(location.pathname.indexOf("/how-it-works")===0)document.documentElement.classList.add("delulu-clip");`,
+          }}
+        />
       </head>
       <body
         className={`${body.variable} ${display.variable} ${mono.variable} ${brand.variable} antialiased`}

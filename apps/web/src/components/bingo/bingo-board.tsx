@@ -60,7 +60,7 @@ export function BingoBoard({
   return (
     <div
       className={cn(
-        "relative rounded-[28px] border-2 border-ink bg-white p-3 shadow-[0_6px_0_#161615]",
+        "relative rounded-[28px] border-2 border-ink bg-white p-3 shadow-[0_6px_0_#161615] [transform:translateZ(0)]",
         // Faint dot grid: a board you stick things on.
         "bg-[radial-gradient(#e6e6e0_1.2px,transparent_1.2px)] [background-size:14px_14px]",
         className,
@@ -206,7 +206,7 @@ function Cell({ square: s, sticker, className }: { square: BingoSquareView; stic
       style={photo || missed ? undefined : { background: squareTint(s.index).bg }}
     >
       {photo ? (
-        <ProofThumb src={s.photoUrl!} px={320} className="absolute inset-0 h-full w-full object-cover" />
+        <ProofThumb src={s.photoUrl!} px={sticker <= 22 ? 96 : 160} className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <MissionSticker title={s.title} size={sticker} muted={missed} />
       )}
@@ -246,16 +246,16 @@ export function BingoBoardBackground({
   const row = squares.length <= 3;
   const layout = !row ? "grid-cols-3 grid-rows-3" : stack ? "grid-cols-1 grid-rows-3" : "grid-cols-3 grid-rows-1";
   return (
-    <div className={cn("grid gap-[2px] bg-white/80", layout, className)} aria-hidden>
+    <div className={cn("grid gap-[2px] bg-white/80 [transform:translateZ(0)]", layout, className)} aria-hidden>
       {squares.slice(0, 9).map((s) => (
         <Cell key={s.index} square={s} sticker={sticker ?? (row ? 64 : 44)} className="aspect-auto h-full min-h-0" />
       ))}
-      {/* A 7-square card on a 3×3 leaves two cells: fill them (Lulu + a BINGO tile) instead of blank white. */}
+      {/* A 7-square card on a 3×3 leaves two cells. A flat face, not the full Lulu drawing — that SVG is heavy enough to hitch the scroll when a row of cards is on screen. */}
       {!row && squares.length < 9
         ? Array.from({ length: 9 - Math.min(9, squares.length) }, (_, i) => (
             <span key={`fill-${i}`} className={cn("flex h-full min-h-0 items-center justify-center", i % 2 === 0 ? "bg-yellow" : "bg-ink")}>
               {i % 2 === 0 ? (
-                <Lulu size={Math.round((sticker ?? 44) * 0.9)} animated={false} />
+                <BoardFace size={Math.round((sticker ?? 44) * 0.9)} />
               ) : (
                 <span className="font-display text-[11px] font-extrabold uppercase tracking-wide text-yellow">Bingo</span>
               )}
@@ -263,5 +263,17 @@ export function BingoBoardBackground({
           ))
         : null}
     </div>
+  );
+}
+
+/** A Lulu-like face for the spare squares on a list card. Flat fills, no gradients. */
+function BoardFace({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden className="shrink-0">
+      <circle cx="32" cy="34" r="22" fill="#F6C324" stroke="#161615" strokeWidth="3" />
+      <circle cx="24" cy="32" r="2.4" fill="#161615" />
+      <circle cx="40" cy="32" r="2.4" fill="#161615" />
+      <path d="M26 40q6 6 12 0" fill="none" stroke="#161615" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
   );
 }

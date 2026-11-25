@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBalance } from "wagmi";
-import { ArrowDownLeft, ArrowUpRight, Check, Copy, Loader2, Lock } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Copy, Landmark, Loader2, Lock } from "lucide-react";
 
 import { formatUnits } from "viem";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,9 @@ import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
 import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
+import { CashOutSheet } from "@/components/cashout/cash-out-sheet";
+import { useCashOutInfo } from "@/hooks/use-cash-out-info";
+import { formatNaira, nairaFor } from "@/lib/cashout/goodcash";
 import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { MainPage } from "@/components/main-app-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
@@ -94,6 +97,8 @@ export default function RewardsPage() {
   const router = useRouter();
   const { address, isConnected, isReady } = useAuth();
   const [sendOpen, setSendOpen] = useState(false);
+  const [cashOutOpen, setCashOutOpen] = useState(false);
+  const cashOut = useCashOutInfo();
   const [copied, setCopied] = useState(false);
   const { open: openClaimPanel } = useClaimPanel();
   const { start: openVerify } = useFaceCheck();
@@ -294,6 +299,8 @@ export default function RewardsPage() {
   const showUnverified = claimReady && !isWhitelisted && !isGdLoading && gdDisplay <= 0;
 
   const balancesLoaded = !isGdLoading && !isCusdLoading && !isUsdtLoading && !isCeloLoading;
+  // Cash out to a Nigerian bank: only where it's on, for players in Nigeria holding G$.
+  const canCashOut = cashOut.enabled && cashOut.inNigeria && gdBalanceNum != null && gdDisplay >= 1;
   const hasSendableBalance =
     gdDisplay > 0 || cusdDisplay > 0 || usdtDisplay > 0 || celoDisplay > 0;
 
@@ -442,6 +449,11 @@ export default function RewardsPage() {
                     <div className="label-mono mt-1 truncate text-[10px] text-muted-foreground">
                       {otherBalancesLine ?? (hasAnyUsdValue && balancesLoaded ? `≈ $${totalUsd.toFixed(2)}` : "\u00a0")}
                     </div>
+                    {canCashOut && cashOut.nairaPerG ? (
+                      <div className="mt-1 text-[12px] font-extrabold tabular-nums text-green-edge">
+                        ≈ {formatNaira(nairaFor(gdDisplay, cashOut.nairaPerG))} in your bank
+                      </div>
+                    ) : null}
                     {gdError ? (
                       <p className="mt-1 text-[11px] font-semibold text-orange">Couldn&apos;t load your balance. Try again.</p>
                     ) : null}
@@ -475,6 +487,12 @@ export default function RewardsPage() {
                     {copied ? "Copied" : "Copy"}
                   </GameButton>
                 </div>
+                {canCashOut ? (
+                  <GameButton variant="green" size="sm" full className="mt-2" onClick={() => setCashOutOpen(true)}>
+                    <Landmark className="h-4 w-4" strokeWidth={2.2} />
+                    Cash out to bank
+                  </GameButton>
+                ) : null}
               </GameCard>
 
               {/* The 2-week leaderboard prize and where you stand. */}
@@ -602,6 +620,14 @@ export default function RewardsPage() {
           setOptimisticSpend({ gdollar: 0, celo: 0, cusd: 0, usdt: 0 });
           void Promise.all([refetchGd(), refetchCusd(), refetchUsdt(), refetchCelo()]);
         }}
+      />
+
+      <CashOutSheet
+        open={cashOutOpen}
+        onOpenChange={setCashOutOpen}
+        inNigeria={cashOut.inNigeria}
+        onSend={() => { setCashOutOpen(false); setSendOpen(true); }}
+        onCashedOut={() => { void Promise.all([refetchGd(), refetchUsdt()]); }}
       />
     </>
   );

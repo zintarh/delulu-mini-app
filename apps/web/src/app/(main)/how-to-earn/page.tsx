@@ -2,12 +2,8 @@
 
 import Link from "next/link";
 import { usePublicRewards } from "@/hooks/use-public-rewards";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronRight, Play, Send } from "lucide-react";
-import { AppIntroView } from "@/components/app-intro";
-import { useAuth } from "@/hooks/use-auth";
-import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
+import { ChevronRight, Send } from "lucide-react";
+import { WatchHowItWorks } from "@/components/how-it-works-video";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
@@ -79,9 +75,6 @@ export default function HowToEarnPage() {
   const referralTotal = round.reward;
   const referralFirst = roundFirstPayment(round);
   const stats = data?.stats;
-  const [introOpen, setIntroOpen] = useState(false);
-  const { authenticated } = useAuth();
-  const router = useRouter();
 
   return (
     <MainPage>
@@ -104,18 +97,11 @@ export default function HowToEarnPage() {
           </div>
         ) : null}
 
-        {/* How it works: replays the first-run intro instead of repeating it here. */}
-        <button
-          type="button"
-          onClick={() => setIntroOpen(true)}
-          className="press-edge flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-left text-ink shadow-edge"
-        >
+        <div className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 text-ink shadow-edge">
           <Lulu size={36} animated={false} />
-          <span className="min-w-0 flex-1 font-extrabold leading-tight">How Delulu works</span>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow shadow-edge-yellow">
-            <Play className="h-4 w-4 translate-x-[1px] fill-current" strokeWidth={2.4} />
-          </span>
-        </button>
+          <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-muted-foreground">A short video of joining, points, and the share. It stays in the app.</span>
+          <WatchHowItWorks className="shrink-0 text-[13px]" />
+        </div>
 
         {/* Ways to earn — how Delulu pays now; amounts live, ≈ ₦ at today's G$ rate. */}
         <section>
@@ -208,18 +194,6 @@ export default function HowToEarnPage() {
           Pick a Bingo
         </Link>
       </div>
-
-      {introOpen ? (
-        <AppIntroView
-          guest={!authenticated}
-          onDone={() => setIntroOpen(false)}
-          onStart={() => {
-            setIntroOpen(false);
-            persistSignInRedirect("/how-to-earn");
-            router.push(buildSignInUrl("/how-to-earn"));
-          }}
-        />
-      ) : null}
     </MainPage>
   );
 }

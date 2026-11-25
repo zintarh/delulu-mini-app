@@ -9,6 +9,11 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @dev RewardVault's funding entry for players' missed stakes (source 1 = player forfeits).
+interface IRewardVaultFunding {
+    function fundPoolFrom(address token, uint256 amount, uint8 source) external;
+}
+
 /**
  * @title ForfeitMarket
  * @notice UUPS-upgradeable personal stake-or-lose commitment contract. A creator escrows
@@ -43,6 +48,7 @@ contract ForfeitMarket is
     error VerifierInvitePending();
     error TokenNotApproved();
     error NothingToClaim();
+    error RewardVaultNotSet();
 
     // --- CONSTANTS ---
     uint256 public constant BPS_DENOMINATOR = 10000;
@@ -134,6 +140,13 @@ contract ForfeitMarket is
     ///      address(0) and breaking every fee transfer in _distributeForfeitedStake.
     mapping(address => mapping(address => uint256)) public pendingFriendReward; // recipient => token => amount
 
+    /// @dev v3 (appended after pendingFriendReward — never reorder slots above). The
+    ///      RewardVault that receives the community pool as player-funded rewards, and the
+    ///      only caller allowed to stake on a player's behalf (rollover / stake credit).
+    address public rewardVault;
+    /// @dev token => community-pool G$ sent to the reward vault since v3.
+    mapping(address => uint256) public sweptToVaultByToken;
+
     // --- EVENTS ---
     event CommitmentCreated(
         uint256 indexed commitmentId,
@@ -185,6 +198,9 @@ contract ForfeitMarket is
     event PlatformFeeAddressUpdated(address indexed newPlatformFeeAddress);
     event CommunityPoolWithdrawn(address indexed token, address indexed to, uint256 amount);
     event VerifierInviteRevoked(uint256 indexed commitmentId, address indexed newVerifier);
+    event RewardVaultUpdated(address indexed rewardVault);
+    event CommunityPoolSweptToVault(address indexed token, address indexed rewardVault, uint256 amount, address indexed caller);
+    event CommitmentStakedByVault(uint256 indexed commitmentId, address indexed creator, uint256 stakeAmount);
     /// @dev Emitted when a forfeiture's destination transfer fails (e.g. the token
     ///      blacklisted or paused that address) and the remainder was routed to the
     ///      community pool instead, so it doesn't get permanently stuck.
@@ -260,6 +276,27 @@ contract ForfeitMarket is
         emit CommunityPoolWithdrawn(token, to, amount);
     }
 
+    function setRewardVault(address _rewardVault) external onlyOwner {
+        rewardVault = _rewardVault;
+        emit RewardVaultUpdated(_rewardVault);
+    }
+
+    /**
+     * @notice Send players' missed stakes from the community pool to the RewardVault, where
+     *         they fund the rewards of the players who kept their goals. Anyone can call it:
+     *         the money can only go to the vault, recorded there as player-funded.
+     */
+    function sweepCommunityPoolToVault(address token, uint256 amount) external nonReentrant {
+        address vault = rewardVault;
+        if (vault == address(0)) revert RewardVaultNotSet();
+        if (amount == 0 || amount > communityPoolBalance[token]) revert InvalidInput();
+        communityPoolBalance[token] -= amount;
+        sweptToVaultByToken[token] += amount;
+        IERC20(token).forceApprove(vault, amount);
+        IRewardVaultFunding(vault).fundPoolFrom(token, amount, 1);
+        emit CommunityPoolSweptToVault(token, vault, amount, msg.sender);
+    }
+
     // --- COMMITMENT LIFECYCLE ---
 
     /**
@@ -281,6 +318,52 @@ contract ForfeitMarket is
         address verifier,
         bytes32 verifierInviteCodeHash
     ) external nonReentrant whenNotPaused returns (uint256 commitmentId) {
+        return _createCommitment(
+            msg.sender, msg.sender, token, stakeAmount, destinationType, destinationAddr,
+            cadence, totalPeriods, periodSeconds, firstDeadline, verifier, verifierInviteCodeHash
+        );
+    }
+
+    /**
+     * @notice RewardVault only: stake on a player's behalf (rollover of unclaimed rewards,
+     *         or stake-only credit). The player is the creator and gets the stake back on
+     *         success; the vault pays it. Same rules as createCommitment otherwise.
+     */
+    function createCommitmentFor(
+        address creator,
+        address token,
+        uint256 stakeAmount,
+        DestinationType destinationType,
+        address destinationAddr,
+        Cadence cadence,
+        uint32 totalPeriods,
+        uint64 periodSeconds,
+        uint64 firstDeadline,
+        address verifier
+    ) external nonReentrant whenNotPaused returns (uint256 commitmentId) {
+        if (msg.sender != rewardVault || rewardVault == address(0)) revert Unauthorized();
+        if (creator == address(0)) revert InvalidInput();
+        commitmentId = _createCommitment(
+            creator, msg.sender, token, stakeAmount, destinationType, destinationAddr,
+            cadence, totalPeriods, periodSeconds, firstDeadline, verifier, bytes32(0)
+        );
+        emit CommitmentStakedByVault(commitmentId, creator, stakeAmount);
+    }
+
+    function _createCommitment(
+        address creator,
+        address payer,
+        address token,
+        uint256 stakeAmount,
+        DestinationType destinationType,
+        address destinationAddr,
+        Cadence cadence,
+        uint32 totalPeriods,
+        uint64 periodSeconds,
+        uint64 firstDeadline,
+        address verifier,
+        bytes32 verifierInviteCodeHash
+    ) internal returns (uint256 commitmentId) {
         if (token == address(0) || totalPeriods == 0) revert InvalidInput();
         if (!approvedTokens[token]) revert TokenNotApproved();
         // A 0 stake is a deliberate "stake your word" pledge, not a missing
@@ -309,7 +392,7 @@ contract ForfeitMarket is
 
         commitmentId = nextCommitmentId++;
         commitments[commitmentId] = Commitment({
-            creator: msg.sender,
+            creator: creator,
             token: token,
             stakeAmount: stakeAmount,
             destinationType: destinationType,
@@ -332,12 +415,12 @@ contract ForfeitMarket is
         // 0-amount transferFrom as a no-op (standard, but not universal) is an
         // avoidable risk when the call is just as easy to skip.
         if (stakeAmount > 0) {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), stakeAmount);
+            IERC20(token).safeTransferFrom(payer, address(this), stakeAmount);
         }
 
         emit CommitmentCreated(
             commitmentId,
-            msg.sender,
+            creator,
             token,
             stakeAmount,
             destinationType,
@@ -624,6 +707,7 @@ contract ForfeitMarket is
         return "ACTIVE";
     }
 
-    /// @dev Reserved for future storage without breaking upgrades.
-    uint256[44] private __gap;
+    /// @dev Reserved for future storage without breaking upgrades. 44 → 42: v3 added
+    ///      rewardVault and sweptToVaultByToken above.
+    uint256[42] private __gap;
 }

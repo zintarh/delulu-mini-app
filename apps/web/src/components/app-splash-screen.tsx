@@ -49,6 +49,7 @@ export function AppSplashScreen() {
   return (
     <div
       aria-hidden="true"
+      data-app-splash=""
       className={cn(
         "fixed inset-0 z-[9999] flex items-center justify-center bg-background transition-opacity ease-out",
         fading ? "pointer-events-none opacity-0" : "opacity-100",

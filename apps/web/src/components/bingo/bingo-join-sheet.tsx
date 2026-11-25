@@ -17,7 +17,7 @@ import { useJoinCommunityCampaignOnChain } from "@/hooks/use-community-campaign-
 import { ForfeitCadence, ForfeitDestinationType, useCreateForfeitCommitment } from "@/hooks/use-create-forfeit-commitment";
 import { joinCommunityCampaignWithWallet } from "@/lib/community/join-campaign-client";
 import { celebrateCampaignJoin } from "@/lib/celebrate";
-import { GOODDOLLAR_ADDRESSES, getForfeitMarketAddress } from "@/lib/constant";
+import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES, getForfeitMarketAddress, getRewardVaultAddress } from "@/lib/constant";
 import type { BingoView } from "@/lib/bingo/view";
 import { finishRollingStart } from "@/lib/bingo/rolling-client";
 import { rollingFirstDeadline, rollingStartsTomorrow } from "@/lib/bingo/types";
@@ -28,6 +28,7 @@ import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtNgn } from "@/lib/earn/format";
 import { isFirstWeekSlug } from "@/lib/bingo/first-week";
 import { seasonPointsForStake } from "@/lib/season/rules";
+import { useVaultFunds, useVaultStake } from "@/hooks/use-vault-stake";
 
 const DAY_S = 86_400;
 
@@ -89,6 +90,11 @@ export function BingoJoinSheet({
   const smaller = spotsFull && tier ? spots!.bingoStakes.filter((n) => n < tier.stake).sort((a, b) => a - b)[0] : undefined;
   const { formatted, refetch } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
   const balance = Number(formatted) || 0;
+  // G$ already in the player's Delulu rewards (stake credit + unclaimed rewards) can pay a
+  // rolling card's stake straight from the vault — a rollover, no wallet G$ or approval.
+  const vault = useVaultFunds(address);
+  const { stakeFromVaultAndWait } = useVaultStake();
+  const [useWallet, setUseWallet] = useState(false);
 
   // Weekly: CommunityMarket. Rolling: ForfeitMarket.
   const weeklyApproval = useCommunityCampaignTokenApproval("G$");
@@ -100,6 +106,14 @@ export function BingoJoinSheet({
     }
   }, [chainId]);
   const rollingApproval = useTokenApproval(GOODDOLLAR_ADDRESSES.mainnet, forfeitMarket);
+  const rewardVaultAddr = useMemo(() => {
+    try {
+      return getRewardVaultAddress(CELO_MAINNET_ID);
+    } catch {
+      return undefined;
+    }
+  }, []);
+  const vaultApproval = useTokenApproval(GOODDOLLAR_ADDRESSES.mainnet, rewardVaultAddr);
   const { joinCommunityCampaignAndWait } = useJoinCommunityCampaignOnChain();
   const { createCommitmentAndWait } = useCreateForfeitCommitment();
 
@@ -108,7 +122,12 @@ export function BingoJoinSheet({
 
   const required = bingo.missions.filter((m) => !m.bonus).length;
   const perMiss = tier ? (tier.stake * tier.forfeitPct) / 100 : 0;
-  const short = tier ? Math.max(0, tier.stake - balance) : 0;
+  // Rolling cards can take part of the stake from the vault (credit, then rewards) and the rest from the wallet.
+  const vaultPart = rolling && vault.live && tier ? Math.min(vault.total, tier.stake) : 0;
+  const vaultCovers = vaultPart > 0;
+  const payFromVault = vaultCovers && !useWallet;
+  const walletPart = tier ? (payFromVault ? Math.max(0, tier.stake - vaultPart) : tier.stake) : 0;
+  const short = tier ? Math.max(0, walletPart - balance) : 0;
   const lastDay = bingo.cycle ? fmtDay(Date.parse(bingo.cycle.endsAt) - 1) : "";
 
   const rules = useMemo(() => {
@@ -135,7 +154,7 @@ export function BingoJoinSheet({
               ? `Starts tomorrow · 1 photo a day for ${required} days, each day until midnight`
               : `Day 1 is today · 1 photo a day for ${required} days, each day until midnight`,
           },
-          { icon: TriangleAlert, text: `Miss a day: your ${fmtG(tier.stake)} G$ goes to the community pool` },
+          { icon: TriangleAlert, text: vault.live ? `Miss a day: your ${fmtG(tier.stake)} G$ goes to the pot that pays players who finish` : `Miss a day: your ${fmtG(tier.stake)} G$ goes to the community pool` },
           { icon: RotateCcw, text: `Finish all ${required}: your ${fmtG(tier.stake)} G$ comes straight back` },
         ]
       : [
@@ -146,7 +165,7 @@ export function BingoJoinSheet({
           { icon: RotateCcw, text: `Stake back after ${lastDay}, minus missed days` },
         ];
     return [...list, ...(earn ? [earn] : [])];
-  }, [tier, rolling, required, perMiss, lastDay, bingo.rewards]);
+  }, [tier, rolling, required, perMiss, lastDay, bingo.rewards, vault.live]);
 
   const joinWeekly = async () => {
     if (!address || !tier?.campaignId) return;
@@ -160,6 +179,36 @@ export function BingoJoinSheet({
 
   const joinRolling = async () => {
     if (!address || !tier) return;
+    if (payFromVault) {
+      if (walletPart > 0 && vaultApproval.needsApproval(walletPart)) {
+        setStep("approving");
+        await vaultApproval.approve(walletPart);
+      }
+      setStep("joining");
+      const verifier = await fetch("/api/bingo/verifier")
+        .then((r) => r.json())
+        .then((j: { address?: string | null }) => (j.address && /^0x[0-9a-f]{40}$/i.test(j.address) ? (j.address as `0x${string}`) : undefined))
+        .catch(() => undefined);
+      const txHash = await stakeFromVaultAndWait({
+        stakeAmountWei: parseUnits(String(tier.stake), 18),
+        useRewards: true,
+        destinationType: ForfeitDestinationType.CommunityPool,
+        cadence: ForfeitCadence.Daily,
+        totalPeriods: required,
+        periodSeconds: DAY_S,
+        firstDeadline: rollingFirstDeadline(),
+        verifier,
+      });
+      setStep("saving");
+      await finishRollingStart(bingo.slug, address, {
+        txHash,
+        title: `${bingo.title} Bingo`,
+        description: bingo.missions.map((m, i) => `Day ${i + 1}: ${m.title}`).join(" · "),
+      });
+      void vault.refetch();
+      await celebrateCampaignJoin(bingo.title);
+      return;
+    }
     if (rollingApproval.needsApproval(tier.stake)) {
       setStep("approving");
       await rollingApproval.approve(tier.stake);
@@ -280,12 +329,32 @@ export function BingoJoinSheet({
           </p>
         ) : null}
 
-        <div className="flex items-center justify-between text-[13px]">
-          <span className="text-muted-foreground">Your balance</span>
-          <span className={cn("inline-flex items-center gap-1 font-bold", short > 0 && "text-orange")}>
-            <Coin size={16} /> {fmtG(balance)} G$
-          </span>
-        </div>
+        {vaultCovers ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-green-soft px-3 py-2.5 text-[13px]">
+            <span className="flex min-w-0 items-center gap-2 font-bold text-green-edge">
+              <RotateCcw className="h-4 w-4 shrink-0" />
+              {payFromVault
+                ? walletPart > 0
+                  ? `${fmtG(vaultPart)} G$ from your rewards + ${fmtG(walletPart)} from wallet`
+                  : vault.credit + 1e-9 >= (tier?.stake ?? 0)
+                    ? `Paid from your ${fmtG(vault.credit)} G$ stake credit`
+                    : `Paid from your Delulu rewards`
+                : "Paying from your wallet"}
+            </span>
+            <button type="button" onClick={() => setUseWallet((v) => !v)} disabled={busy} className="shrink-0 text-[12px] font-extrabold underline">
+              {payFromVault ? "Use wallet" : "Use rewards"}
+            </button>
+          </div>
+        ) : null}
+
+        {!payFromVault ? (
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-muted-foreground">Your balance</span>
+            <span className={cn("inline-flex items-center gap-1 font-bold", short > 0 && "text-orange")}>
+              <Coin size={16} /> {fmtG(balance)} G$
+            </span>
+          </div>
+        ) : null}
 
         {error ? <p className="rounded-xl bg-orange-soft px-3 py-2 text-[13px] font-semibold text-orange">{error}</p> : null}
 
@@ -294,7 +363,7 @@ export function BingoJoinSheet({
             <Lock className="h-4 w-4 shrink-0" /> Min stake {fmtG(stakeRules.minStake)} G$
           </p>
         ) : short > 0 ? (
-          <LowBalancePanel need={tier?.stake ?? 0} have={balance} />
+          <LowBalancePanel need={walletPart} have={balance} />
         ) : (
           <GameButton variant="yellow" full onClick={() => void join()} disabled={busy || !tier || !address}>
             {label}

@@ -19,7 +19,7 @@ import {
 import { usePostAuthRoute } from "@/hooks/use-post-auth-route";
 import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { useInviter } from "@/hooks/use-inviter";
-import { FirstWeekOffer } from "@/components/first-week-offer";
+import { WeeklyPotCard } from "@/components/landing/sections";
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { gameButtonClass } from "@/components/ds";
@@ -362,8 +362,10 @@ export default function SignInPage() {
             <Wordmark size={26} />
           </Link>
 
-          {/* First thing a new (or invited) player sees: what their first week pays. */}
-          <FirstWeekOffer variant="invite" invitedBy={inviteCode ? inviter.username : null} className="mt-6 animate-rise" />
+          {inviteCode && inviter.username ? (
+            <p className="m-0 mt-6 text-[13px] font-extrabold text-muted-foreground">@{inviter.username} invited you</p>
+          ) : null}
+          <WeeklyPotCard className="mt-4 animate-rise" />
 
           <div className="mt-10">
             <h2 className="m-0 animate-rise text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
