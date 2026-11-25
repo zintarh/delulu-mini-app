@@ -60,16 +60,16 @@ export type FaucetConfig = {
  * ~50–80k each. Units below are ~1.5× those so wallet padding still fits, and
  * the 2× margin covers wallets that set max fee to 2× base fee. Fee math alone
  * is about 0.06 CELO at signup. Every drip instead tops the wallet up to
- * COMFORT_BALANCE_CELO (0.6) so the next stake isn't stranded.
+ * COMFORT_BALANCE_CELO (0.4) so the next stake isn't stranded.
  */
 
 /** Balance a player should hold after a claim so the next transaction has gas. */
-export const COMFORT_BALANCE_CELO = 0.6;
+export const COMFORT_BALANCE_CELO = 0.4;
 export const DEFAULT_FAUCET_CONFIG: FaucetConfig = {
   enabled: true,
   gasMargin: 2,
   stages: {
-    // Each drip fills the wallet back up to 0.6. The cap allows that refill
+    // Each drip fills the wallet back up to 0.4. The cap allows that refill
     // several times, so spending the first drip on fees does not strand them.
     signup: { gasUnits: 120_000, maxPerDripCelo: 1, capCelo: 5 },
     // First goal: approve + create + a couple of days of proof/resolve.
@@ -83,7 +83,7 @@ export const DEFAULT_FAUCET_CONFIG: FaucetConfig = {
       proofWindowDays: 14,
     },
   },
-  // 1,000 CELO/day for face-verified wallets. Each drip still only fills up to 0.6.
+  // 1,000 CELO/day for face-verified wallets. Each drip still only fills up to 0.4.
   limits: { dailyBudgetCelo: 1000, signupsPerIpPerDay: 3, signupsPerSubnetPerDay: 10, minReserveCelo: 0.5 },
   requireCaptcha: true,
 };

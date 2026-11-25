@@ -170,7 +170,7 @@ export default function PlayPage() {
   const router = useRouter();
   const { address } = useAuth();
   const { bingos } = useBingoList();
-  // New players land here straight after the face check. Top them up to 0.6
+  // New players land here straight after the face check. Top them up to 0.4
   // CELO even when GoodDollar already dropped a little gas.
   useEffect(() => {
     if (!address) return;

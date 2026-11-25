@@ -242,7 +242,7 @@ export async function requestGas(
   }
 
   const priced = computeTopUp({ gasUnits: plan.gasUnits, maxFeePerGasWei: maxFee, margin: config.gasMargin, balanceWei });
-  // Fee math alone is ~0.06 CELO. Top the wallet up to 0.6 so the next stake can be sent.
+  // Fee math alone is ~0.06 CELO. Top the wallet up to 0.4 so the next stake can be sent.
   const needWei = applyComfortFloor(priced.needWei, balanceWei, COMFORT_BALANCE_CELO);
   if (needWei === 0n) return { success: true, reason: "has_enough", stage: plan.stage };
   const amountCelo = weiToCelo(needWei);

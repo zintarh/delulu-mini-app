@@ -43,8 +43,8 @@ export function NoGasProvider({ children }: { children: React.ReactNode }) {
   const autoFor = useRef<string | null>(null);
   const timers = useRef<number[]>([]);
 
-  // Any signed-in wallet under 0.6 CELO gets filled back up, including the
-  // 0.01–0.6 band where a fee still fits so the prompt stays closed.
+  // Any signed-in wallet under 0.4 CELO gets filled back up, including the
+  // 0.01–0.4 band where a fee still fits so the prompt stays closed.
   useEffect(() => {
     if (!authenticated || !address || !balanceKnown || balanceWei == null) return;
     if (balanceWei >= COMFORT_WEI) {

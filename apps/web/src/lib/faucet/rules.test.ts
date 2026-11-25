@@ -34,14 +34,14 @@ test("top-up is priced from live fees and only fills the gap", () => {
   assert.equal(weiToCelo(spike.needWei), 0.06);
 });
 
-test("comfort floor tops a player up to 0.6 CELO", () => {
-  assert.equal(COMFORT_BALANCE_CELO, 0.6);
+test("comfort floor tops a player up to 0.4 CELO", () => {
+  assert.equal(COMFORT_BALANCE_CELO, 0.4);
   assert.equal(DEFAULT_FAUCET_CONFIG.limits.dailyBudgetCelo, 1000);
   const empty = applyComfortFloor(celoToWei(0.06), 0n, COMFORT_BALANCE_CELO);
-  assert.equal(weiToCelo(empty), 0.6);
-  const partial = applyComfortFloor(0n, celoToWei(0.2), COMFORT_BALANCE_CELO);
-  assert.equal(weiToCelo(partial), 0.4);
-  const already = applyComfortFloor(0n, celoToWei(0.6), COMFORT_BALANCE_CELO);
+  assert.equal(weiToCelo(empty), 0.4);
+  const partial = applyComfortFloor(0n, celoToWei(0.1), COMFORT_BALANCE_CELO);
+  assert.equal(weiToCelo(partial), 0.3);
+  const already = applyComfortFloor(0n, celoToWei(0.4), COMFORT_BALANCE_CELO);
   assert.equal(already, 0n);
   const feeBigger = applyComfortFloor(celoToWei(0.74), 0n, COMFORT_BALANCE_CELO);
   assert.equal(weiToCelo(feeBigger), 0.74);
