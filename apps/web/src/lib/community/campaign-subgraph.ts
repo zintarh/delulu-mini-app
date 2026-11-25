@@ -1468,3 +1468,47 @@ export async function fetchGStakesSince(sinceUnix: number): Promise<[number, num
     ...j.map((x) => [Number(x.joinedAt) * 1000, gDollarWhole(x.stakeAmount, x.challenge?.joinToken ?? null)] as [number, number]),
   ].filter(([, g]) => g > 0);
 }
+
+const BULK_POINTS_QUERY = `
+  query BulkProofPoints($addresses: [String!]!, $afterP: String!, $afterF: String!) {
+    communityCampaignParticipants(first: 1000, orderBy: id, where: { participantAddress_in: $addresses, id_gt: $afterP }) {
+      id
+      participantAddress
+      pointsTotal
+    }
+    forfeitPeriodResolutions(first: 1000, orderBy: id, where: { creatorAddress_in: $addresses, outcome: "success", id_gt: $afterF }) {
+      id
+      creatorAddress
+      pointsAwarded
+    }
+  }
+`;
+
+/** Proof points for many wallets at once (same total as totalProofPointsOnGraph), keyed by lowercase wallet. */
+export async function totalProofPointsBulk(walletAddresses: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const add = (w: string, n: number) => out.set(w.toLowerCase(), (out.get(w.toLowerCase()) ?? 0) + n);
+  const wallets = [...new Set(walletAddresses.map((w) => w.toLowerCase()))];
+  for (let i = 0; i < wallets.length; i += 100) {
+    const addresses = wallets.slice(i, i + 100);
+    let afterP = "";
+    let afterF = "";
+    let moreP = true;
+    let moreF = true;
+    for (let page = 0; page < 50 && (moreP || moreF); page++) {
+      const data = await fetchSubgraph<{
+        communityCampaignParticipants?: Array<{ id: string; participantAddress: string; pointsTotal: string }>;
+        forfeitPeriodResolutions?: Array<{ id: string; creatorAddress: string; pointsAwarded: string | null }>;
+      }>(BULK_POINTS_QUERY, { addresses, afterP: moreP ? afterP : "~", afterF: moreF ? afterF : "~" }, { fresh: true });
+      const p: Array<{ id: string; participantAddress: string; pointsTotal: string }> = moreP ? (data.communityCampaignParticipants ?? []) : [];
+      const f: Array<{ id: string; creatorAddress: string; pointsAwarded: string | null }> = moreF ? (data.forfeitPeriodResolutions ?? []) : [];
+      for (const r of p) add(r.participantAddress, Number(r.pointsTotal || 0));
+      for (const r of f) add(r.creatorAddress, Number(r.pointsAwarded || 0));
+      moreP = p.length === 1000;
+      moreF = f.length === 1000;
+      if (moreP) afterP = p[p.length - 1].id;
+      if (moreF) afterF = f[f.length - 1].id;
+    }
+  }
+  return out;
+}

@@ -9,6 +9,7 @@ import { GameCard, Lulu, gameButtonClass } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import type { PartnerFriend, PartnerListFilter, PartnerMissing, PartnerReport } from "@/lib/referral/partners";
+import type { OnchainFunnel, PartnerOnchain } from "@/lib/referral/partner-onchain";
 import { cn } from "@/lib/utils";
 
 const MISSING_LABEL: Record<PartnerMissing, string> = {
@@ -160,6 +161,8 @@ export default function PartnerPage() {
             The newest people are listed 10 at a time. Each one shows the step they still need, including the face check and points.
           </p>
         </GameCard>
+
+        <OnchainPanel code={code} />
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Brought" value={t.brought} />
@@ -314,5 +317,75 @@ function Badge({ ok, label }: { ok: boolean; label: string }) {
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold", ok ? "bg-green-soft text-green-edge" : "bg-orange-soft text-orange")}>
       {ok ? <Check className="h-3 w-3" strokeWidth={3} /> : <X className="h-3 w-3" strokeWidth={3} />} {label}
     </span>
+  );
+}
+
+// ── Straight from the blockchain ────────────────────────────────────────────
+
+function OnchainPanel({ code }: { code: string }) {
+  const [d, setD] = useState<PartnerOnchain | null>(null);
+  const [err, setErr] = useState("");
+  const [view, setView] = useState<"today" | "allTime">("today");
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/partner/${code}/onchain`, { credentials: "include" })
+      .then(async (r) => ({ ok: r.ok, j: await r.json().catch(() => ({})) }))
+      .then(({ ok, j }) => { if (!cancelled) { if (ok) setD(j); else setErr(j.error ?? "Couldn't read the blockchain right now."); } })
+      .catch(() => !cancelled && setErr("You seem to be offline."));
+    return () => { cancelled = true; };
+  }, [code]);
+
+  const f: OnchainFunnel | null = d ? d[view] : null;
+  const rows: { label: string; n: number; source: string }[] = f
+    ? [
+        { label: "Signed up", n: f.signedUp, source: "Delulu database" },
+        { label: "Went on-chain (sent a transaction on Celo)", n: f.onChain, source: "Celo: wallet transaction count" },
+        { label: "Face-verified", n: f.verified, source: "GoodDollar Identity contract" },
+        { label: "Used Delulu's contracts (G$ in or out)", n: f.usedContracts, source: "Celo: G$ transfers with Delulu contracts" },
+        { label: "Staked G$ on a Bingo or goal", n: f.staked, source: "Celo: G$ sent into Delulu's markets" },
+        { label: "Earned points", n: f.earnedPoints, source: "Delulu subgraph (Delulu contract events)" },
+      ]
+    : [];
+  const top = f?.signedUp ?? 0;
+
+  return (
+    <GameCard className="p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="m-0 text-[15px] font-extrabold">Straight from the blockchain</p>
+        <div className="flex rounded-full border-2 border-line p-0.5" role="group" aria-label="Period">
+          {(["today", "allTime"] as const).map((k) => (
+            <button key={k} type="button" aria-pressed={view === k} onClick={() => setView(k)}
+              className={cn("rounded-full px-3 py-1 text-[12px] font-extrabold", view === k ? "bg-ink text-white" : "text-muted-foreground")}>
+              {k === "today" ? "Today" : "All time"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {err ? <p className="m-0 mt-3 text-[13px] font-bold text-orange">{err}</p> : !f ? (
+        <div className="flex items-center gap-2 py-6 text-[13px] font-semibold text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Reading Celo… this takes up to a minute.</div>
+      ) : (
+        <>
+          <ul className="m-0 mt-3 flex list-none flex-col gap-2.5 p-0">
+            {rows.map((r) => (
+              <li key={r.label}>
+                <div className="flex items-baseline justify-between gap-3 text-[13px] font-bold">
+                  <span>{r.label}</span>
+                  <span className="shrink-0 tabular-nums">{fmt(r.n)}{top ? <span className="ml-1 text-[11px] text-muted-foreground">{Math.round((r.n / top) * 100)}%</span> : null}</span>
+                </div>
+                <span className="mt-1 block h-2 overflow-hidden rounded-full bg-line">
+                  <span className="block h-full rounded-full bg-ink" style={{ width: `${top ? Math.round((r.n / top) * 100) : 0}%` }} />
+                </span>
+                <span className="mt-0.5 block text-[10px] font-semibold text-muted-foreground">{r.source}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="m-0 mt-3 rounded-xl bg-muted px-3 py-2 text-[11px] font-semibold leading-snug text-muted-foreground">
+            {fmt(f.stakedG)} G$ staked by these friends. Every number except sign-ups is read from the Celo blockchain, so anyone can check it.
+            Delulu&apos;s contracts: Forfeit market {short(d!.contracts.forfeitMarket)} · Campaigns {short(d!.contracts.campaigns)} · Reward vault {short(d!.contracts.rewardVault)}.
+            {view === "today" ? ` "Today" is ${d!.todayLabel}, Lagos time.` : ""} Updated every 5 minutes.
+          </p>
+        </>
+      )}
+    </GameCard>
   );
 }
