@@ -19,7 +19,6 @@ import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { AppLoader } from "@/components/app-loader";
 import { gatePassedAddress, hasGatePassed, markGatePassed } from "@/lib/app-gate-pass";
-import { isGeneratedUsername } from "@/lib/profile/generated-username";
 
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
@@ -141,19 +140,15 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { authenticated, address, isReady } = useAuth();
   const router = useRouter();
 
-  // Same legacy fallback usePostAuthRoute uses on /sign-in: nothing writes
-  // the on-chain username anymore, but accounts that set it before the
-  // welcome redesign never got a profiles.onboarded_at row. Without this,
-  // /sign-in sees them as done (on-chain username) and sends them here,
-  // while this gate — checking Supabase only — sees them as incomplete and
-  // bounces them straight back, an infinite redirect loop between the two.
-  // isLoading, not isFetching: only the FIRST read may hold the app. The global
+  // Same check as usePostAuthRoute: setProfile is the profile. A database row
+  // does not let anyone in. isLoading, not isFetching: only the FIRST read may
+  // hold the app. The global
   // QueryClient refetches on window focus, and this query is always stale, so
   // isFetching flips true every time the page regains focus — picking a proof
   // screenshot from the gallery, signing in the wallet popup, switching apps.
   // Gating on that swapped the whole app for a spinner and back, unmounting
   // whatever was open (proof modal, success card + confetti) mid-flow.
-  const { data: onChainUsername, isLoading: isLoadingUsername } = useReadContract({
+  const { data: onChainUsername, isLoading: isLoadingUsername, isError: usernameReadFailed } = useReadContract({
     address: DELULU_CONTRACT_ADDRESS,
     abi: DELULU_ABI,
     functionName: "getUsername",
@@ -162,40 +157,6 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   });
   const hasOnChainUsername =
     typeof onChainUsername === "string" && onChainUsername.trim().length > 0;
-
-  const [onboardedChecked, setOnboardedChecked] = useState(false);
-  const [isOnboarded, setIsOnboarded] = useState(false);
-  // A network failure checking /api/onboarding is not the same as a
-  // confirmed "not onboarded" — this must not be treated as grounds to
-  // redirect someone out.
-  const [onboardedCheckFailed, setOnboardedCheckFailed] = useState(false);
-
-  useEffect(() => {
-    if (!isReady) return;
-    if (!authenticated || !address) {
-      setOnboardedChecked(true);
-      return;
-    }
-    let cancelled = false;
-    setOnboardedChecked(false);
-    setOnboardedCheckFailed(false);
-    void (async () => {
-      try {
-        const res = await fetch(`/api/onboarding?address=${address}`);
-        if (!res.ok) throw new Error(`onboarding check failed: ${res.status}`);
-        const json = (await res.json()) as { onboarded?: boolean; username?: string | null };
-        const choseName = !!json.username && !isGeneratedUsername(address, json.username);
-        if (!cancelled) setIsOnboarded(Boolean(json.onboarded) && choseName);
-      } catch {
-        if (!cancelled) setOnboardedCheckFailed(true);
-      } finally {
-        if (!cancelled) setOnboardedChecked(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isReady, authenticated, address]);
 
   // On refresh one auth SDK (usually Privy) can report ready before Web3Auth
   // has restored the session, so for a moment the user looks signed out and
@@ -226,21 +187,16 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const stillChecking =
     !isReady ||
     restoringSession ||
-    (authenticated &&
-      address &&
-      (!onboardedChecked || isLoadingUsername));
-  // A failed check (RPC down, onboarding-API network error) is inconclusive,
-  // not a confirmed incomplete state — never redirect a real user out of the
-  // app over a transient failure; the normal in-app prompts (claim panel,
-  // referral gate) still catch a genuinely incomplete account from here.
+    (authenticated && address && isLoadingUsername);
+  // An RPC failure is not "no profile". Don't kick a real user out because
+  // the username read failed.
   const incomplete =
     isReady &&
     authenticated &&
     address &&
-    onboardedChecked &&
     !isLoadingUsername &&
-    !onboardedCheckFailed &&
-    !(isOnboarded || hasOnChainUsername);
+    !usernameReadFailed &&
+    !hasOnChainUsername;
 
   useEffect(() => {
     if (incomplete) router.replace("/sign-in");
