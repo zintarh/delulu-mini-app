@@ -2,24 +2,23 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { ngnWorthShowing } from "@/lib/earn/format";
 import type { BingoView } from "@/lib/bingo/view";
 import { cn } from "@/lib/utils";
 
 const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : n.toLocaleString("en-US"));
 
 function useMath(bingo: BingoView) {
-  const facts = useEarnFacts();
   const days = bingo.missions.filter((m) => !m.bonus).length || bingo.durationDays;
   const perDay = bingo.rewards.perProof;
-  // What you earn reads in naira; tiny amounts fall back to G$ (ngnWorthShowing).
-  const money = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null) ?? `${k(g)} G$`;
+  // In-app amounts are G$ (25 Nov 2026), not naira.
+  const money = (g: number) => `${k(g)} G$`;
   const rows = bingo.tiers
     .filter((t) => t.stake > 0)
     .map((t) => {
-      const back = typeof t.completionReward === "number" ? t.completionReward : bingo.rewards.completion;
-      return { key: t.key, stake: t.stake, back, total: perDay * days + back };
+      const day = typeof t.rewardPerSquare === "number" ? t.rewardPerSquare : perDay;
+      // First Week: up to the stake from the pot of those who missed.
+      const back = t.potShare ? t.stake : typeof t.completionReward === "number" ? t.completionReward : bingo.rewards.completion;
+      return { key: t.key, stake: t.stake, back, day, total: day * days + back };
     })
     .sort((a, b) => a.stake - b.stake);
   return { days, perDay, money, rows };
@@ -42,7 +41,11 @@ export function BingoEarnings({ bingo, className }: { bingo: BingoView; classNam
         {money(top.total)}
       </p>
       <p className="m-0 mt-1.5 text-[12px] font-semibold text-muted-foreground">
-        {perDay} G$ a photo for {days} days, cashback at the end, and your stake back.
+        {rows.every((r) => bingo.tiers.find((t) => t.key === r.key)?.potShare)
+          ? `${rows[0].day} G$ a photo for ${days} days · finishers split what others lose · your stake back`
+          : rows.every((r) => bingo.tiers.find((t) => t.key === r.key)?.rewardPerSquare != null)
+            ? "10% of your stake back: a little each day, the rest when you finish, plus your stake."
+            : `${perDay} G$ a photo for ${days} days, cashback at the end, and your stake back.`}
       </p>
       {rows.length > 1 ? (
         <>

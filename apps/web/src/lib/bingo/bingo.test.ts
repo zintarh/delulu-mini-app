@@ -153,7 +153,8 @@ test("per-photo reward: a tier's own amount wins, else the global one", async ()
   assert.equal(perSquareFor(weekly, "pro", 100), 100);
   const mixed = [{ key: "starter", rewardPerSquare: 50 }, { key: "elite", rewardPerSquare: 200 }];
   assert.equal(perSquareFor(mixed, "elite", 100), 200);
-  assert.equal(perSquareFor(mixed, null, 100), 100);
+  assert.equal(perSquareFor(mixed, null, 100), 50); // not playing: the smallest stake's amount
+  assert.equal(perSquareFor([{ key: "a", rewardPerSquare: 10 }, { key: "b" }], null, 100), 100);
 });
 
 test("after a 7-day card: make it a personal habit", async () => {

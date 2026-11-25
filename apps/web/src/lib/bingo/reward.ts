@@ -63,11 +63,13 @@ async function bingoTierFor(admin: Admin, goalKind: "campaign" | "forfeit", goal
 
 /** What a card shows per daily square: the tier's own amount if it sets one, else the global one. */
 export function perSquareFor(tiers: Pick<BingoTier, "key" | "rewardPerSquare">[], tierKey: string | null, globalAmount: number): number {
-  const own = tierKey ? tiers.find((t) => t.key === tierKey)?.rewardPerSquare : undefined;
-  if (typeof own === "number") return own;
-  // Not playing yet: if every tier agrees on an override, show it.
-  const set = new Set(tiers.map((t) => (typeof t.rewardPerSquare === "number" ? t.rewardPerSquare : globalAmount)));
-  return set.size === 1 ? [...set][0] : globalAmount;
+  const mine = tierKey ? tiers.find((t) => t.key === tierKey)?.rewardPerSquare : undefined;
+  if (typeof mine === "number") return mine;
+  // Not playing yet: every tier sets its own (e.g. 1% of the stake) → the smallest, matching
+  // the "Start · <smallest stake>" button; any tier on the global amount → the global one.
+  const own = tiers.map((t) => t.rewardPerSquare);
+  if (own.length && own.every((n) => typeof n === "number")) return Math.min(...(own as number[]));
+  return globalAmount;
 }
 
 /** Daily Boost cashback for a finished daily Bingo card (forfeit_commitments.id), or null when it isn't one. */

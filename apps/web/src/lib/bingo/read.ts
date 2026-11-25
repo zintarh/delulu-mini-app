@@ -377,6 +377,8 @@ export async function buildBingoView(
             challengeId: null,
             ready: rolling,
             completionReward: t.completionReward,
+            rewardPerSquare: t.rewardPerSquare,
+            potShare: t.potShare,
           })),
     joinable,
     // Paused Bingos (e.g. Delulu Debut, replaced by First Week) only show to people still playing them.

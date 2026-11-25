@@ -41,6 +41,10 @@ export type BingoTierView = {
   ready: boolean;
   /** G$ for finishing the card on this tier, when the tier sets its own. */
   completionReward?: number;
+  /** G$ per kept day on this tier, when it sets its own (e.g. 1% of the stake). */
+  rewardPerSquare?: number;
+  /** Finishers split missed stakes, up to their own stake (First Week). */
+  potShare?: boolean;
 };
 
 export type BingoView = {
