@@ -27,6 +27,7 @@ import { useStakeRules } from "@/hooks/use-stake-rules";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtNgn } from "@/lib/earn/format";
 import { isFirstWeekSlug } from "@/lib/bingo/first-week";
+import { isStarterSlug } from "@/lib/bingo/starter";
 import { seasonPointsForStake } from "@/lib/season/rules";
 import { useVaultFunds, useVaultStake } from "@/hooks/use-vault-stake";
 
@@ -67,7 +68,7 @@ export function BingoJoinSheet({
   // The Season 2 minimum is for 7-day Bingos: First Week is gated on eligibility instead,
   // and 3-day Bingos are the light way in (2k–5k stakes).
   const isLocked = (stake: number) =>
-    !isFirstWeekSlug(bingo.slug) && bingo.durationDays !== 3 && stakeRules.live && stake < stakeRules.minStake;
+    !isFirstWeekSlug(bingo.slug) && !isStarterSlug(bingo.slug) && bingo.durationDays !== 3 && stakeRules.live && stake < stakeRules.minStake;
   const firstOpen = tiers.find((t) => !isLocked(t.stake));
   useEffect(() => {
     const cur = tiers.find((t) => t.key === tierKey);

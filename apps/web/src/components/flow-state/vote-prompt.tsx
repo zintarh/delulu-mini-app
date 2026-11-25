@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Check, Loader2 } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { Lulu } from "@/components/ds";
@@ -38,6 +39,10 @@ function VotePromptInner() {
   const vote = useFlowVote();
   const votersLine = useFlowVotersLine();
   const faceCheck = useFaceCheckOptional();
+  const pathname = usePathname() ?? "";
+  // The starter-card page asks for the vote itself, the moment a card is joined.
+  // Don't also pop it while they are still choosing.
+  const holdForCards = pathname === "/play" || pathname.startsWith("/play/");
   const [open, setOpen] = useState(false);
   const shown = useRef(false);
   const needsVote = vote.status === "vote" || vote.status === "verify";
@@ -55,14 +60,28 @@ function VotePromptInner() {
 
   useEffect(() => {
     registerVoteGate(() => {
-      // Only players who can vote right now and haven't (verified, votes to give, nothing in flight).
-      if (live.current.status !== "vote" || live.current.pending) return Promise.resolve();
+      // Only players who can vote right now and haven't. Wait out the first
+      // read so a join that just landed still gets the popup on this page.
       return new Promise<void>((resolve) => {
-        release.current?.();
-        release.current = resolve;
-        shown.current = true;
-        setGate(true);
-        setOpen(true);
+        let tries = 0;
+        const openIfReady = () => {
+          const status = live.current.status;
+          if (status === "loading" && tries < 12) {
+            tries += 1;
+            window.setTimeout(openIfReady, 250);
+            return;
+          }
+          if (status !== "vote" || live.current.pending) {
+            resolve();
+            return;
+          }
+          release.current?.();
+          release.current = resolve;
+          shown.current = true;
+          setGate(true);
+          setOpen(true);
+        };
+        openIfReady();
       });
     });
     return () => {
@@ -74,7 +93,7 @@ function VotePromptInner() {
 
   // Open once we know they haven't voted. Voting takes priority over other modals.
   useEffect(() => {
-    if (shown.current || !needsVote || vote.pending) return;
+    if (shown.current || !needsVote || vote.pending || holdForCards) return;
     let snoozedAt = 0;
     try {
       snoozedAt = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
@@ -93,7 +112,7 @@ function VotePromptInner() {
       } else if (tries > 20) window.clearInterval(id);
     }, 2000);
     return () => window.clearInterval(id);
-  }, [needsVote, vote.pending]);
+  }, [needsVote, vote.pending, holdForCards]);
 
   // Voted: a little party, then out of the way.
   const voted = vote.status === "voted";
@@ -114,6 +133,8 @@ function VotePromptInner() {
       /* storage blocked */
     }
   };
+  const voteCount = Number(vote.votingPower);
+  const votesToGive = voteCount > 0 ? voteCount : 10;
   const line = vote.busy || vote.error || vote.notice;
 
   return (
@@ -146,14 +167,12 @@ function VotePromptInner() {
             <p className="m-0 mt-2 font-display text-[28px] font-extrabold uppercase leading-none">
               {voted ? "Thank you!" : "Vote for Delulu 🗳️"}
             </p>
-            <p className="m-0 mt-2 max-w-[260px] text-[14px] font-semibold leading-snug text-white/75">
+            <p className="m-0 mt-2 max-w-[280px] text-[14px] font-semibold leading-snug text-white/75">
               {voted
-                ? `${vote.votes} votes for Delulu — that keeps the rewards flowing.`
-                : gate
-                  ? "Free · one tap · then you carry on."
-                  : vote.status === "verify"
+                ? "Thank you for supporting Delulu."
+                : vote.status === "verify"
                   ? "A quick face check gives you votes. Then one tap."
-                  : "Free · one tap · it keeps the rewards flowing to you."}
+                  : `Please support Delulu so we can keep going. Give us your ${votesToGive} votes.`}
             </p>
             {votersLine && !voted ? <p className="m-0 mt-2 text-[12px] font-bold text-white/90">{votersLine}</p> : null}
             {FLOW_STATE.endsOn && !voted ? <p className="label-mono m-0 mt-2 text-[10px] text-yellow">Ends {FLOW_STATE.endsOn}</p> : null}
@@ -176,7 +195,7 @@ function VotePromptInner() {
                 className="press-edge mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-yellow text-[15px] font-extrabold uppercase text-ink shadow-[0_3px_0_#b38f00] disabled:opacity-70"
               >
                 {vote.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {vote.status === "verify" ? "Verify my face" : "Vote now"}
+                {vote.status === "verify" ? "Verify my face" : `Give your ${votesToGive} votes`}
               </button>
             )}
           </div>

@@ -76,7 +76,7 @@ export default function WelcomePage() {
   /** Communities are gone from the app, so a leftover /join/ redirect lands on Home. */
   const finishOnboarding = () => {
     consumeCommunityReferral();
-    const redirect = consumeSignInRedirect() ?? "/home";
+    const redirect = consumeSignInRedirect() ?? "/play";
     router.replace(redirect.startsWith("/join/") ? "/home" : redirect);
   };
 

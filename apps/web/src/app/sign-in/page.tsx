@@ -76,7 +76,7 @@ export default function SignInPage() {
   const [isGoingBack, setIsGoingBack] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  const { routeState, isCheckingAccount, refreshGoodDollarStatus, skipVerification } =
+  const { routeState, isCheckingAccount, refreshGoodDollarStatus, skipVerification, setupError, retrySetup } =
     usePostAuthRoute();
 
   // Skip the face check: the faucet sends enough gas for the profile
@@ -271,6 +271,22 @@ export default function SignInPage() {
   };
 
   // ── Authenticated states ──────────────────────────────────────────────────
+
+  if (authenticated && setupError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
+        <h2 className="text-xl font-black text-foreground">Couldn't open your cards</h2>
+        <p className="max-w-sm text-sm font-semibold text-muted-foreground">{setupError}</p>
+        <button
+          type="button"
+          onClick={retrySetup}
+          className="press-edge h-12 rounded-2xl bg-ink px-6 text-sm font-extrabold uppercase text-white"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (authenticated && (isCheckingAccount || routeState === "loading" || routeState === "redirecting_home" || routeState === "redirecting_welcome")) {
     const label =

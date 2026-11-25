@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 /** Persistent low-key banner shown across the app for as long as the user has no gas. */
 export function NoGasBanner() {
   const { isLowGas, isLoading } = useHasGas();
-  const { trigger } = useNoGas();
+  const { trigger, covered } = useNoGas();
   const [mounted, setMounted] = useState(false);
   // Focused screens (contract, campaign, settings…) have no dock and their own bottom action.
   const focusedScreen = hidesBottomNav(usePathname() ?? "");
@@ -22,7 +22,7 @@ export function NoGasBanner() {
     setMounted(true);
   }, []);
 
-  if (!mounted || isLoading || !isLowGas || focusedScreen) return null;
+  if (!mounted || isLoading || !isLowGas || covered || focusedScreen) return null;
 
   // Portaled to <body> — the main layout's overflow-hidden container clips
   // `position: fixed` descendants otherwise (same issue AppToast works around).
@@ -42,8 +42,8 @@ export function NoGasBanner() {
         <Fuel className="h-5 w-5" strokeWidth={2.2} />
       </span>
       <span className="flex-1">
-        <span className="block text-sm font-extrabold leading-tight text-foreground">You need gas to continue</span>
-        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">Tap to top up or get some free in our Telegram.</span>
+        <span className="block text-sm font-extrabold leading-tight text-foreground">You ran out of gas</span>
+        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">Tap to claim gas and continue.</span>
       </span>
     </button>,
     document.body,

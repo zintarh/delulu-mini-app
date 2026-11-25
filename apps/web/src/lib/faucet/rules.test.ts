@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_FAUCET_CONFIG,
   celoToWei,
+  applyComfortFloor,
+  COMFORT_BALANCE_CELO,
   computeTopUp,
   faucetConfigIssues,
   ipSubnet,
@@ -29,6 +31,18 @@ test("top-up is priced from live fees and only fills the gap", () => {
   // Fees double → the drip doubles too.
   const spike = computeTopUp({ gasUnits: 400_000, maxFeePerGasWei: 100n * GWEI, margin: 1.5, balanceWei: 0n });
   assert.equal(weiToCelo(spike.needWei), 0.06);
+});
+
+test("comfort floor tops a player up to 0.6 CELO", () => {
+  assert.equal(COMFORT_BALANCE_CELO, 0.6);
+  const empty = applyComfortFloor(celoToWei(0.06), 0n, COMFORT_BALANCE_CELO);
+  assert.equal(weiToCelo(empty), 0.6);
+  const partial = applyComfortFloor(0n, celoToWei(0.2), COMFORT_BALANCE_CELO);
+  assert.equal(weiToCelo(partial), 0.4);
+  const already = applyComfortFloor(0n, celoToWei(0.6), COMFORT_BALANCE_CELO);
+  assert.equal(already, 0n);
+  const feeBigger = applyComfortFloor(celoToWei(0.74), 0n, COMFORT_BALANCE_CELO);
+  assert.equal(weiToCelo(feeBigger), 0.74);
 });
 
 test("drips round up to whole micro-CELO, never down", () => {

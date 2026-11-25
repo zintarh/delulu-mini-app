@@ -12,6 +12,7 @@ import {
   consumeSignInRedirect,
   peekCommunityReferral,
   peekSignInRedirect,
+  peekReferralCode,
   persistCommunityReferral,
   persistSignInRedirect,
   safeRedirectPath,
@@ -29,6 +30,16 @@ export type PostAuthRouteState =
 // enough to sign the profile transaction on /welcome. Session-scoped so a
 // refresh mid-signup doesn't send them back to the verify screen.
 const SKIPPED_VERIFY_KEY = "delulu:skipped-verify";
+/** Set until a new player joins a starter card. Brings them back to /play on the next sign-in. */
+const NEEDS_STARTER_KEY = "delulu:needs-starter";
+
+function needsStarter(address: string): boolean {
+  try {
+    return localStorage.getItem(NEEDS_STARTER_KEY) === address.toLowerCase();
+  } catch {
+    return false;
+  }
+}
 
 function readSkippedVerify(address: string): boolean {
   try {
@@ -41,10 +52,13 @@ function readSkippedVerify(address: string): boolean {
 export function usePostAuthRoute() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { authenticated, isReady, address } = useAuth();
+  const { authenticated, isReady, address, email: authEmail, provider: authProvider } = useAuth();
 
   const [routeState, setRouteState] = useState<PostAuthRouteState>("idle");
   const hasRedirectedRef = useRef(false);
+  const setupFailedRef = useRef(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupAttempt, setSetupAttempt] = useState(0);
   const lastAddressRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -167,9 +181,8 @@ export function usePostAuthRoute() {
       consumeSignInRedirect();
       markGatePassed(address);
       setRouteState("redirecting_home");
-      // Preload main shell so home content isn't blocked behind a dynamic chunk.
       void import("@/components/main-app-header");
-      router.replace(target);
+      router.replace(needsStarter(address) ? "/play" : target);
       return;
     }
 
@@ -181,10 +194,55 @@ export function usePostAuthRoute() {
       return;
     }
 
-    if (hasRedirectedRef.current) return;
+    // New account, face check done (or skipped): skip the profile form and open
+    // the four starter cards. Claiming today's G$ and joining one is the
+    // interaction GoodDollar looks for. The profile row is created here so
+    // the app gate lets them in.
+    if (hasRedirectedRef.current || setupFailedRef.current) return;
     hasRedirectedRef.current = true;
     setRouteState("redirecting_welcome");
-    router.replace("/welcome");
+    void (async () => {
+      try {
+        const email = authEmail?.includes("@") ? authEmail : `${address.toLowerCase()}@wallet.local`;
+        const username = `player${address.slice(2, 8).toLowerCase()}`;
+        const profileRes = await fetch("/api/profile", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address,
+            username,
+            email,
+            auth_provider: authProvider ?? "web3auth",
+            referredByCode: peekReferralCode() ?? undefined,
+          }),
+        });
+        if (!profileRes.ok && profileRes.status !== 409) {
+          const json = (await profileRes.json().catch(() => ({}))) as { error?: string };
+          throw new Error(json.error || "Couldn't finish setting up your account.");
+        }
+        const onRes = await fetch("/api/onboarding", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, auth_provider: authProvider ?? "web3auth" }),
+        });
+        if (!onRes.ok) throw new Error("Couldn't open your cards. Try again.");
+        markGatePassed(address);
+        consumeSignInRedirect();
+        try {
+          localStorage.setItem(NEEDS_STARTER_KEY, address.toLowerCase());
+        } catch {
+          /* private mode: this visit still opens the cards */
+        }
+        router.replace("/play");
+      } catch (err) {
+        hasRedirectedRef.current = false;
+        setupFailedRef.current = true;
+        setSetupError(err instanceof Error ? err.message : "Couldn't open your cards. Try again.");
+        setRouteState("idle");
+      }
+    })();
   }, [
     isReady,
     authenticated,
@@ -197,7 +255,17 @@ export function usePostAuthRoute() {
     hasProfile,
     router,
     redirectTarget,
+    authEmail,
+    authProvider,
+    setupAttempt,
   ]);
+
+  const retrySetup = useCallback(() => {
+    setupFailedRef.current = false;
+    hasRedirectedRef.current = false;
+    setSetupError(null);
+    setSetupAttempt((n) => n + 1);
+  }, []);
 
   return {
     routeState,
@@ -205,6 +273,8 @@ export function usePostAuthRoute() {
     isWhitelisted,
     refreshGoodDollarStatus,
     skipVerification,
+    setupError,
+    retrySetup,
     address: address ?? "",
     isCheckingAccount: isFetchingUsername || isIdentityLoading,
   };

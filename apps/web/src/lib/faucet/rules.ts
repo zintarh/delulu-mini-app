@@ -58,16 +58,20 @@ export type FaucetConfig = {
  * max fee ≈ 240–400 gwei. Measured gas: setProfile ≈ 76k, createCommitment
  * (word pledge) ≈ 167k; staking adds an approve (~50k), proofs and resolves
  * ~50–80k each. Units below are ~1.5× those so wallet padding still fits, and
- * the 2× margin covers wallets that set max fee to 2× base fee. At today's
- * fees: signup ≈ 0.06 CELO, starter/active ≈ 0.29 CELO per empty wallet.
- * "Most per drip" leaves ~2.5× headroom for fee spikes before refusing.
+ * the 2× margin covers wallets that set max fee to 2× base fee. Fee math alone
+ * is about 0.06 CELO at signup. Every drip instead tops the wallet up to
+ * COMFORT_BALANCE_CELO (0.6) so the next stake isn't stranded.
  */
+
+/** Balance a player should hold after a claim so the next transaction has gas. */
+export const COMFORT_BALANCE_CELO = 0.6;
 export const DEFAULT_FAUCET_CONFIG: FaucetConfig = {
   enabled: true,
   gasMargin: 2,
   stages: {
-    // Profile tx only.
-    signup: { gasUnits: 120_000, maxPerDripCelo: 0.15, capCelo: 0.25 },
+    // One claim brings an empty wallet to 0.6 CELO. Cap stays above that so a
+    // wallet that already received the old 0.06 drip can still be topped up.
+    signup: { gasUnits: 120_000, maxPerDripCelo: 0.6, capCelo: 1 },
     // First goal: approve + create + a couple of days of proof/resolve.
     starter: { gasUnits: 600_000, maxPerDripCelo: 0.75, capCelo: 1 },
     active: {
@@ -178,6 +182,19 @@ export function computeTopUp(params: {
   const micro = WEI_PER_CELO / 1_000_000n;
   const needWei = raw === 0n ? 0n : ((raw + micro - 1n) / micro) * micro;
   return { targetWei, needWei };
+}
+
+/**
+ * Bring a player up to `comfortCelo` when the fee-only drip would leave them
+ * short. Signup skips this. Never shrinks a larger fee-based drip.
+ */
+export function applyComfortFloor(needWei: bigint, balanceWei: bigint, comfortCelo: number): bigint {
+  const comfortWei = celoToWei(comfortCelo);
+  if (balanceWei >= comfortWei) return needWei;
+  const gap = comfortWei - balanceWei;
+  const micro = WEI_PER_CELO / 1_000_000n;
+  const rounded = ((gap + micro - 1n) / micro) * micro;
+  return rounded > needWei ? rounded : needWei;
 }
 
 // ── Network identity ────────────────────────────────────────────────────────

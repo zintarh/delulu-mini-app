@@ -1,0 +1,202 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { parseUnits } from "viem";
+import { useChainId } from "wagmi";
+import { Loader2 } from "lucide-react";
+import { MainPage } from "@/components/main-app-header";
+import { PageBackHeader } from "@/components/page-back-header";
+import { MissionSticker } from "@/components/bingo/mission-stickers";
+import { useBingoList } from "@/hooks/use-bingo";
+import { useAuth } from "@/hooks/use-auth";
+import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
+import { useTokenBalance } from "@/hooks/use-token-balance";
+import { useTokenApproval } from "@/hooks/use-token-approval";
+import { ForfeitCadence, ForfeitDestinationType, useCreateForfeitCommitment } from "@/hooks/use-create-forfeit-commitment";
+import { CELO_MAINNET_ID, GOODDOLLAR_ADDRESSES, getForfeitMarketAddress } from "@/lib/constant";
+import { finishRollingStart } from "@/lib/bingo/rolling-client";
+import { rollingFirstDeadline } from "@/lib/bingo/types";
+import { STARTER_CARDS, STARTER_STAKE } from "@/lib/bingo/starter";
+import { celebrateCampaignJoin } from "@/lib/celebrate";
+import { afterVote } from "@/lib/vote-gate";
+import type { BingoView } from "@/lib/bingo/view";
+
+const NEEDS_STARTER_KEY = "delulu:needs-starter";
+
+const DAY_S = 86_400;
+
+function friendly(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/user (rejected|denied)|rejected the request|cancel/i.test(msg)) return "Cancelled. Nothing was claimed or joined.";
+  if (/insufficient funds|gas/i.test(msg)) return "You need a little CELO for gas. We'll top you up — tap Claim and join again.";
+  return msg || "Couldn't claim and join. Try again.";
+}
+
+/**
+ * One tap: claim today's G$ (if it isn't claimed yet), then stake 100 G$ on
+ * this card. That claim and that join are the two contract interactions a new
+ * player needs. The vote opens here, and Home comes after they vote.
+ */
+function ClaimAndJoin({ bingo, onDone }: { bingo: BingoView; onDone: () => void }) {
+  const { address } = useAuth();
+  const chainId = useChainId();
+  const ubi = useGoodDollarClaim();
+  const { refetch: refetchBalance } = useTokenBalance(GOODDOLLAR_ADDRESSES.mainnet);
+  const market = (() => {
+    try {
+      return chainId === CELO_MAINNET_ID ? getForfeitMarketAddress(chainId) : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+  const approval = useTokenApproval(GOODDOLLAR_ADDRESSES.mainnet, market);
+  const { createCommitmentAndWait } = useCreateForfeitCommitment();
+  const [phase, setPhase] = useState<"idle" | "claiming" | "joining">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const alreadyIn = !!bingo.me && bingo.me.status === "active" && bingo.me.phase !== "ended";
+
+  const run = async () => {
+    if (phase !== "idle") return;
+    if (!address) {
+      setError("Sign in first, then tap Claim and join.");
+      return;
+    }
+    setError(null);
+    setPhase("claiming");
+    try {
+      const status = await ubi.refreshStatus();
+      const canClaim = status.isWhitelisted && !status.hasClaimed && (status.entitlement ?? 0n) > 0n;
+      if (canClaim) {
+        await ubi.claim();
+        const after = await ubi.refreshStatus();
+        if (!after.hasClaimed) {
+          throw new Error(ubi.error?.message ?? "The G$ claim didn't go through. Try again.");
+        }
+      }
+
+      setPhase("joining");
+
+      let balance = 0;
+      for (let i = 0; i < 6; i++) {
+        const next = await refetchBalance();
+        balance = Number(next.data?.formatted ?? 0);
+        if (balance >= STARTER_STAKE) break;
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (balance < STARTER_STAKE) {
+        throw new Error(
+          canClaim
+            ? "Your G$ is still arriving. Wait a moment and tap Claim and join again."
+            : `You need ${STARTER_STAKE} G$ to join. Claim today's G$ first, then tap again.`,
+        );
+      }
+
+      if (approval.needsApproval(STARTER_STAKE)) await approval.approve(STARTER_STAKE);
+
+      const verifier = await fetch("/api/bingo/verifier")
+        .then((r) => r.json())
+        .then((j: { address?: string | null }) => (j.address && /^0x[0-9a-f]{40}$/i.test(j.address) ? (j.address as `0x${string}`) : undefined))
+        .catch(() => undefined);
+
+      const txHash = await createCommitmentAndWait({
+        verifier,
+        token: GOODDOLLAR_ADDRESSES.mainnet as `0x${string}`,
+        stakeAmountWei: parseUnits(String(STARTER_STAKE), 18),
+        destinationType: ForfeitDestinationType.CommunityPool,
+        cadence: ForfeitCadence.Daily,
+        totalPeriods: bingo.missions.filter((m) => !m.bonus).length,
+        periodSeconds: DAY_S,
+        firstDeadline: rollingFirstDeadline(),
+      });
+
+      await finishRollingStart(bingo.slug, address, {
+        txHash,
+        title: `${bingo.title} Bingo`,
+        description: bingo.missions.map((m, i) => `Day ${i + 1}: ${m.title}`).join(" · "),
+      });
+      await celebrateCampaignJoin(bingo.title);
+      await afterVote(() => undefined);
+      onDone();
+    } catch (err) {
+      setError(friendly(err));
+      setPhase("idle");
+    }
+  };
+
+  if (alreadyIn) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          void afterVote(() => undefined).then(onDone);
+        }}
+        className="press-edge h-11 shrink-0 rounded-xl bg-ink px-3 text-[12px] font-extrabold uppercase text-white"
+      >
+        You're in
+      </button>
+    );
+  }
+
+  const label = phase === "claiming" ? "Claiming…" : phase === "joining" ? "Joining…" : "Claim and join";
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={() => void run()}
+        disabled={phase !== "idle" || !bingo.joinable}
+        className="press-edge inline-flex h-11 items-center gap-1.5 rounded-xl bg-yellow px-3 text-[12px] font-extrabold uppercase text-ink shadow-[0_3px_0_#b38f00] disabled:opacity-60"
+      >
+        {phase !== "idle" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+        {label}
+      </button>
+      {error ? <p className="m-0 max-w-[180px] text-right text-[11px] font-bold leading-snug text-orange">{error}</p> : null}
+    </div>
+  );
+}
+
+export default function PlayPage() {
+  const router = useRouter();
+  const { bingos } = useBingoList();
+  const loading = bingos == null;
+  const cards = STARTER_CARDS.map((s) => bingos?.find((b) => b.slug === s.slug)).filter((b): b is BingoView => !!b);
+  const goHome = () => {
+    try {
+      const addr = window.localStorage.getItem(NEEDS_STARTER_KEY);
+      if (addr) window.localStorage.removeItem(NEEDS_STARTER_KEY);
+    } catch {
+      /* private mode */
+    }
+    router.replace("/home");
+  };
+
+  return (
+    <MainPage>
+      <PageBackHeader
+        title="Pick a card"
+        eyebrow="Your first 7 days"
+        subtitle={`Claim today's G$ and join one card for ${STARTER_STAKE} G$. Finish the week and the stake comes back.`}
+      />
+      <div className="mx-auto flex max-w-3xl flex-col gap-3 px-5 pb-12 pt-2">
+        {loading && cards.length === 0
+          ? STARTER_CARDS.map((s) => <div key={s.slug} className="h-[84px] animate-pulse rounded-[20px] bg-ink/10" />)
+          : null}
+        {cards.map((b) => (
+          <div key={b.slug} className="flex items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 shadow-edge">
+            <MissionSticker title={b.title} size={48} />
+            <span className="min-w-0 flex-1">
+              <span className="block font-extrabold leading-tight">{b.title}</span>
+              <span className="mt-0.5 block text-[13px] font-semibold text-muted-foreground">7 days · {STARTER_STAKE} G$</span>
+            </span>
+            <ClaimAndJoin bingo={b} onDone={goHome} />
+          </div>
+        ))}
+        {!loading && cards.length === 0 ? (
+          <p className="m-0 text-sm font-semibold text-orange">The starter cards aren't available right now. Try again in a moment.</p>
+        ) : null}
+      </div>
+    </MainPage>
+  );
+}
