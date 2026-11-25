@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_FAUCET_CONFIG,
   celoToWei,
+  sentSponsoredGasOut,
   applyComfortFloor,
   COMFORT_BALANCE_CELO,
   computeTopUp,
@@ -43,6 +44,15 @@ test("comfort floor tops a player up to 0.6 CELO", () => {
   assert.equal(already, 0n);
   const feeBigger = applyComfortFloor(celoToWei(0.74), 0n, COMFORT_BALANCE_CELO);
   assert.equal(weiToCelo(feeBigger), 0.74);
+});
+
+test("sending sponsored CELO to another wallet blocks another claim; spending it as a fee does not", () => {
+  const me = "0xabc";
+  assert.equal(sentSponsoredGasOut([{ to: "0xdef", valueWei: celoToWei(0.6) }], me), true);
+  assert.equal(sentSponsoredGasOut([{ to: "0xdef", valueWei: 0n }], me), false);
+  assert.equal(sentSponsoredGasOut([{ to: "0xdef", valueWei: celoToWei(0.0001) }], me), false);
+  assert.equal(sentSponsoredGasOut([{ to: me, valueWei: celoToWei(0.6) }], me), false);
+  assert.equal(sentSponsoredGasOut([{ to: null, valueWei: celoToWei(0.6) }], me), false);
 });
 
 test("drips round up to whole micro-CELO, never down", () => {

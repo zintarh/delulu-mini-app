@@ -100,7 +100,19 @@ function useEarnInfo(bingo: BingoView) {
   return { days, perDay, back, backAtStake, total, stake, ngn, k };
 }
 
-export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; className?: string; /** Board card: compact, height from this aspect class. */ pin?: string }) {
+export function BingoBannerCard({
+  bingo,
+  className,
+  pin,
+  action,
+}: {
+  bingo: BingoView;
+  className?: string;
+  /** Board card: compact, height from this aspect class. */
+  pin?: string;
+  /** Replaces the link to the Bingo page. The card still looks the same. */
+  action?: { label: string; busy?: boolean; disabled?: boolean; onClick: () => void };
+}) {
   const status = bingoStatus(bingo);
   const earn = useEarnInfo(bingo);
   const playing = !!bingo.me && bingo.me.status === "active" && bingo.me.phase !== "ended" && !bingo.me.missedDay;
@@ -116,7 +128,17 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         className,
       )}
     >
-      <Link href={`/bingo/${bingo.slug}`} aria-label={bingo.title} className="absolute inset-0 z-[1]" />
+      {action ? (
+        <button
+          type="button"
+          aria-label={action.label}
+          onClick={action.onClick}
+          disabled={action.busy || action.disabled}
+          className="absolute inset-0 z-[3] border-0 bg-transparent p-0 disabled:cursor-wait"
+        />
+      ) : (
+        <Link href={`/bingo/${bingo.slug}`} aria-label={bingo.title} className="absolute inset-0 z-[1]" />
+      )}
       {/* The board is the card — photos as they come in, stickers until then — with the words on a gradient over it. */}
       <BingoBoardBackground squares={squares} className="absolute inset-0" />
       {/* Only the bottom darkens, for the title — the stickers/photos above stay bright. */}
@@ -154,7 +176,18 @@ export function BingoBannerCard({ bingo, className, pin }: { bingo: BingoView; c
         ) : (
           <p className={cn("m-0 mt-1 font-semibold text-white/85", pin ? "text-[11px] leading-snug" : "text-[13px]")}>{bingoCta(bingo)}</p>
         )}
-        {bingo.players > 0 ? (
+        {action ? (
+          <span
+            className={cn(
+              "mt-2 flex w-full items-center justify-center rounded-xl bg-yellow font-extrabold uppercase text-ink shadow-[0_3px_0_#b38f00]",
+              pin ? "h-9 px-3 text-[11px]" : "h-11 px-4 text-[13px]",
+              action.busy && "opacity-70",
+            )}
+          >
+            {action.label}
+          </span>
+        ) : null}
+        {bingo.players > 0 && !action ? (
           <Link
             href={`/bingo/${bingo.slug}#players`}
             aria-label={`See the ${bingo.players.toLocaleString()} ${bingo.players === 1 ? "player" : "players"}`}

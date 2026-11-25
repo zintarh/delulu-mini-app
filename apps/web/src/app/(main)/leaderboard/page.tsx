@@ -9,9 +9,10 @@ import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
 import { LeaderboardPagination } from "@/components/leaderboard-pagination";
 import { Flame, Lulu, Segmented, Trophy as TrophyArt, gameButtonClass } from "@/components/ds";
-import { PRIZE, boardWindow, fortnightWindow, weekWindow, type BoardWindow } from "@/lib/leaderboard/windows";
+import { boardWindow, fortnightWindow, weekWindow, type BoardWindow } from "@/lib/leaderboard/windows";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtNgn, ngnWorthShowing } from "@/lib/earn/format";
+import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCompact } from "@/lib/levels";
@@ -194,14 +195,14 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-/** What this board is playing for, and when it resets. */
+/** The weekly pool, plus when this ranking resets. */
 function BoardBanner({ win }: { win: BoardWindow }) {
   const facts = useEarnFacts();
   const range = boardWindow(win);
   const daysLeft = Math.max(0, Math.ceil((range.endMs - Date.now()) / 86_400_000));
   const ends = daysLeft <= 1 ? "ends today" : `${daysLeft} days left`;
+  const ngn = facts ? fmtNgn(ACTIVE_POT.weeklyG * facts.gdUsd * facts.ngnPerUsd) : null;
   if (win !== "week") {
-    const ngn = facts ? PRIZE.poolG * facts.gdUsd * facts.ngnPerUsd : null;
     const round = fortnightWindow();
     return (
       <div className="relative mt-4 overflow-hidden rounded-[22px] border-2 border-ink bg-ink p-4 text-white shadow-[0_4px_0_#000]">
@@ -211,12 +212,12 @@ function BoardBanner({ win }: { win: BoardWindow }) {
             <TrophyArt size={48} />
           </span>
           <div className="min-w-0">
-            <p className="m-0 text-[13px] font-bold text-white/70">Round {round.index} · top {PRIZE.winners} share every 2 weeks</p>
+            <p className="m-0 text-[13px] font-bold text-white/70">Round {round.index} · shared every week</p>
             <p className="m-0 font-display text-[28px] font-extrabold leading-none text-yellow">
-              {PRIZE.poolG.toLocaleString("en-US")} G$
-              {ngn ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtNgn(ngn)}</span> : null}
+              {ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$
+              {ngn ? <span className="ml-2 text-[16px] text-white/85">≈ {ngn}</span> : null}
             </p>
-            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Every kept day = your stake ÷ 10 points · {ends}</p>
+            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Everyone who shows up all 7 days shares it · ranking {ends}</p>
           </div>
         </div>
       </div>
@@ -230,9 +231,9 @@ function BoardBanner({ win }: { win: BoardWindow }) {
         <TrophyArt size={40} />
       </span>
       <div className="min-w-0">
-        <p className="m-0 text-[16px] font-extrabold">Week {w.index}</p>
+        <p className="m-0 text-[16px] font-extrabold">Week {w.index} · {ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$ shared</p>
         <p className="label-mono m-0 mt-0.5 text-[10px] text-muted-foreground">
-          Every kept day = your stake ÷ 10 points · until {endDay} · {ends}
+          Everyone who shows up all 7 days shares it · until {endDay} · {ends}
         </p>
       </div>
     </div>
@@ -282,7 +283,7 @@ function Board({ win }: { win: BoardWindow }) {
   );
 }
 
-/** Leaderboard: this week and the 2-week prize round — both scored by stake (bigger stake, more points). */
+/** Leaderboard: this week and the last 2 weeks — both scored by stake (bigger stake, more points). */
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>("fortnight");
 
@@ -296,7 +297,7 @@ export default function LeaderboardPage() {
           onChange={setActiveTab}
           options={[
             { value: "week", label: "This week" },
-            { value: "fortnight", label: "2 weeks · prize" },
+            { value: "fortnight", label: "2 weeks" },
           ]}
         />
         <BoardBanner win={activeTab} />

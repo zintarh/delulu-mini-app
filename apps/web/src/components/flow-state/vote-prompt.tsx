@@ -133,6 +133,11 @@ function VotePromptInner() {
       /* storage blocked */
     }
   };
+  // A claim or a join is waiting on this popup. Closing it lets that continue.
+  const dismiss = () => {
+    if (gate) letThrough();
+    else snooze();
+  };
   const voteCount = Number(vote.votingPower);
   const votesToGive = voteCount > 0 ? voteCount : 10;
   const line = vote.busy || vote.error || vote.notice;
@@ -142,19 +147,17 @@ function VotePromptInner() {
       open={open}
       onOpenChange={(o) => {
         if (o) return setOpen(true);
-        if (gate) {
-          // Required: it only closes once they've voted, or if voting failed.
-          if (voted || vote.error) letThrough();
+        if (voted && !gate) {
+          setOpen(false);
           return;
         }
-        if (voted) setOpen(false);
-        else snooze();
+        dismiss();
       }}
       title="Vote for Delulu"
       hideTitleVisually
-      overlayClassName="z-[219]"
-      sheetClassName="rounded-t-3xl pb-10"
-      modalClassName="z-[220] max-w-md"
+      overlayClassName="z-[80]"
+      sheetClassName="z-[90] rounded-t-3xl pb-10"
+      modalClassName="z-[90] max-w-md"
     >
       <div className="px-4 pb-2 pt-1">
         <div className="relative overflow-hidden rounded-[24px] border-2 border-ink bg-ink p-5 text-center text-white shadow-[0_5px_0_#000]">
@@ -188,9 +191,11 @@ function VotePromptInner() {
                 disabled={!!vote.busy}
                 onClick={() => {
                   if (vote.status === "verify") {
-                    setOpen(false);
                     faceCheck?.start();
-                  } else void vote.voteAll();
+                    dismiss();
+                    return;
+                  }
+                  void vote.voteAll();
                 }}
                 className="press-edge mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-yellow text-[15px] font-extrabold uppercase text-ink shadow-[0_3px_0_#b38f00] disabled:opacity-70"
               >
@@ -200,15 +205,8 @@ function VotePromptInner() {
             )}
           </div>
         </div>
-        {voted ? null : gate ? (
-          // Required step: the only way past without voting is a vote that failed.
-          vote.error ? (
-            <button type="button" onClick={letThrough} disabled={!!vote.busy} className="mt-2 h-10 w-full text-[13px] font-bold text-muted-foreground">
-              Continue for now
-            </button>
-          ) : null
-        ) : (
-          <button type="button" onClick={snooze} disabled={!!vote.busy} className="mt-2 h-10 w-full text-[13px] font-bold text-muted-foreground">
+        {voted ? null : (
+          <button type="button" onClick={dismiss} className="mt-2 h-10 w-full text-[13px] font-bold text-muted-foreground">
             Not now
           </button>
         )}

@@ -100,6 +100,48 @@ export async function waitForReceipt(hash: Hash, timeoutMs: number): Promise<"su
   }
 }
 
+export type OutgoingCelo = { to: string | null; valueWei: bigint };
+
+/**
+ * Native CELO this wallet sent, from `sinceBlock` onward. null when the
+ * history lookup fails — the caller must not treat that as "they sent it".
+ * Fees are not included; only transaction value is.
+ */
+export async function outgoingCeloSince(address: `0x${string}`, sinceBlock: bigint): Promise<OutgoingCelo[] | null> {
+  const found: OutgoingCelo[] = [];
+  let query = "filter=from";
+  try {
+    for (let page = 0; page < 5; page++) {
+      const res = await fetch(`https://celo.blockscout.com/api/v2/addresses/${address}/transactions?${query}`, {
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as {
+        items?: { block_number?: number; from?: { hash?: string }; to?: { hash?: string } | null; value?: string }[];
+        next_page_params?: Record<string, string | number> | null;
+      };
+      let passedStart = false;
+      for (const tx of json.items ?? []) {
+        const block = BigInt(tx.block_number ?? 0);
+        if (block < sinceBlock) {
+          passedStart = true;
+          continue;
+        }
+        if (String(tx.from?.hash ?? "").toLowerCase() !== address.toLowerCase()) continue;
+        found.push({ to: tx.to?.hash ?? null, valueWei: BigInt(tx.value ?? "0") });
+      }
+      if (passedStart || !json.next_page_params) break;
+      query = new URLSearchParams(
+        Object.entries(json.next_page_params).map(([key, value]) => [key, String(value)]),
+      ).toString();
+    }
+    return found;
+  } catch (err) {
+    console.error("[faucet] could not read outgoing transfers", err);
+    return null;
+  }
+}
+
 /** Whether the network still knows the tx at all (mempool or mined). */
 export async function txKnown(hash: Hash): Promise<boolean> {
   try {

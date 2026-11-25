@@ -302,7 +302,7 @@ export function FeaturesSection() {
     <section id="game" className="mx-auto flex max-w-[1240px] flex-col gap-8 sm:gap-12 px-6 py-16 sm:py-[110px]">
       <SectionHead title="Every kept day counts." />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
-        <Feature title="Leaderboards" line="A weekly board, and every 2 weeks the top 10 share 250,000 G$.">
+        <Feature title="Leaderboards" line="A weekly board. Everyone who shows up all 7 days shares 1,000,000 G$ that week.">
           <div className="flex w-full flex-col gap-1">
             <div className="mb-1 flex items-center gap-2">
               <Trophy size={32} />

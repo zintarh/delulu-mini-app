@@ -3,34 +3,26 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Trophy } from "@/components/ds";
-import { useAuth } from "@/hooks/use-auth";
-import { useAllUsersLeaderboard } from "@/hooks/graph/useAllUsersLeaderboard";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtNgn } from "@/lib/earn/format";
-import { PRIZE, fortnightWindow } from "@/lib/leaderboard/windows";
+import { weekWindow } from "@/lib/leaderboard/windows";
+import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { cn } from "@/lib/utils";
 
 /**
- * The 2-week leaderboard prize, where it means something (Rewards, right after
- * a photo) instead of on Home: the pool, your rank this round, days left.
+ * The weekly pool, shown where a payout is on the player's mind (Rewards,
+ * right after a photo). 1,000,000 G$ shared by everyone who shows up all 7 days.
  */
 export function LeaderboardPrizeCard({ className }: { className?: string }) {
-  const { address } = useAuth();
   const facts = useEarnFacts();
-  const { myRankEntry, isRankLoading } = useAllUsersLeaderboard(0, address, undefined, "fortnight");
-  const round = fortnightWindow();
-  const daysLeft = Math.max(1, Math.ceil((round.endMs - Date.now()) / 86_400_000));
-  const ngn = facts ? fmtNgn(PRIZE.poolG * facts.gdUsd * facts.ngnPerUsd) : null;
-  const inPrize = !!myRankEntry && myRankEntry.rank <= PRIZE.winners;
-  const you = isRankLoading
-    ? " "
-    : myRankEntry
-      ? `You're #${myRankEntry.rank}${inPrize ? " — in the prize" : ""} · ${myRankEntry.points.toLocaleString("en-US")} pts`
-      : "Post today to get on the board";
+  const week = weekWindow();
+  const daysLeft = Math.max(0, Math.ceil((week.endMs - Date.now()) / 86_400_000));
+  const left = daysLeft <= 1 ? "ends today" : `${daysLeft} days left`;
+  const ngn = facts ? fmtNgn(ACTIVE_POT.weeklyG * facts.gdUsd * facts.ngnPerUsd) : null;
 
   return (
     <Link
-      href="/leaderboard"
+      href="/how-to-earn"
       className={cn(
         "relative flex items-center gap-3 overflow-hidden rounded-[20px] border-2 border-ink bg-ink px-3.5 py-3 text-white no-underline shadow-[0_3px_0_#000]",
         className,
@@ -42,11 +34,11 @@ export function LeaderboardPrizeCard({ className }: { className?: string }) {
       </span>
       <span className="relative min-w-0 flex-1">
         <span className="block truncate text-[14px] font-extrabold">
-          Top {PRIZE.winners} share <span className="text-yellow">{PRIZE.poolG.toLocaleString("en-US")} G$</span>
+          <span className="text-yellow">{ACTIVE_POT.weeklyG.toLocaleString("en-US")} G$</span>
           {ngn ? <span className="font-bold text-white/70"> ≈ {ngn}</span> : null}
         </span>
-        <span className={cn("block truncate text-[11px] font-semibold", inPrize ? "text-green" : "text-white/70")}>
-          {you} · {daysLeft} {daysLeft === 1 ? "day" : "days"} left
+        <span className="block truncate text-[11px] font-semibold text-white/70">
+          Shared this week by everyone who shows up all 7 days · {left}
         </span>
       </span>
       <ChevronRight className="relative h-4 w-4 shrink-0 text-white/60" />

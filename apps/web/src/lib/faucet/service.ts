@@ -8,6 +8,7 @@ import {
   faucetPublicClient,
   hasOnChainProfile,
   receiptStatus,
+  outgoingCeloSince,
   txKnown,
   waitForReceipt,
 } from "@/lib/faucet/chain";
@@ -17,6 +18,7 @@ import {
   computeTopUp,
   gasReasonMessage,
   ipSubnet,
+  sentSponsoredGasOut,
   weiToCelo,
   type FaucetConfig,
   type FaucetStage,
@@ -50,6 +52,7 @@ const LOGGED: GasRequestReason[] = [
   "captcha_failed",
   "captcha_required",
   "not_eligible",
+  "sent_out",
   "stage_cap",
   "ip_limit",
   "subnet_limit",
@@ -80,6 +83,45 @@ async function isBlocked(admin: SupabaseAdmin, address: string, ip: string | nul
   const { data, error } = await admin.from("faucet_blocklist").select("id").in("value", values).limit(1);
   if (error) throw new Error(`[faucet] blocklist: ${error.message}`);
   return (data?.length ?? 0) > 0;
+}
+
+/**
+ * A wallet that already received gas and then transferred CELO out cannot
+ * claim again. "known" means we already recorded that. "new" means this
+ * request is the one that found the transfer. null means they may still claim.
+ * A failed history lookup does not block them.
+ */
+async function withdrewSponsoredGas(admin: SupabaseAdmin, address: `0x${string}`): Promise<"known" | "new" | null> {
+  const { data: marked, error: markedError } = await admin
+    .from("gas_faucet_claims")
+    .select("id")
+    .eq("address", address)
+    .eq("agent_reasoning", "sent_out")
+    .limit(1);
+  if (markedError) throw new Error(`[faucet] sent-out check: ${markedError.message}`);
+  if ((marked?.length ?? 0) > 0) return "known";
+
+  const { data: sent, error } = await admin
+    .from("gas_faucet_claims")
+    .select("tx_hash")
+    .eq("address", address)
+    .eq("status", "sent")
+    .not("tx_hash", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw new Error(`[faucet] prior drip: ${error.message}`);
+  const hash = sent?.[0]?.tx_hash as Hash | undefined;
+  if (!hash) return null;
+
+  try {
+    const receipt = await faucetPublicClient.getTransactionReceipt({ hash });
+    const outgoing = await outgoingCeloSince(address, receipt.blockNumber);
+    if (!outgoing) return null;
+    return sentSponsoredGasOut(outgoing, address) ? "new" : null;
+  } catch (err) {
+    console.error("[faucet] could not check whether gas was sent out", err);
+    return null;
+  }
 }
 
 /** CELO this wallet has used of a step (in flight or sent), optionally within a window. */
@@ -174,6 +216,12 @@ export async function requestGas(
   // Settle this wallet's earlier drip first, so a crashed request never
   // blocks it for long and a confirmed one counts.
   await reconcileFaucetClaims(admin, { address });
+
+  const withdrew = await withdrewSponsoredGas(admin, address);
+  if (withdrew) {
+    if (withdrew === "new") await logRejection(admin, { address, stage: null, ip, subnet, reason: "sent_out" });
+    return fail("sent_out");
+  }
 
   let plan: Plan | null;
   let balanceWei: bigint;

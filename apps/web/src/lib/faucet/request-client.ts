@@ -9,9 +9,14 @@ export type GasClientResult = {
 let inflight: Promise<GasClientResult> | null = null;
 
 /** One in-flight drip. A second tap waits on the same request instead of double-sending. */
-export function requestGasTopup(): Promise<GasClientResult> {
+export function requestGasTopup(captchaToken?: string | null): Promise<GasClientResult> {
   if (!inflight) {
-    inflight = fetch("/api/faucet/topup", { method: "POST", credentials: "include" })
+    inflight = fetch("/api/faucet/topup", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ captchaToken: captchaToken ?? null }),
+    })
       .then(async (r) => {
         const data = (await r.json().catch(() => null)) as GasClientResult | null;
         if (!data || typeof data.success !== "boolean") {

@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseUnits } from "viem";
 import { useChainId } from "wagmi";
-import { Loader2 } from "lucide-react";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
-import { MissionSticker } from "@/components/bingo/mission-stickers";
+import { BingoBannerCard } from "@/components/bingo/bingo-tile";
+import { PinBoard, pinAspect } from "@/components/ui/pin-board";
 import { useBingoList } from "@/hooks/use-bingo";
+import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { useAuth } from "@/hooks/use-auth";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
 import { useTokenBalance } from "@/hooks/use-token-balance";
@@ -38,7 +39,8 @@ function friendly(err: unknown): string {
  * this card. That claim and that join are the two contract interactions a new
  * player needs. The vote opens here, and Home comes after they vote.
  */
-function ClaimAndJoin({ bingo, onDone }: { bingo: BingoView; onDone: () => void }) {
+function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; onDone: () => void }) {
+  const router = useRouter();
   const { address } = useAuth();
   const chainId = useChainId();
   const ubi = useGoodDollarClaim();
@@ -60,7 +62,8 @@ function ClaimAndJoin({ bingo, onDone }: { bingo: BingoView; onDone: () => void 
   const run = async () => {
     if (phase !== "idle") return;
     if (!address) {
-      setError("Sign in first, then tap Claim and join.");
+      persistSignInRedirect("/play");
+      router.push(buildSignInUrl("/play"));
       return;
     }
     setError(null);
@@ -125,34 +128,27 @@ function ClaimAndJoin({ bingo, onDone }: { bingo: BingoView; onDone: () => void 
     }
   };
 
-  if (alreadyIn) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          void afterVote(() => undefined).then(onDone);
-        }}
-        className="press-edge h-11 shrink-0 rounded-xl bg-ink px-3 text-[12px] font-extrabold uppercase text-white"
-      >
-        You're in
-      </button>
-    );
-  }
-
-  const label = phase === "claiming" ? "Claiming…" : phase === "joining" ? "Joining…" : "Claim and join";
+  const label = alreadyIn ? "You're in" : phase === "claiming" ? "Claiming…" : phase === "joining" ? "Joining…" : "Claim and join";
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={() => void run()}
-        disabled={phase !== "idle" || !bingo.joinable}
-        className="press-edge inline-flex h-11 items-center gap-1.5 rounded-xl bg-yellow px-3 text-[12px] font-extrabold uppercase text-ink shadow-[0_3px_0_#b38f00] disabled:opacity-60"
-      >
-        {phase !== "idle" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-        {label}
-      </button>
-      {error ? <p className="m-0 max-w-[180px] text-right text-[11px] font-bold leading-snug text-orange">{error}</p> : null}
+    <div>
+      <BingoBannerCard
+        bingo={bingo}
+        pin={pin}
+        action={{
+          label,
+          busy: phase !== "idle",
+          disabled: !alreadyIn && !bingo.joinable,
+          onClick: () => {
+            if (alreadyIn) {
+              void afterVote(() => undefined).then(onDone);
+              return;
+            }
+            void run();
+          },
+        }}
+      />
+      {error ? <p className="m-0 mt-2 text-[12px] font-bold leading-snug text-orange">{error}</p> : null}
     </div>
   );
 }
@@ -179,20 +175,21 @@ export default function PlayPage() {
         eyebrow="Your first 7 days"
         subtitle={`Claim today's G$ and join one card for ${STARTER_STAKE} G$. Finish the week and the stake comes back.`}
       />
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 px-5 pb-12 pt-2">
-        {loading && cards.length === 0
-          ? STARTER_CARDS.map((s) => <div key={s.slug} className="h-[84px] animate-pulse rounded-[20px] bg-ink/10" />)
-          : null}
-        {cards.map((b) => (
-          <div key={b.slug} className="flex items-center gap-3 rounded-[20px] border-2 border-line bg-white px-3.5 py-3 shadow-edge">
-            <MissionSticker title={b.title} size={48} />
-            <span className="min-w-0 flex-1">
-              <span className="block font-extrabold leading-tight">{b.title}</span>
-              <span className="mt-0.5 block text-[13px] font-semibold text-muted-foreground">7 days · {STARTER_STAKE} G$</span>
-            </span>
-            <ClaimAndJoin bingo={b} onDone={goHome} />
-          </div>
-        ))}
+      <div className="mx-auto max-w-3xl px-5 pb-12 pt-2">
+        {loading && cards.length === 0 ? (
+          <PinBoard twoUp>
+            {STARTER_CARDS.map((s, i) => (
+              <div key={s.slug} className={`${pinAspect(i + 1)} animate-pulse rounded-[22px] bg-ink/10`} />
+            ))}
+          </PinBoard>
+        ) : null}
+        {cards.length > 0 ? (
+          <PinBoard twoUp>
+            {cards.map((b, i) => (
+              <ClaimAndJoin key={b.slug} bingo={b} pin={pinAspect(i + 1)} onDone={goHome} />
+            ))}
+          </PinBoard>
+        ) : null}
         {!loading && cards.length === 0 ? (
           <p className="m-0 text-sm font-semibold text-orange">The starter cards aren't available right now. Try again in a moment.</p>
         ) : null}

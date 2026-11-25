@@ -4,31 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
-import { FirstWeekOffer } from "@/components/first-week-offer";
 import { Coin } from "@/components/ds";
 import { useAuth } from "@/hooks/use-auth";
-import { useBingoList } from "@/hooks/use-bingo";
-import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
+import { useUserTotalPoints } from "@/hooks/graph/useUserPoints";
 
 const SNOOZE_MS = 24 * 60 * 60 * 1000;
 const key = (wallet: string) => `delulu:first-week-welcome:${wallet.toLowerCase()}`;
 
 /**
- * A new (or invited) player's first look at Home: a pop-up that says plainly
- * which Bingo carries the welcome bonus and what it pays — instead of making
- * them find it among everything else. Shows while First Week is open to them
- * and they haven't started it; "Not now" hides it for a day.
+ * Home popup for a player who has never earned a point. The button opens the
+ * four 100 G$ cards. "Not now" hides it for a day.
  */
 export function FirstWeekWelcome() {
   const { address } = useAuth();
-  const { bingos } = useBingoList();
-  const facts = useEarnFacts();
+  const { points, isLoading } = useUserTotalPoints(address);
   const [open, setOpen] = useState(false);
 
-  // Listed only for eligible players; joinable = not running one, not finished it.
-  const firstWeek = bingos?.find((b) => b.slug === FIRST_WEEK_SLUG);
-  const offer = !!address && !!firstWeek?.joinable && !!facts?.firstWeek;
+  // Only players who have never earned a point. The four cards are their way in.
+  const offer = !!address && !isLoading && points === 0;
 
   useEffect(() => {
     if (!offer || !address) return;
@@ -59,11 +52,10 @@ export function FirstWeekWelcome() {
           <Coin size={28} /> Welcome bonus
         </p>
         <p className="m-0 text-[14px] font-semibold leading-snug text-muted-foreground">
-          Start <b className="text-ink">{firstWeek!.title}</b> — it&apos;s the one with your welcome bonus. Show up every day for 7 days.
+          Pick one of the four cards. Claim today&apos;s G$ and stake 100 G$ for 7 days.
         </p>
-        <FirstWeekOffer variant="home" />
         <Link
-          href={`/bingo/${FIRST_WEEK_SLUG}`}
+          href="/play"
           onClick={() => setOpen(false)}
           className="press-edge flex h-12 items-center justify-center gap-2 rounded-2xl bg-ink text-[14px] font-extrabold uppercase text-white no-underline shadow-[0_3px_0_#000]"
         >

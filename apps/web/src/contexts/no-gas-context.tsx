@@ -1,11 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
-import { parseEther } from "viem";
 import { NoGasModal } from "@/components/no-gas-modal";
 import { useHasGas } from "@/hooks/use-has-gas";
 import { useAuth } from "@/hooks/use-auth";
-import { COMFORT_BALANCE_CELO } from "@/lib/faucet/rules";
 
 interface NoGasContextValue {
   /**
@@ -23,43 +21,56 @@ export function useNoGas() {
   return useContext(NoGasContext);
 }
 
-const COMFORT_WEI = parseEther(String(COMFORT_BALANCE_CELO));
+/** After a successful claim, stay quiet so a stale balance reading can't pop the prompt again. */
+const QUIET_MS = 2 * 60_000;
 
 export function NoGasProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { isLowGas, isLoading, balanceKnown, balanceWei } = useHasGas();
+  const { isLowGas, isLoading, balanceKnown, refetch } = useHasGas();
   const { authenticated } = useAuth();
   const stateRef = useRef({ isLowGas, isLoading, balanceKnown });
   stateRef.current = { isLowGas, isLoading, balanceKnown };
   const shown = useRef(false);
+  const quietUntil = useRef(0);
 
   useEffect(() => {
-    if (!authenticated || !balanceKnown || balanceWei == null) return;
-    if (balanceWei >= COMFORT_WEI) {
+    if (!authenticated || !balanceKnown) return;
+    // They can pay a fee. Close the prompt and allow a future shortage to show it once.
+    if (!isLowGas) {
       shown.current = false;
+      quietUntil.current = 0;
+      setOpen(false);
       return;
     }
-    if (shown.current) return;
+    if (shown.current || Date.now() < quietUntil.current) return;
     shown.current = true;
     setOpen(true);
-  }, [authenticated, balanceKnown, balanceWei]);
+  }, [authenticated, balanceKnown, isLowGas]);
 
   const trigger = useCallback((opts?: { force?: boolean }) => {
     if (opts?.force) {
+      if (Date.now() < quietUntil.current) return;
       setOpen(true);
       return;
     }
     const { isLowGas: low, isLoading: loading, balanceKnown: known } = stateRef.current;
-    if (loading || !known || !low) return;
+    if (loading || !known || !low || Date.now() < quietUntil.current) return;
     setOpen(true);
   }, []);
 
-  const covered = balanceKnown && balanceWei != null && balanceWei >= COMFORT_WEI;
+  const onClaimed = useCallback(() => {
+    quietUntil.current = Date.now() + QUIET_MS;
+    shown.current = true;
+    setOpen(false);
+    void refetch();
+  }, [refetch]);
+
+  const covered = balanceKnown && !isLowGas;
 
   return (
     <NoGasContext.Provider value={{ trigger, covered }}>
       {children}
-      <NoGasModal open={open} notice={null} onClose={() => setOpen(false)} />
+      <NoGasModal open={open} notice={null} onClose={() => setOpen(false)} onClaimed={onClaimed} />
     </NoGasContext.Provider>
   );
 }

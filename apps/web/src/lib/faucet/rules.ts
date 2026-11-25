@@ -235,6 +235,26 @@ export function clientIp(headers: { get(_name: string): string | null }): string
 
 // ── Outcomes ────────────────────────────────────────────────────────────────
 
+/**
+ * Native CELO sent to another wallet after a drip. Fees are not part of a
+ * transaction's value, so spending gas on the app does not count. Moving the
+ * drip itself does, and that wallet cannot claim again.
+ */
+export const SENT_OUT_MIN_CELO = 0.001;
+
+export function sentSponsoredGasOut(
+  transfers: { to: string | null; valueWei: bigint }[],
+  ownAddress: string,
+): boolean {
+  const self = ownAddress.toLowerCase();
+  const min = celoToWei(SENT_OUT_MIN_CELO);
+  return transfers.some((t) => {
+    if (t.valueWei < min) return false;
+    const to = t.to?.toLowerCase() ?? "";
+    return to.length > 0 && to !== self;
+  });
+}
+
 export type GasRequestReason =
   | "has_enough"
   | "paused"
@@ -242,6 +262,7 @@ export type GasRequestReason =
   | "captcha_required"
   | "captcha_failed"
   | "not_eligible"
+  | "sent_out"
   | "stage_cap"
   | "ip_limit"
   | "subnet_limit"
@@ -275,6 +296,8 @@ export function gasReasonMessage(reason: GasRequestReason): string {
     case "send_failed":
     case "unavailable":
       return "Couldn't send gas right now. Try again.";
+    case "sent_out":
+      return "You sent the gas we gave you to another wallet, so this wallet can't claim gas again.";
     case "stage_cap":
     case "not_eligible":
       return "You've used your free gas for now. Keep proving your goals to unlock more.";

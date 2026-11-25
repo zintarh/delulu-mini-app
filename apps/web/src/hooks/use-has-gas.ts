@@ -13,16 +13,13 @@ export function useHasGas() {
   const { authenticated, address } = useAuth();
   const enabled = !!authenticated && !!address;
 
-  const { data, isLoading, isFetching, isError } = useBalance({
+  const { data, isLoading, isFetching, isError, refetch } = useBalance({
     address,
     chainId: CELO_MAINNET_ID,
     query: {
       enabled,
-      staleTime: 30_000,
-      // Balance only otherwise refreshes on window refocus/remount, so a user
-      // funded out-of-band (e.g. an admin sends CELO via the Telegram flow)
-      // can keep seeing a stale "no gas" prompt indefinitely. Poll while low
-      // so it self-corrects shortly after funding; stop once topped up.
+      staleTime: 15_000,
+      // Keep checking only while a fee would fail. Stop once the wallet can pay.
       refetchInterval: (query) => {
         const balance = query.state.data?.value;
         if (balance != null && balance >= MIN_GAS_WEI) return false;
@@ -44,5 +41,6 @@ export function useHasGas() {
     isLoading: enabled && (isLoading || (isFetching && data == null)),
     balanceWei,
     balanceKnown,
+    refetch,
   };
 }

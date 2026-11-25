@@ -17,7 +17,7 @@ const MISSING_LABEL: Record<PartnerMissing, string> = {
   verify: "Face check left",
   claim: "Hasn't claimed G$",
   stake: "Hasn't staked G$",
-  join: "Hasn't joined",
+  join: "Hasn't joined a Bingo card",
   points: "Short on points",
 };
 
@@ -28,7 +28,7 @@ const FILTERS: { key: Filter; label: string; test: (f: PartnerFriend) => boolean
   { key: "verify", label: "No face check", test: (f) => f.missing === "verify" },
   { key: "claim", label: "Didn't claim", test: (f) => f.missing === "claim" },
   { key: "stake", label: "Didn't stake", test: (f) => f.missing === "stake" },
-  { key: "join", label: "Didn't join", test: (f) => f.missing === "join" },
+  { key: "join", label: "Didn't join a card", test: (f) => f.missing === "join" },
   { key: "points", label: "Short on points", test: (f) => f.missing === "points" },
 ];
 
@@ -103,7 +103,7 @@ export default function PartnerPage() {
 
   return (
     <MainPage>
-      <PageBackHeader title={`${data.partner.name}'s referrals`} subtitle={`${fmt(t.brought)} signed up · ${fmt(t.completed)} counted`} />
+      <PageBackHeader title={`${data.partner.name}'s referrals`} />
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pb-10 pt-2">
         <GameCard tone="yellow" className="p-4">
           <p className="label-mono m-0 text-[10px] text-[#8a6a00]">Your link</p>
@@ -129,7 +129,7 @@ export default function PartnerPage() {
             <li>They open your link and sign up.</li>
             <li>They pass the GoodDollar face check.</li>
             <li>They claim their free G$.</li>
-            <li>They stake that G$ on a Delulu campaign. Staking is what GoodDollar counts as actually using the contracts.</li>
+            <li>They stake that G$ on a Bingo card. Staking is what GoodDollar counts as actually using the contracts.</li>
             <li>They earn {fmt(data.partner.minPoints)} points. That is one kept photo on a 100 G$ card.</li>
           </ol>
           <p className="m-0 mt-2 text-[12px] font-semibold text-[#5f4a00]">
@@ -151,7 +151,7 @@ export default function PartnerPage() {
             <Step icon={ShieldCheck} label="Face check" n={t.verified} of={t.brought} />
             <Step icon={Coins} label="Claimed free G$" n={t.claimed} of={t.brought} />
             <Step icon={Wallet} label="Staked that G$" n={t.staked} of={t.brought} />
-            <Step icon={Ticket} label="Joined a campaign" n={t.joined} of={t.brought} />
+            <Step icon={Ticket} label="Joined a Bingo card" n={t.joined} of={t.brought} />
             <Step icon={CheckCircle2} label={`Counted (${fmt(data.partner.minPoints)} pts)`} n={t.completed} of={t.brought} />
           </div>
         </GameCard>
@@ -219,7 +219,7 @@ export default function PartnerPage() {
                     <Badge ok={f.verified} label="Face check" />
                     <Badge ok={f.claimed} label="Claimed" />
                     <Badge ok={f.staked} label="Staked" />
-                    <Badge ok={f.joined} label="Joined" />
+                    <Badge ok={f.joined} label="Bingo card" />
                     <Badge ok={f.points >= data.partner.minPoints} label={`${fmt(f.points)} / ${fmt(data.partner.minPoints)} pts`} />
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold">
                       Back {f.daysBack} {f.daysBack === 1 ? "day" : "days"}

@@ -12,7 +12,7 @@ test("weekly board: week 1 from Fri 20 Nov 00:00 Lagos, a new week every Friday"
   assert.equal(weekWindow(Date.parse("2026-11-19T12:00:00Z")).index, 1);
 });
 
-test("2-week prize board: Round 1 is Fri 20 Nov – Thu 3 Dec, then every 14 days", () => {
+test("2-week board: Round 1 is Fri 20 Nov – Thu 3 Dec, then every 14 days", () => {
   const r1 = fortnightWindow(Date.parse("2026-11-25T12:00:00Z"));
   assert.equal(r1.index, 1);
   assert.equal(new Date(r1.endMs).toISOString(), "2026-12-03T23:00:00.000Z");

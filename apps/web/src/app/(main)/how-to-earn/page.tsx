@@ -12,13 +12,13 @@ import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/c
 import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { ngnWorthShowing } from "@/lib/earn/format";
-import { PRIZE } from "@/lib/leaderboard/windows";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
 import { referralRoundForCopy, roundFirstPayment } from "@/lib/referral/campaign";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-const compactG = (n: number) => (n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : fmt(n));
+const compactG = (n: number) =>
+  n >= 1_000_000 && n % 1_000_000 === 0 ? `${n / 1_000_000}M` : n >= 1000 && n % 1000 === 0 ? `${n / 1000}K` : fmt(n);
 
 function Stat({ value, label, sub }: { value: string; label: string; sub?: string | null }) {
   return (
@@ -111,7 +111,7 @@ export default function HowToEarnPage() {
             <WayToEarn
               art={<span className="text-[30px] leading-none">🏆</span>}
               title="Weekly pot"
-              sub="Show up all 7 days on a staked card · new players are in just for showing up · stake more for a bigger share"
+              sub="Shared every week by everyone who shows up all 7 days · new players are in just for showing up · a bigger stake is a bigger share"
               badge={`${compactG(ACTIVE_POT.weeklyG)} G$`}
               href="/home"
             />
@@ -145,13 +145,6 @@ export default function HowToEarnPage() {
               sub={referralFirst < referralTotal ? `+${compactG(referralFirst)} when they start · +${compactG(referralTotal - referralFirst)} at day 3` : "Paid once they verify, stake G$ and earn 1,000 points"}
               badge={money(referralTotal)}
               href="/referrals"
-            />
-            <WayToEarn
-              art={<Trophy size={38} />}
-              title="Leaderboard prize"
-              sub={`Top ${PRIZE.winners} share it every 2 weeks · bigger stake, higher rank`}
-              badge={money(PRIZE.poolG)}
-              href="/leaderboard"
             />
           </div>
           <p className="m-0 mt-2 text-center text-[11px] font-semibold text-muted-foreground">G$ is a token — its price moves, so ₦ amounts are at today&apos;s rate.</p>

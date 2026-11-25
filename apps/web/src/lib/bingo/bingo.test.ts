@@ -201,6 +201,7 @@ test("Home always has exactly one next step, in the right order", async () => {
   const start = homeNextStep({ bingos: [debut, firstWeek, weekly], verified: true });
   assert.equal(start.featuredSlug, "first-week");
   assert.equal(start.step.kind, "first-week");
+  assert.equal(start.step.cta?.href, "/play");
   // No First Week (not new) → a 7-day Bingo, never a 3-day one first.
   assert.equal(homeNextStep({ bingos: [debut, weekly], verified: true }).featuredSlug, "outside-your-bubble");
   // Playing → today's square beats everything (even unverified).

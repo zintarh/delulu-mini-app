@@ -2,6 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ACTIVE_POT, potShares, ticketsFor } from "@/lib/pool/active-pot";
 
+test("the pool players share is 1,000,000 G$ a week", () => {
+  assert.equal(ACTIVE_POT.weeklyG, 1_000_000);
+});
+
 const week = ["2026-11-30", "2026-12-01", "2026-12-02", "2026-12-03", "2026-12-04", "2026-12-05", "2026-12-06"];
 const p = (wallet: string, stake: number, newcomer: boolean, days = week) => ({ wallet, stake, newcomer, days });
 

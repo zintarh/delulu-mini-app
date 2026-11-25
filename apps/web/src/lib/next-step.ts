@@ -247,7 +247,7 @@ export function homeNextStep(input: {
         kind: "first-week",
         title: `Start here: ${starter.title}`,
         body: "7 days, one photo a day — paid as you go.",
-        cta: { label: "Start my first week", href: `/bingo/${starter.slug}` },
+        cta: { label: "Start my first week", href: "/play" },
       },
       featuredSlug: starter.slug,
     };
