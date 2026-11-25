@@ -215,8 +215,7 @@ export function BingoJoinSheet({
       await rollingApproval.approve(tier.stake);
     }
     setStep("joining");
-    // Delulu's server verifies the card: once the AI approves a photo it marks the day done,
-    // so nothing is left for the player to sign (or to get stuck) after the photo.
+    // The player signs each day themselves. The server address is no longer attached as verifier.
     const verifier = await fetch("/api/bingo/verifier")
       .then((r) => r.json())
       .then((j: { address?: string | null }) => (j.address && /^0x[0-9a-f]{40}$/i.test(j.address) ? (j.address as `0x${string}`) : undefined))

@@ -11,7 +11,7 @@ import { ProofRewardRow } from "@/components/proof-reward-row";
 import { NextStepCard } from "@/components/next-step-card";
 import type { NextStep, NextStepAction } from "@/lib/next-step";
 import { useJoinCommunityCampaignOnChain, useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
-import { useResolveForfeitCommitmentSuccess, useSubmitForfeitProof } from "@/hooks/use-create-forfeit-commitment";
+import { useResolveForfeitCommitmentSuccess, useSubmitForfeitProof, useTakeOverForfeitVerifier } from "@/hooks/use-create-forfeit-commitment";
 import { useAuth } from "@/hooks/use-auth";
 import { startProofReward } from "@/lib/proof-reward/client";
 import type { BingoSquareView } from "@/lib/bingo/view";
@@ -61,6 +61,7 @@ export function BingoProofSheet({
   const { joinCommunityCampaignAndWait } = useJoinCommunityCampaignOnChain();
   const { submitProofAndWait } = useSubmitForfeitProof();
   const { resolveCommitmentSuccessAndWait } = useResolveForfeitCommitmentSuccess();
+  const { takeOverAndWait } = useTakeOverForfeitVerifier();
   const { address: wallet } = useAuth();
 
   // A square stuck at "confirming" reopens with its approved photo, ready to sign.
@@ -120,29 +121,14 @@ export function BingoProofSheet({
 
       if (json.filled) {
         // Already done (recovered from an earlier attempt) — nothing to sign.
-      } else if (json.requiresOnChain && json.kind === "forfeit" && json.serverVerified) {
-        // Server-verified 3-day card: the player signs today's proof (their own on-chain activity),
-        // then Delulu's verifier marks the day done. A failed or cancelled signature never costs
-        // them the day — the photo is approved, so we finish it either way.
-        setStep("signing");
-        try {
-          await submitProofAndWait(json.onChainCommitmentId, json.proofUrl);
-        } catch (e) {
-          console.warn("[bingo] proof signature skipped", e);
-        }
-        setStep("confirming");
-        const fin = await fetch(`/api/bingo/attempts/${attemptId}/finish-day`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ squareIndex: square.index }),
-        });
-        if (!fin.ok) {
-          const fj = await fin.json().catch(() => ({}));
-          throw Object.assign(new Error(fj.error ?? "Your photo is approved — reopen the square to finish."), { title: "Almost there" });
-        }
       } else if (json.requiresOnChain && json.kind === "forfeit") {
-        // 3-day card = the player's own goal: prove today, resolve today, exactly like a personal delulu.
+        // The player signs the day. Cards that still name Delulu's server as verifier
+        // are moved to the player's own wallet first — the server no longer marks the day done.
         setStep("signing");
+        if (json.serverVerified) {
+          if (!wallet) throw Object.assign(new Error("Connect your wallet to sign this day."), { title: "Wallet needed" });
+          await takeOverAndWait(json.onChainCommitmentId, wallet as `0x${string}`);
+        }
         const proofTx = await submitProofAndWait(json.onChainCommitmentId, json.proofUrl);
         const resolveTx = await resolveCommitmentSuccessAndWait(json.onChainCommitmentId);
         setStep("confirming");
@@ -290,6 +276,7 @@ export function BingoProofSheet({
                 <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white">
                   <Loader2 className="h-7 w-7 animate-spin" />
                   <span className="text-sm font-bold">{STEP_LABEL[step]}</span>
+                  {step === "signing" ? <span className="max-w-[16rem] text-center text-xs font-semibold">Approve each request. You sign this day.</span> : null}
                 </span>
               ) : null}
             </button>

@@ -249,6 +249,36 @@ export function useSubmitForfeitProof() {
   return { submitProof, submitProofAndWait, isPending, error, reset };
 }
 
+/**
+ * Cards created since 20 Nov name Delulu's server as verifier, so only that
+ * wallet can mark a day done. The creator rebinds the verifier to themselves
+ * (the contract allows a new wallet, not a blank one) and then signs the day.
+ */
+export function useTakeOverForfeitVerifier() {
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync, isPending, error, reset } = useUnifiedWriteContract();
+
+  const takeOverAndWait = async (commitmentId: number, player: `0x${string}`) => {
+    try {
+      const txHash = await writeContractAsync({
+        address: getForfeitMarketAddress(chainId),
+        abi: FORFEIT_MARKET_ABI,
+        functionName: "revokeVerifierInvite",
+        args: [BigInt(commitmentId), player, ZERO_HASH],
+      });
+      await awaitMinedSuccess(publicClient, txHash, "Couldn't move this card to your wallet.");
+      return txHash;
+    } catch (err) {
+      const name = extractForfeitErrorName(err);
+      if (name) throw new Error(describeForfeitError(name, "Couldn't move this card to your wallet."));
+      throw err;
+    }
+  };
+
+  return { takeOverAndWait, isPending, error, reset };
+}
+
 export function useResolveForfeitCommitmentSuccess() {
   const chainId = useChainId();
   const publicClient = usePublicClient();

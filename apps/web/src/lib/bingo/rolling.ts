@@ -106,7 +106,7 @@ export async function startRollingAttempt(admin: Admin, campaign: BingoCampaignR
     c.cadence === DAILY_CADENCE &&
     c.periodSeconds === DAY_MS / 1000 &&
     c.totalPeriods === campaign.duration_days &&
-    // No verifier (older cards: the player resolves each day) or Delulu's server (new cards: it resolves after the AI approves).
+    // No verifier (the player signs each day) or Delulu's server (cards from 20 Nov, until the player takes the role).
     (c.verifier === "0x0000000000000000000000000000000000000000" || c.verifier === keeperAddress()) &&
     c.active;
   if (!ok || !tier) throw new Error("That stake doesn't match this Bingo's terms.");

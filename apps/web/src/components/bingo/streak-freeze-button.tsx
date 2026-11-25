@@ -5,6 +5,7 @@ import { parseUnits } from "viem";
 import { Snowflake } from "lucide-react";
 import { GameButton } from "@/components/ds";
 import { PURCHASE, useVaultStake } from "@/hooks/use-vault-stake";
+import { useResolveForfeitCommitmentSuccess } from "@/hooks/use-create-forfeit-commitment";
 import { fmtG } from "@/lib/bingo/format";
 
 /**
@@ -13,16 +14,18 @@ import { fmtG } from "@/lib/bingo/format";
  * The G$ funds the rewards of everyone who finishes.
  */
 export function StreakFreezeButton({ attemptId, onFrozen }: { attemptId: string; onFrozen: () => void | Promise<void> }) {
-  const [offer, setOffer] = useState<{ price: number; ref: `0x${string}`; day: number } | null>(null);
+  const [offer, setOffer] = useState<{ price: number; ref: `0x${string}`; day: number; signDay: boolean; commitmentId: number } | null>(null);
+  const [paidTx, setPaidTx] = useState<`0x${string}` | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { purchaseAndWait } = useVaultStake();
+  const { resolveCommitmentSuccessAndWait } = useResolveForfeitCommitmentSuccess();
 
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/bingo/attempts/${attemptId}/freeze`)
       .then((r) => r.json())
-      .then((j) => { if (!cancelled) setOffer(j.available ? { price: j.price, ref: j.ref, day: j.day } : null); })
+      .then((j) => { if (!cancelled) setOffer(j.available ? { price: j.price, ref: j.ref, day: j.day, signDay: !!j.signDay, commitmentId: Number(j.commitmentId) } : null); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [attemptId]);
@@ -33,11 +36,13 @@ export function StreakFreezeButton({ attemptId, onFrozen }: { attemptId: string;
     setBusy(true);
     setError(null);
     try {
-      const txHash = await purchaseAndWait(parseUnits(String(offer.price), 18), PURCHASE.STREAK_FREEZE, offer.ref);
+      const txHash = paidTx ?? await purchaseAndWait(parseUnits(String(offer.price), 18), PURCHASE.STREAK_FREEZE, offer.ref);
+      setPaidTx(txHash);
+      const resolveTxHash = offer.signDay ? await resolveCommitmentSuccessAndWait(offer.commitmentId) : undefined;
       const res = await fetch(`/api/bingo/attempts/${attemptId}/freeze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ txHash }),
+        body: JSON.stringify({ txHash, resolveTxHash }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error ?? "Couldn't freeze today. Try again.");

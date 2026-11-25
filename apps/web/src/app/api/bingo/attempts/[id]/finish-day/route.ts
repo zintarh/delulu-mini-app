@@ -10,11 +10,8 @@ export const maxDuration = 60;
 const bad = (error: string, status = 400, extra: Record<string, unknown> = {}) => NextResponse.json({ error, ...extra }, { status });
 
 /**
- * Server-verified (3-day) cards: after the player has signed today's proof on
- * ForfeitMarket themselves, Delulu's verifier marks the day done. Only finishes
- * a photo the AI already approved (square in "confirming"), so it can't be used
- * to skip review. The player's signature is best effort: if they cancelled it,
- * the day is still finished — it just isn't their own on-chain activity.
+ * Records a day the player has already signed. Does not mark the day done
+ * itself. Only a photo the AI already approved can be recorded.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let wallet: string;
@@ -50,10 +47,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    await finishDayAsVerifier(admin, { attemptId: attempt.id, squareIndex });
+    const result = await finishDayAsVerifier(admin, { attemptId: attempt.id, squareIndex });
+    if (!result.filled) return bad("Confirm this day in your wallet.", 409, { code: "needs_signature" });
   } catch (e) {
     console.error("[bingo/finish-day] server finish failed", e);
-    return bad("Your photo is approved — we're saving your day. It'll show in a few minutes.", 503, { code: "finishing" });
+    return bad("Your photo is approved — reopen the square to sign it.", 503, { code: "finishing" });
   }
   const { data: fresh } = await admin.from("bingo_attempts").select("squares_filled, required_filled").eq("id", attempt.id).single();
   return NextResponse.json({ filled: true, squaresFilled: fresh?.squares_filled ?? null, requiredFilled: fresh?.required_filled ?? null });

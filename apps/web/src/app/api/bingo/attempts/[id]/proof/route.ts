@@ -234,7 +234,7 @@ async function rollingProof(
   }
   if (outcome === 2) return err("A day was missed, so this card has ended. Start a fresh one.", 400, { code: "missed_day" });
 
-  // Server-verified card (Delulu's server is its verifier): Delulu marks the day done itself.
+  // Cards that still name Delulu's server as verifier: the player takes that role and signs the day.
   const serverVerified = await isServerVerified(onChainId).catch(() => false);
   // Photo already approved, day not finished (cancelled signature or a timeout): no second review —
   // the player signs the proof again (their own on-chain activity), then Delulu finishes the day.
@@ -289,9 +289,8 @@ async function rollingProof(
   // Same reward path as a personal goal: this exact photo, proven on-chain, earns.
   await recordApprovedProof(admin, { wallet, kind: "forfeit", proofUrl: proofUrls[0], refId: goal.id as string });
 
-  // Server-verified card: the player signs the proof themselves (so the day is their own on-chain
-  // activity), then /finish-day has Delulu's verifier mark it done. If they never sign, the keeper
-  // sweep still finishes the approved day — a missed signature never costs them the day.
+  // The player signs the proof and the day. A card that still names the server comes back
+  // with serverVerified so the wallet can take the verifier role first.
   return NextResponse.json({
     verified: true,
     requiresOnChain: true,

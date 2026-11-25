@@ -70,9 +70,9 @@ export async function resolveCommitmentForfeitedAsKeeper(
 }
 
 /**
- * Delulu's server as a Bingo card's verifier: the card is created naming this
- * wallet, so once the AI approves a photo the server marks the day done itself
- * — the player signs nothing after the photo, so nothing can strand it.
+ * Address of the keeper. Older Bingo cards (from 20 Nov) named it as verifier.
+ * New cards do not. The player signs a successful day; this wallet only
+ * forfeits a deadline that already passed.
  */
 export function keeperAddress(): `0x${string}` | null {
   try {
