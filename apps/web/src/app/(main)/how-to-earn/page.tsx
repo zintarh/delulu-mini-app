@@ -2,21 +2,20 @@
 
 import Link from "next/link";
 import { usePublicRewards } from "@/hooks/use-public-rewards";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Play, Send } from "lucide-react";
+import { ChevronRight, Play, Send } from "lucide-react";
 import { AppIntroView } from "@/components/app-intro";
 import { useAuth } from "@/hooks/use-auth";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { MainPage } from "@/components/main-app-header";
 import { PageBackHeader } from "@/components/page-back-header";
-import { CheckDot, Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
+import { Chest, Coin, Lulu, ShieldBadge, Trophy, gameButtonClass } from "@/components/ds";
 import { compactCount } from "@/lib/rewards/public-stats";
 import { NAIRA_CASHOUT_MIN_G, NAIRA_CASHOUT_TELEGRAM_URL } from "@/lib/rewards/cash-out";
 import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
-import { useBingoList } from "@/hooks/use-bingo";
-import { fmtNgn, ngnWorthShowing } from "@/lib/earn/format";
+import { ngnWorthShowing } from "@/lib/earn/format";
 import { PRIZE } from "@/lib/leaderboard/windows";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
@@ -76,24 +75,9 @@ export default function HowToEarnPage() {
   // Earnings read in naira when the amount is worth showing; otherwise G$.
   const ngn = (g: number) => (facts ? ngnWorthShowing(g * facts.gdUsd * facts.ngnPerUsd) : null);
   const money = (g: number) => ngn(g) ?? `${compactG(g)} G$`;
-  const [ladderOpen, setLadderOpen] = useState(false);
-  const { bingos } = useBingoList();
-  // Cashback ladder from the live Bingos: one row per stake (3-day and 7-day), smallest first.
-  const ladder = useMemo(() => {
-    const rows = new Map<string, { days: number; stake: number; back: number }>();
-    for (const b of bingos ?? []) {
-      for (const t of b.tiers) {
-        if (typeof t.completionReward !== "number" || t.completionReward <= 0 || b.slug === "first-week") continue;
-        rows.set(`${b.durationDays}-${t.stake}`, { days: b.durationDays, stake: t.stake, back: t.completionReward });
-      }
-    }
-    return [...rows.values()].sort((a, b) => a.stake - b.stake || a.days - b.days);
-  }, [bingos]);
-  const maxBack = ladder.reduce((m, r) => Math.max(m, r.back), 0);
   const round = referralRoundForCopy();
   const referralTotal = round.reward;
   const referralFirst = roundFirstPayment(round);
-  const c = data?.config;
   const stats = data?.stats;
   const [introOpen, setIntroOpen] = useState(false);
   const { authenticated } = useAuth();
@@ -137,65 +121,31 @@ export default function HowToEarnPage() {
         <section>
           <h2 className="m-0 mb-3 text-[20px] font-extrabold tracking-[-0.015em]">Ways to earn</h2>
           <div className="flex flex-col gap-2.5">
-            <WayToEarn art={<Chest size={40} />} title="Free daily money" sub="Claim every day with GoodDollar" badge="Free" href="/daily-claim" />
+            {/* The two rewards everything else hangs off: the weekly pot and 10% cashback. */}
+            <WayToEarn
+              art={<span className="text-[30px] leading-none">🏆</span>}
+              title="Weekly pot"
+              sub="Show up all 7 days on a staked card · new players are in just for showing up · stake more for a bigger share"
+              badge={`${compactG(ACTIVE_POT.weeklyG)} G$`}
+              href="/home"
+            />
+            <WayToEarn
+              art={<Trophy size={38} />}
+              title="10% cashback"
+              sub="On every stake: a little each day you keep, the rest when you finish · plus your stake back"
+              badge="10%"
+              href="/explore"
+            />
+            <WayToEarn art={<Chest size={40} />} title="Free daily money" sub="Claim every day with GoodDollar, then stake it" badge="Free" href="/daily-claim" />
             {facts?.firstWeek ? (
               <WayToEarn
                 art={<Lulu size={40} mood="kept" animated={false} />}
                 title="Your first week"
-                sub="7 days in a row · new players"
-                badge={`+${fmtNgn(facts.firstWeek.entry.ngn)}`}
+                sub={facts.firstWeek.stake ? `Stake ${facts.firstWeek.stake.toLocaleString("en-US")} G$ · 7 days · new players` : "7 days in a row · new players"}
+                badge={`up to ${compactG(facts.firstWeek.entry.g)} G$`}
                 href="/bingo/first-week"
               />
             ) : null}
-            {c?.categoryEnabled.daily_proof ? (
-              <WayToEarn
-                art={<CheckDot size={34} />}
-                title="Every photo pays"
-                sub={c.categoryEnabled.weekly_consistency ? `+${fmt(c.weeklyAmount)} G$ for ${c.weeklyMinProofs} days in a row` : "Each day you post on a Bingo"}
-                badge={`+${fmt(c.dailyAmount)} G$`}
-              />
-            ) : null}
-            <WayToEarn
-              art={<Trophy size={38} />}
-              title="Finish a Bingo"
-              sub="Your stake back + cashback · bigger stake, more back"
-              badge={maxBack ? `Up to +${money(maxBack)}` : "Cashback"}
-              href="/explore"
-            />
-            {/* The ladder, so "stake more, get more" is obvious */}
-            {/* Every stake level, behind a tap — the badge above already says the most. */}
-            {ladder.length ? (
-              <div className="-mt-1">
-                <button
-                  type="button"
-                  onClick={() => setLadderOpen((o) => !o)}
-                  aria-expanded={ladderOpen}
-                  className="inline-flex items-center gap-1 px-1 text-[12px] font-extrabold text-ink"
-                >
-                  {ladderOpen ? "Hide" : "See"} cashback for every stake
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", ladderOpen && "rotate-180")} />
-                </button>
-                {ladderOpen ? (
-                  <ul className="m-0 mt-1.5 flex list-none flex-col gap-1 rounded-[18px] bg-paper p-2">
-                    {ladder.map((r) => (
-                      <li key={`${r.days}-${r.stake}`} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-[12px] font-bold">
-                        <span>
-                          Stake {compactG(r.stake)} G$ <span className="font-semibold text-muted-foreground">· {r.days} days</span>
-                        </span>
-                        <span className="text-green-edge">+{money(r.back)} back</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : null}
-            <WayToEarn
-              art={<span className="text-[30px] leading-none">🏆</span>}
-              title="Weekly pot"
-              sub="Post on a staked card all 7 days · new players are in for showing up · after that, stake 1,000+ (more stake, more tickets)"
-              badge={`${compactG(ACTIVE_POT.weeklyG)} G$`}
-              href="/home"
-            />
             <WayToEarn
               art={<span className="text-[30px] leading-none">🔥</span>}
               title="Cheers on your card"

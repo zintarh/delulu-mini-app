@@ -13,7 +13,6 @@ import { useHomeNextStep } from "@/components/home/home-next-step";
 import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { HomeWalletStrip } from "@/components/home/home-wallet-strip";
-import { HomeEarnLoop } from "@/components/home/home-earn-loop";
 import { HomePotCard } from "@/components/home/home-pot-card";
 import { useLuluHomeNews } from "@/components/home/home-lulu-news";
 import { useBingoList } from "@/hooks/use-bingo";
@@ -83,10 +82,9 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
                 today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null}
               />
             ) : null}
-            <HomeWalletStrip />
-            {/* The weekly pot: why tomorrow matters. */}
+            {/* What you get (weekly pot + 10% cashback), then your G$. */}
             <HomePotCard />
-            <HomeEarnLoop />
+            <HomeWalletStrip />
             <div id="forfeit-day-card">
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
             </div>
@@ -95,7 +93,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
         ) : (
           <>
             <HomePotCard />
-            <HomeEarnLoop />
             <HomeBingo newcomer />
           </>
         )}

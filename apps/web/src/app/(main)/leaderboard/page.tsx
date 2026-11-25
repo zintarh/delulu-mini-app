@@ -216,7 +216,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
               {PRIZE.poolG.toLocaleString("en-US")} G$
               {ngn ? <span className="ml-2 text-[16px] text-white/85">≈ {fmtNgn(ngn)}</span> : null}
             </p>
-            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Bigger stake + more days kept = higher rank · {ends}</p>
+            <p className="label-mono m-0 mt-1 text-[10px] text-white/60">Every kept day = your stake ÷ 10 points · {ends}</p>
           </div>
         </div>
       </div>
@@ -232,7 +232,7 @@ function BoardBanner({ win }: { win: BoardWindow }) {
       <div className="min-w-0">
         <p className="m-0 text-[16px] font-extrabold">Week {w.index}</p>
         <p className="label-mono m-0 mt-0.5 text-[10px] text-muted-foreground">
-          Bigger stake + more days kept = higher rank · until {endDay} · {ends}
+          Every kept day = your stake ÷ 10 points · until {endDay} · {ends}
         </p>
       </div>
     </div>
