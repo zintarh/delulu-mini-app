@@ -30,6 +30,7 @@ import { isFirstWeekSlug } from "@/lib/bingo/first-week";
 import { isStarterSlug } from "@/lib/bingo/starter";
 import { seasonPointsForStake } from "@/lib/season/rules";
 import { useVaultFunds, useVaultStake } from "@/hooks/use-vault-stake";
+import { StakeTicketsHint, TicketChip } from "@/components/pot/stake-tickets";
 
 const DAY_S = 86_400;
 
@@ -297,6 +298,7 @@ export function BingoJoinSheet({
                 <span className="font-display text-xl font-extrabold leading-none">{fmtG(t.stake)}</span>
                 <span className="text-[10px] font-bold opacity-70">G${ngn(t.stake) ? ` · ≈ ${ngn(t.stake)}` : ""}</span>
                 <span className="text-[10px] font-bold opacity-70">+{seasonPointsForStake(t.stake).toLocaleString()} pts a day</span>
+                <TicketChip stake={t.stake} newcomer={stakeRules.tier === "newcomer"} selected={t.key === tier?.key} className="mt-1" />
                 {typeof t.completionReward === "number" && t.completionReward > 0 ? (
                   <span className={cn("mt-1 rounded-full px-1.5 py-0.5 text-center text-[10px] font-extrabold leading-tight", t.key === tier?.key ? "bg-green text-ink" : "bg-green-soft text-green-edge")}>
                     +{fmtG(t.completionReward)} back
@@ -307,6 +309,8 @@ export function BingoJoinSheet({
             ))}
           </div>
         ) : null}
+
+        {tier ? <StakeTicketsHint stake={tier.stake} newcomer={stakeRules.tier === "newcomer"} /> : null}
 
         <ul className="flex flex-col gap-2.5 rounded-2xl border-2 border-line bg-white p-3.5">
           {rules.map(({ icon: Icon, text }) => (

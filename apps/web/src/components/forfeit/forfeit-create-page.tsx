@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Chip, HoldToSign, OptionTile, Segmented, gameButtonClass } from "@/components/ds";
 import { APP_HOME } from "@/components/main-nav-config";
+import { StakeTicketsHint, TicketChip } from "@/components/pot/stake-tickets";
 import { cn } from "@/lib/utils";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
@@ -1852,6 +1853,9 @@ export function ForfeitCreatePage() {
             ) : null}
           </div>
 
+          {selectedTokenSymbol === "G$" ? (
+            <StakeTicketsHint stake={forfeitAmount} newcomer={stakeRules.tier === "newcomer"} className="mt-3.5" />
+          ) : null}
           <div className="mt-3.5 grid grid-cols-3 gap-2">
             {amountPresets.map((amount) => (
               <button
@@ -1875,6 +1879,9 @@ export function ForfeitCreatePage() {
                   <span className="block text-[10px] font-extrabold opacity-70">
                     +{seasonPointsForStake(amount).toLocaleString()} pts
                   </span>
+                ) : null}
+                {selectedTokenSymbol === "G$" ? (
+                  <TicketChip stake={amount} newcomer={stakeRules.tier === "newcomer"} selected={forfeitAmount === amount} className="mt-1" />
                 ) : null}
               </button>
             ))}

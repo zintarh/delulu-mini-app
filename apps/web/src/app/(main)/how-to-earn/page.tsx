@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { ngnWorthShowing, fmtUsd } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
+import { TicketLadder } from "@/components/pot/stake-tickets";
+import { useStakeRules } from "@/hooks/use-stake-rules";
+import { useAuth } from "@/hooks/use-auth";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
@@ -68,6 +71,12 @@ export default function HowToEarnPage() {
   const pot = ACTIVE_POT.weeklyG;
   const potUsd = facts ? fmtUsd(pot * facts.gdUsd) : null;
   const stats = data?.stats;
+  const { address } = useAuth();
+  const { rules: stakeRules } = useStakeRules(address);
+  const newcomer = stakeRules.tier === "newcomer";
+  // Worked example: if this many tickets qualify, one ticket is worth pot / tickets.
+  const EXAMPLE_TICKETS = 1_000;
+  const perTicket = Math.floor(pot / EXAMPLE_TICKETS);
 
   return (
     <MainPage>
@@ -112,6 +121,28 @@ export default function HowToEarnPage() {
           <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-muted-foreground">A short video of joining, points, and the share. It stays in the app.</span>
           <WatchHowItWorks className="shrink-0 text-[13px]" />
         </div>
+
+        {/* Tickets: how the weekly pool is split — the higher the stake, the bigger the share. */}
+        <section id="tickets" className="scroll-mt-20">
+          <h2 className="m-0 mb-1 text-[20px] font-extrabold tracking-[-0.015em]">How tickets work</h2>
+          <p className="m-0 mb-3 text-[13px] font-semibold leading-snug text-muted-foreground">
+            Everyone who shows up all 7 days gets paid. Tickets decide how big your slice is: higher stake, more tickets, bigger share.
+          </p>
+          <div className="rounded-[20px] border-2 border-ink bg-white p-3.5 shadow-[0_3px_0_#000]">
+            <ol className="m-0 flex list-none flex-col gap-1.5 p-0 text-[13px] font-extrabold">
+              <li>1. Stake on a Bingo or goal</li>
+              <li>2. Keep a photo every day, Monday to Sunday</li>
+              <li>3. Your stake sets your tickets</li>
+            </ol>
+            <TicketLadder newcomer={newcomer} className="mt-3" />
+            <div className="mt-3 rounded-xl bg-green-soft px-3 py-2.5 text-[12px] font-bold leading-snug text-green-edge">
+              Example: if {fmt(EXAMPLE_TICKETS)} tickets qualify, each ticket is worth {fmt(perTicket)} G$. 5 tickets = {fmt(5 * perTicket)} G$ · 25 tickets = {fmt(25 * perTicket)} G$ · 40 tickets = {fmt(40 * perTicket)} G$.
+            </div>
+            <p className="m-0 mt-2 text-[11px] font-semibold text-muted-foreground">
+              Returning players need at least 1,000 G$ staked. New players get {ACTIVE_POT.newcomerTickets} tickets in their first 2 weeks, whatever they stake.
+            </p>
+          </div>
+        </section>
 
         {/* Ways to earn — how Delulu pays now; amounts live, ≈ ₦ at today's G$ rate. */}
         <section>

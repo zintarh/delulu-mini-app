@@ -6,6 +6,9 @@ import { WatchHowItWorks } from "@/components/how-it-works-video";
 import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { fmtUsd } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
+import { TicketLadder } from "@/components/pot/stake-tickets";
+import { useAuth } from "@/hooks/use-auth";
+import { useStakeRules } from "@/hooks/use-stake-rules";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Join a Bingo", "Play the card", "Earn points", "Share the pot"];
@@ -18,6 +21,8 @@ const POT = ACTIVE_POT.weeklyG.toLocaleString("en-US");
 export function HomePotCard({ className }: { className?: string }) {
   const facts = useEarnFacts();
   const usd = facts ? fmtUsd(ACTIVE_POT.weeklyG * facts.gdUsd) : null;
+  const { address } = useAuth();
+  const { rules: stakeRules } = useStakeRules(address);
 
   return (
     <section className={cn("relative overflow-hidden rounded-[22px] border-2 border-ink bg-yellow p-3.5 text-ink shadow-[0_4px_0_#000]", className)}>
@@ -39,6 +44,10 @@ export function HomePotCard({ className }: { className?: string }) {
           </li>
         ))}
       </ol>
+      <Link href="/how-to-earn#tickets" className="mt-3 block text-ink no-underline">
+        <p className="m-0 mb-1.5 text-[12px] font-extrabold">Higher stake = more tickets = bigger share</p>
+        <TicketLadder newcomer={stakeRules.tier === "newcomer"} dark />
+      </Link>
         <p className="m-0 mt-2 text-[12px] font-bold text-[#5c4a0a]">Stick with the habit by joining a Bingo. Plus 10% back on the stake. New players are in just for showing up.</p>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <WatchHowItWorks className="text-[13px]" />
