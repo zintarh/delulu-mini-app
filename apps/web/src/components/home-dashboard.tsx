@@ -55,8 +55,9 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
     return sessionHint ? <HomeSignedInSkeleton className={className} /> : <HomeGuestSkeleton />;
   }
 
-  // Signed in: wait for Lulu + your G$ (they report in) and your goals. Guests: nothing to wait for.
-  const pageDataReady = address ? noForfeits !== null : true;
+  // Signed in: wait for Lulu + your G$ (they report in) and your goals. Everyone: the Bingo list,
+  // so its row doesn't pop in and push Home down (the gate still caps the wait).
+  const pageDataReady = (address ? noForfeits !== null : true) && bingos !== null;
   // Today's card, small — the one Lulu's next step is about.
   const featured = next?.featuredSlug ? (bingos?.find((b) => b.slug === next.featuredSlug && b.me) ?? null) : null;
 

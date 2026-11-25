@@ -103,7 +103,8 @@ export function ExploreCampaignsSection({ address }: { address?: string }) {
     return result;
   }, [campaigns, bingos]);
 
-  if (isLoading) {
+  // Wait for Bingos as well: they sort into the sections, so landing late would reshuffle them on screen.
+  if (isLoading || bingoList === null) {
     return (
       <div className="space-y-8">
         {[0, 1].map((i) => (
