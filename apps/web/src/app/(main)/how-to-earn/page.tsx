@@ -18,6 +18,7 @@ import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { useBingoList } from "@/hooks/use-bingo";
 import { fmtNgn, ngnWorthShowing } from "@/lib/earn/format";
 import { PRIZE } from "@/lib/leaderboard/windows";
+import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { BEST_CARD_PRIZE_G } from "@/lib/bingo/cheers";
 import { referralRoundForCopy, roundFirstPayment } from "@/lib/referral/campaign";
 
@@ -188,6 +189,13 @@ export default function HowToEarnPage() {
                 ) : null}
               </div>
             ) : null}
+            <WayToEarn
+              art={<span className="text-[30px] leading-none">🏆</span>}
+              title="Weekly pot"
+              sub={`Post on a staked card all 7 days · bigger stake = more tickets · new players get double`}
+              badge={`${compactG(ACTIVE_POT.weeklyG)} G$`}
+              href="/home"
+            />
             <WayToEarn
               art={<span className="text-[30px] leading-none">🔥</span>}
               title="Cheers on your card"

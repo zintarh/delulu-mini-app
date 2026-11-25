@@ -14,6 +14,7 @@ import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { HomeWalletStrip } from "@/components/home/home-wallet-strip";
 import { HomeEarnLoop } from "@/components/home/home-earn-loop";
+import { HomePotCard } from "@/components/home/home-pot-card";
 import { useLuluHomeNews } from "@/components/home/home-lulu-news";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
@@ -58,7 +59,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   // Signed in: wait for Lulu + your G$ (they report in) and your goals. Everyone: the Bingo list,
   // so its row doesn't pop in and push Home down (the gate still caps the wait).
   const pageDataReady = (address ? noForfeits !== null : true) && bingos !== null;
-  // Today's card, small — the one Lulu's next step is about.
   const featured = next?.featuredSlug ? (bingos?.find((b) => b.slug === next.featuredSlug && b.me) ?? null) : null;
 
   return (
@@ -69,9 +69,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
     >
       <div className={cn("mx-auto flex w-full flex-col gap-5 px-5 pb-10 pt-3", className)}>
         <HomeGreeting address={address} />
-        {/* New and invited players: the First Week offer comes before everything else. */}
         <HomeFirstWeek guest={!address} />
-        {/* …and a pop-up the first time, so nobody has to find which Bingo has the welcome bonus. */}
         {address ? <FirstWeekWelcome /> : null}
 
         {address ? (
@@ -86,6 +84,8 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
               />
             ) : null}
             <HomeWalletStrip />
+            {/* The weekly pot: why tomorrow matters. */}
+            <HomePotCard />
             <HomeEarnLoop />
             <div id="forfeit-day-card">
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
@@ -94,6 +94,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
           </>
         ) : (
           <>
+            <HomePotCard />
             <HomeEarnLoop />
             <HomeBingo newcomer />
           </>
