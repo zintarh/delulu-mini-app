@@ -98,14 +98,19 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("onboarded_at")
+      .select("onboarded_at, username")
       .eq("address", address)
       .maybeSingle();
 
     if (error) throw error;
 
     // onboardedAt lets the app tell brand-new accounts (first-run intro) from existing ones.
-    return NextResponse.json({ onboarded: !!data?.onboarded_at, onboardedAt: data?.onboarded_at ?? null });
+    // username lets signup tell a name the person chose from one the app invented.
+    return NextResponse.json({
+      onboarded: !!data?.onboarded_at,
+      onboardedAt: data?.onboarded_at ?? null,
+      username: (data?.username as string | null) ?? null,
+    });
   } catch (error) {
     console.error("[onboarding] check error:", error);
     // On error, don't block — assume not onboarded

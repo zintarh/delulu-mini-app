@@ -12,13 +12,13 @@ import {
   consumeSignInRedirect,
   peekCommunityReferral,
   peekSignInRedirect,
-  peekReferralCode,
   persistCommunityReferral,
   persistSignInRedirect,
   safeRedirectPath,
 } from "@/lib/auth-redirect";
 import { markGatePassed } from "@/lib/app-gate-pass";
 import { requestGasTopup } from "@/lib/faucet/request-client";
+import { isGeneratedUsername } from "@/lib/profile/generated-username";
 
 export type PostAuthRouteState =
   | "loading"
@@ -53,13 +53,11 @@ function readSkippedVerify(address: string): boolean {
 export function usePostAuthRoute() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { authenticated, isReady, address, email: authEmail, provider: authProvider } = useAuth();
+  const { authenticated, isReady, address } = useAuth();
 
   const [routeState, setRouteState] = useState<PostAuthRouteState>("idle");
   const hasRedirectedRef = useRef(false);
-  const setupFailedRef = useRef(false);
   const [setupError, setSetupError] = useState<string | null>(null);
-  const [setupAttempt, setSetupAttempt] = useState(0);
   const lastAddressRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -83,6 +81,7 @@ export function usePostAuthRoute() {
   // every already-onboarded returning user back through the whole
   // verify/welcome flow on their next sign-in. Check the real signal too.
   const [isSupabaseOnboarded, setIsSupabaseOnboarded] = useState(false);
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [isFetchingOnboarded, setIsFetchingOnboarded] = useState(true);
   useEffect(() => {
     if (!authenticated || !address) {
@@ -94,10 +93,16 @@ export function usePostAuthRoute() {
     void (async () => {
       try {
         const res = await fetch(`/api/onboarding?address=${address}`);
-        const json = (await res.json()) as { onboarded?: boolean };
-        if (!cancelled) setIsSupabaseOnboarded(Boolean(json.onboarded));
+        const json = (await res.json()) as { onboarded?: boolean; username?: string | null };
+        if (!cancelled) {
+          setIsSupabaseOnboarded(Boolean(json.onboarded));
+          setProfileUsername(json.username ?? null);
+        }
       } catch {
-        if (!cancelled) setIsSupabaseOnboarded(false);
+        if (!cancelled) {
+          setIsSupabaseOnboarded(false);
+          setProfileUsername(null);
+        }
       } finally {
         if (!cancelled) setIsFetchingOnboarded(false);
       }
@@ -107,7 +112,12 @@ export function usePostAuthRoute() {
     };
   }, [authenticated, address]);
 
-  const hasProfile = isSupabaseOnboarded || hasOnChainUsername;
+  // A name like player4a04a6 was written by signup so the form could be skipped.
+  // That is not a profile. They still have to choose a username and a photo.
+  const hasChosenUsername =
+    !!profileUsername && !isGeneratedUsername(address ?? "", profileUsername);
+  const hasProfile = (isSupabaseOnboarded && hasChosenUsername) || hasOnChainUsername;
+  const mustChooseProfile = isSupabaseOnboarded && !hasChosenUsername && !hasOnChainUsername;
 
   // Routing and the main-app OnboardingGate ((main)/layout.tsx) MUST agree on
   // who gets in — when they disagreed, the two bounced users between each
@@ -192,64 +202,25 @@ export function usePostAuthRoute() {
 
     // New account: the face check is how most people get gas for the profile
     // transaction (GoodDollar sends a little CELO once verified). Skipping it
-    // via the gas faucet is the other way through.
-    if (!isWhitelisted && !skippedVerify) {
+    // via the gas faucet is the other way through. Someone who already has a
+    // generated name already cleared this once — send them to the form.
+    if (!isWhitelisted && !skippedVerify && !mustChooseProfile) {
       setRouteState("needs_ubi_claim");
       return;
     }
 
-    // New account, face check done (or skipped): skip the profile form and open
-    // the four starter cards. Claiming today's G$ and joining one is the
-    // interaction GoodDollar looks for. The profile row is created here so
-    // the app gate lets them in.
-    if (hasRedirectedRef.current || setupFailedRef.current) return;
+    // They pick their own username and photo on /welcome. Signup must not
+    // invent a name or mark them onboarded before that form is saved.
+    if (hasRedirectedRef.current) return;
     hasRedirectedRef.current = true;
     setRouteState("redirecting_welcome");
-    void (async () => {
-      try {
-        const email = authEmail?.includes("@") ? authEmail : `${address.toLowerCase()}@wallet.local`;
-        const username = `player${address.slice(2, 8).toLowerCase()}`;
-        const profileRes = await fetch("/api/profile", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address,
-            username,
-            email,
-            auth_provider: authProvider ?? "web3auth",
-            referredByCode: peekReferralCode() ?? undefined,
-          }),
-        });
-        if (!profileRes.ok && profileRes.status !== 409) {
-          const json = (await profileRes.json().catch(() => ({}))) as { error?: string };
-          throw new Error(json.error || "Couldn't finish setting up your account.");
-        }
-        const onRes = await fetch("/api/onboarding", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, auth_provider: authProvider ?? "web3auth" }),
-        });
-        if (!onRes.ok) throw new Error("Couldn't open your cards. Try again.");
-        markGatePassed(address);
-        consumeSignInRedirect();
-        try {
-          localStorage.setItem(NEEDS_STARTER_KEY, address.toLowerCase());
-        } catch {
-          /* private mode: this visit still opens the cards */
-        }
-        // Face check done (or skipped with a captcha). Bring the wallet up to
-        // 0.6 CELO before they stake. Don't block the cards if the drip fails.
-        await requestGasTopup();
-        router.replace("/play");
-      } catch (err) {
-        hasRedirectedRef.current = false;
-        setupFailedRef.current = true;
-        setSetupError(err instanceof Error ? err.message : "Couldn't open your cards. Try again.");
-        setRouteState("idle");
-      }
-    })();
+    try {
+      localStorage.setItem(NEEDS_STARTER_KEY, address.toLowerCase());
+    } catch {
+      /* private mode: this visit still opens the cards after they save */
+    }
+    void requestGasTopup();
+    router.replace("/welcome");
   }, [
     isReady,
     authenticated,
@@ -260,18 +231,14 @@ export function usePostAuthRoute() {
     isWhitelisted,
     skippedVerify,
     hasProfile,
+    mustChooseProfile,
     router,
     redirectTarget,
-    authEmail,
-    authProvider,
-    setupAttempt,
   ]);
 
   const retrySetup = useCallback(() => {
-    setupFailedRef.current = false;
     hasRedirectedRef.current = false;
     setSetupError(null);
-    setSetupAttempt((n) => n + 1);
   }, []);
 
   return {

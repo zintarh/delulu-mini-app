@@ -290,7 +290,7 @@ export default function SignInPage() {
 
   if (authenticated && (isCheckingAccount || routeState === "loading" || routeState === "redirecting_home" || routeState === "redirecting_welcome")) {
     const label =
-      routeState === "redirecting_welcome" ? "Setting up your profile…"
+      routeState === "redirecting_welcome" ? "Choose your username…"
       : routeState === "redirecting_home"  ? "Welcome back…"
       : "Signing you in…";
     return <AppLoader label={label} />;

@@ -19,6 +19,7 @@ import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
 import { AppLoader } from "@/components/app-loader";
 import { gatePassedAddress, hasGatePassed, markGatePassed } from "@/lib/app-gate-pass";
+import { isGeneratedUsername } from "@/lib/profile/generated-username";
 
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
@@ -182,8 +183,9 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`/api/onboarding?address=${address}`);
         if (!res.ok) throw new Error(`onboarding check failed: ${res.status}`);
-        const json = (await res.json()) as { onboarded?: boolean };
-        if (!cancelled) setIsOnboarded(Boolean(json.onboarded));
+        const json = (await res.json()) as { onboarded?: boolean; username?: string | null };
+        const choseName = !!json.username && !isGeneratedUsername(address, json.username);
+        if (!cancelled) setIsOnboarded(Boolean(json.onboarded) && choseName);
       } catch {
         if (!cancelled) setOnboardedCheckFailed(true);
       } finally {
