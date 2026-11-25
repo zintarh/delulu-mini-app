@@ -14,6 +14,7 @@ import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { HomeWalletStrip } from "@/components/home/home-wallet-strip";
 import { HomePotCard } from "@/components/home/home-pot-card";
+import { FlowStateCard } from "@/components/home/flow-state-card";
 import { useLuluHomeNews } from "@/components/home/home-lulu-news";
 import { useBingoList } from "@/hooks/use-bingo";
 import { HomeGreeting } from "@/components/home/home-progress";
@@ -85,7 +86,8 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             {/* What you get (weekly pot + 10% cashback), then your G$. */}
             <HomePotCard />
             <HomeWalletStrip />
-            <div id="forfeit-day-card">
+            <div id="forfeit-day-card" className="flex flex-col gap-5">
+              <FlowStateCard />
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
             </div>
             <HomeBingo exclude={featured?.slug ?? null} />

@@ -1,8 +1,8 @@
 /**
- * The vote gate: everyday actions (posting a Bingo photo, claiming free daily
- * money) call `voteGate()` first. A player who can vote and hasn't yet sees
- * the vote screen before the action goes ahead; once they've voted, the
- * action continues by itself. Everyone else goes straight through.
+ * The vote gate: an action calls `afterVote` first. A player who hasn't voted
+ * sees the vote screen and the action waits. Voting lets it continue. "Not
+ * now" cancels it. Everyone who has already voted, or who can't vote in this
+ * round, goes straight through.
  *
  * The vote screen (components/flow-state/vote-prompt.tsx) registers the
  * handler. No handler (signed out, vote over) → the action just runs.
@@ -15,12 +15,16 @@ export function registerVoteGate(h: Handler | null) {
   handler = h;
 }
 
-/** Resolves when the action may go ahead. Never rejects. */
-export function voteGate(): Promise<void> {
-  return handler ? handler().catch(() => undefined) : Promise.resolve();
+/** True when the action may go ahead. False when the player closed the vote. */
+export function voteGate(): Promise<boolean> {
+  if (!handler) return Promise.resolve(true);
+  return handler().then(
+    () => true,
+    () => false,
+  );
 }
 
-/** Run `action` once the gate lets the player through. */
-export function afterVote<T>(action: () => T | Promise<T>): Promise<T> {
-  return voteGate().then(action);
+/** Run `action` once the player has voted, or immediately if they don't need to. */
+export function afterVote<T>(action: () => T | Promise<T>): Promise<T | undefined> {
+  return voteGate().then((ok) => (ok ? action() : undefined));
 }

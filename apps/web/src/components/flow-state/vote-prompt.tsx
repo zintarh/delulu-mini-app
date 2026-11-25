@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 import { Check, Loader2 } from "lucide-react";
 import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { Lulu } from "@/components/ds";
@@ -11,23 +10,12 @@ import { useFlowVotersLine } from "@/hooks/use-flow-voters";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { fireConfetti } from "@/lib/celebrate";
 import { FLOW_STATE, flowStateLive } from "@/lib/flow-state";
-import { canAutoShow, takeAutoSlot } from "@/lib/overlay-slot";
 import { registerVoteGate } from "@/lib/vote-gate";
 
-const SNOOZE_KEY = "delulu:vote-prompt-snoozed-at";
-/** "Not now" holds it back this long, then it asks again. */
-const SNOOZE_MS = 4 * 60 * 60 * 1000;
-
 /**
- * The Flow State vote, as a pop-up: shows on its own for anyone who hasn't
- * voted yet (even on a first visit), takes priority over other overlays and
- * automatic prompts, and comes back 4 hours after "Not now". Other overlays
- * remain queued underneath it. The vote itself happens right here, in one tap.
- *
- * It is also the vote gate (lib/vote-gate.ts): before a Bingo photo or a daily
- * claim, a player who can vote and hasn't gets this screen with no "Not now";
- * once they've voted the action carries on. If the vote itself fails they can
- * continue, so a broken vote never locks anyone out of the app.
+ * The Flow State vote, as a pop-up. Anyone who hasn't voted sees it when the
+ * app opens, and again when they come back to it. An action waits on the same
+ * screen: voting lets the action continue, "Not now" cancels it.
  */
 export function VotePrompt() {
   const { address } = useAuth();
@@ -39,30 +27,27 @@ function VotePromptInner() {
   const vote = useFlowVote();
   const votersLine = useFlowVotersLine();
   const faceCheck = useFaceCheckOptional();
-  const pathname = usePathname() ?? "";
-  // The starter-card page asks for the vote itself, the moment a card is joined.
-  // Don't also pop it while they are still choosing.
-  const holdForCards = pathname === "/play" || pathname.startsWith("/play/");
   const [open, setOpen] = useState(false);
-  const shown = useRef(false);
   const needsVote = vote.status === "vote" || vote.status === "verify";
   // Gate mode: opened by an action, which waits on this promise.
   const [gate, setGate] = useState(false);
-  const release = useRef<(() => void) | null>(null);
+  const release = useRef<{ resolve: () => void; reject: () => void } | null>(null);
   const live = useRef({ status: vote.status, pending: !!vote.pending });
   live.current = { status: vote.status, pending: !!vote.pending };
-  const letThrough = () => {
-    release.current?.();
+  const settle = (ok: boolean) => {
+    const waiting = release.current;
     release.current = null;
     setGate(false);
     setOpen(false);
+    if (!waiting) return;
+    if (ok) waiting.resolve();
+    else waiting.reject();
   };
 
   useEffect(() => {
     registerVoteGate(() => {
-      // Only players who can vote right now and haven't. Wait out the first
-      // read so a join that just landed still gets the popup on this page.
-      return new Promise<void>((resolve) => {
+      // Wait out the first read so an action that just landed still gets the popup.
+      return new Promise<void>((resolve, reject) => {
         let tries = 0;
         const openIfReady = () => {
           const status = live.current.status;
@@ -71,13 +56,12 @@ function VotePromptInner() {
             window.setTimeout(openIfReady, 250);
             return;
           }
-          if (status !== "vote" || live.current.pending) {
+          if (status !== "vote" && status !== "verify") {
             resolve();
             return;
           }
-          release.current?.();
-          release.current = resolve;
-          shown.current = true;
+          release.current?.reject();
+          release.current = { resolve, reject };
           setGate(true);
           setOpen(true);
         };
@@ -86,33 +70,30 @@ function VotePromptInner() {
     });
     return () => {
       registerVoteGate(null);
-      release.current?.();
+      release.current?.reject();
       release.current = null;
     };
   }, []);
 
-  // Open once we know they haven't voted. Voting takes priority over other modals.
+  // Open as soon as we know they haven't voted, including the next time the app is opened.
   useEffect(() => {
-    if (shown.current || !needsVote || vote.pending || holdForCards) return;
-    let snoozedAt = 0;
-    try {
-      snoozedAt = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
-    } catch {
-      /* storage blocked */
-    }
-    if (Date.now() - snoozedAt < SNOOZE_MS) return;
-    let tries = 0;
-    const id = window.setInterval(() => {
-      tries += 1;
-      if (canAutoShow("vote", { firstVisit: true, priority: true })) {
-        takeAutoSlot("vote");
-        shown.current = true;
-        setOpen(true);
-        window.clearInterval(id);
-      } else if (tries > 20) window.clearInterval(id);
-    }, 2000);
-    return () => window.clearInterval(id);
-  }, [needsVote, vote.pending, holdForCards]);
+    if (!needsVote || vote.pending) return;
+    setOpen(true);
+  }, [needsVote, vote.pending]);
+
+  useEffect(() => {
+    const onShow = () => {
+      if (document.visibilityState !== "visible") return;
+      const status = live.current.status;
+      if (status === "vote" || status === "verify") setOpen(true);
+    };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, []);
 
   // Voted: a little party, then out of the way.
   const voted = vote.status === "voted";
@@ -120,23 +101,15 @@ function VotePromptInner() {
     if (!open || !voted) return;
     void fireConfetti();
     // From an action: a short thank-you, then the action carries on.
-    const t = window.setTimeout(() => (gate ? letThrough() : setOpen(false)), gate ? 1400 : 2600);
+    const t = window.setTimeout(() => (gate ? settle(true) : setOpen(false)), gate ? 1400 : 2600);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, voted, gate]);
 
-  const snooze = () => {
-    setOpen(false);
-    try {
-      localStorage.setItem(SNOOZE_KEY, String(Date.now()));
-    } catch {
-      /* storage blocked */
-    }
-  };
-  // A claim or a join is waiting on this popup. Closing it lets that continue.
+  // Closing without voting drops the action that was waiting. Browsing can continue.
   const dismiss = () => {
-    if (gate) letThrough();
-    else snooze();
+    if (gate) settle(false);
+    else setOpen(false);
   };
   const voteCount = Number(vote.votingPower);
   const votesToGive = voteCount > 0 ? voteCount : 10;
@@ -192,7 +165,8 @@ function VotePromptInner() {
                 onClick={() => {
                   if (vote.status === "verify") {
                     faceCheck?.start();
-                    dismiss();
+                    if (gate) settle(false);
+                    else setOpen(false);
                     return;
                   }
                   void vote.voteAll();

@@ -124,7 +124,6 @@ function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; o
         description: bingo.missions.map((m, i) => `Day ${i + 1}: ${m.title}`).join(" · "),
       });
       await celebrateCampaignJoin(bingo.title);
-      await afterVote(() => undefined);
       onDone();
     } catch (err) {
       setError(friendly(err));
@@ -152,11 +151,13 @@ function ClaimAndJoin({ bingo, pin, onDone }: { bingo: BingoView; pin: string; o
           busy: phase !== "idle",
           disabled: !alreadyIn && !bingo.joinable,
           onClick: () => {
-            if (alreadyIn) {
-              void afterVote(() => undefined).then(onDone);
-              return;
-            }
-            void run();
+            void afterVote(() => {
+              if (alreadyIn) {
+                onDone();
+                return;
+              }
+              void run();
+            });
           },
         }}
       />
