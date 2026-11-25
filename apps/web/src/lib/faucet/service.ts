@@ -25,7 +25,6 @@ import {
   type GasRequestReason,
 } from "@/lib/faucet/rules";
 import { readIdentityStatus } from "@/lib/identity/status";
-import { captchaEnabled, verifyCaptcha } from "@/lib/faucet/turnstile";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -51,37 +50,16 @@ function fail(reason: GasRequestReason, stage?: FaucetStage): GasResult {
 const LOGGED: GasRequestReason[] = [
   "blocked",
   "captcha_failed",
+  "captcha_required",
   "not_eligible",
   "sent_out",
   "stage_cap",
   "ip_limit",
   "subnet_limit",
   "daily_budget",
-  "daily_claimed",
   "faucet_empty",
   "gas_too_high",
 ];
-
-/** Marks drips to wallets without a current face check, so their own daily pool can be summed. */
-const UNVERIFIED_TAG = "unverified";
-const DAY_MS = 86_400_000;
-
-/**
- * Drips in the last 24h: this wallet's confirmed ones (one still in flight is
- * reported as in_flight by the reservation instead), or every unverified
- * wallet's, in flight or sent.
- */
-async function last24h(admin: SupabaseAdmin, filter: { address: string } | { unverified: true }) {
-  let q = admin
-    .from("gas_faucet_claims")
-    .select("amount_celo")
-    .in("status", "address" in filter ? ["sent"] : ["pending", "submitted", "sent"])
-    .gte("created_at", new Date(Date.now() - DAY_MS).toISOString());
-  q = "address" in filter ? q.eq("address", filter.address) : q.eq("agent_reasoning", UNVERIFIED_TAG);
-  const { data, error } = await q.limit(10_000);
-  if (error) throw new Error(`[faucet] 24h usage: ${error.message}`);
-  return { count: data?.length ?? 0, celo: (data ?? []).reduce((sum, r) => sum + Number(r.amount_celo ?? 0), 0) };
-}
 
 async function logRejection(
   admin: SupabaseAdmin,
@@ -273,10 +251,8 @@ export async function requestGas(
     return fail("gas_too_high", plan.stage);
   }
 
-  // A current face check refills freely from the main pool. Without one, the
-  // wallet can still claim once a day, but only from a tap that passed the
-  // captcha, limited per IP, out of a smaller pool. Nobody is left unable to
-  // save their profile or keep their goal going.
+  // The daily pool is for accounts with a current face check. A captcha is
+  // not enough, and a shared mobile network must not block a verified wallet.
   let faceVerified = false;
   try {
     const identity = await readIdentityStatus(faucetPublicClient, address);
@@ -286,25 +262,8 @@ export async function requestGas(
     return fail("unavailable", plan.stage);
   }
   if (!faceVerified) {
-    if (config.requireCaptcha && captchaEnabled()) {
-      if (!params.captchaToken) return fail("captcha_required", plan.stage);
-      if (!(await verifyCaptcha(params.captchaToken, ip))) {
-        await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason: "captcha_failed" });
-        return fail("captcha_failed", plan.stage);
-      }
-    }
-    const [mine, pool] = await Promise.all([
-      last24h(admin, { address }),
-      last24h(admin, { unverified: true }),
-    ]);
-    if (mine.count > 0) {
-      await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason: "daily_claimed" });
-      return fail("daily_claimed", plan.stage);
-    }
-    if (pool.celo + amountCelo > config.limits.unverifiedDailyBudgetCelo) {
-      await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason: "daily_budget" });
-      return fail("daily_budget", plan.stage);
-    }
+    await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason: "not_eligible" });
+    return fail("not_eligible", plan.stage);
   }
 
   let faucetWei: bigint;
@@ -329,8 +288,8 @@ export async function requestGas(
     p_window_hours: plan.windowDays ? plan.windowDays * 24 : null,
     // Verified wallets skip the per-IP cap. A carrier network would otherwise
     // block the launch after a handful of signups.
-    p_ip_limit: faceVerified ? 0 : config.limits.signupsPerIpPerDay,
-    p_subnet_limit: faceVerified ? 0 : config.limits.signupsPerSubnetPerDay,
+    p_ip_limit: 0,
+    p_subnet_limit: 0,
     p_daily_budget: config.limits.dailyBudgetCelo,
     p_gas_price_gwei: Number(formatGwei(maxFee)),
     p_balance_before: weiToCelo(balanceWei),
@@ -344,10 +303,6 @@ export async function requestGas(
     const reason = res.outcome as GasRequestReason;
     await logRejection(admin, { address, stage: plan.stage, ip, subnet, reason });
     return fail(reason, plan.stage);
-  }
-  if (!faceVerified) {
-    const { error: tagError } = await admin.from("gas_faucet_claims").update({ agent_reasoning: UNVERIFIED_TAG }).eq("id", res.id);
-    if (tagError) console.error("[faucet] could not tag unverified drip", tagError);
   }
 
   let hash: Hash;

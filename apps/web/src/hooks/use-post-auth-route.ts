@@ -27,24 +27,12 @@ export type PostAuthRouteState =
   | "redirecting_welcome"
   | "needs_ubi_claim";
 
-// Set once the gas faucet has funded this wallet in place of the face check —
-// enough to sign the profile transaction on /welcome. Session-scoped so a
-// refresh mid-signup doesn't send them back to the verify screen.
-const SKIPPED_VERIFY_KEY = "delulu:skipped-verify";
 /** Set until a new player joins a starter card. Brings them back to /play on the next sign-in. */
 const NEEDS_STARTER_KEY = "delulu:needs-starter";
 
 function needsStarter(address: string): boolean {
   try {
     return localStorage.getItem(NEEDS_STARTER_KEY) === address.toLowerCase();
-  } catch {
-    return false;
-  }
-}
-
-function readSkippedVerify(address: string): boolean {
-  try {
-    return sessionStorage.getItem(SKIPPED_VERIFY_KEY) === address.toLowerCase();
   } catch {
     return false;
   }
@@ -80,6 +68,7 @@ export function usePostAuthRoute() {
   // Routing and the main-app gate MUST agree: setProfile is the only profile.
   const {
     identityState,
+    isLoading: isIdentityLoading,
     refresh: refreshIdentity,
   } = useIdentity();
   // Still consulted after the in-page verify flow, which updates this first.
@@ -88,20 +77,6 @@ export function usePostAuthRoute() {
 
   const isWhitelisted = identityState.state === "verified" || isClaimWhitelisted;
 
-  const [skippedVerify, setSkippedVerify] = useState(false);
-  useEffect(() => {
-    setSkippedVerify(!!address && readSkippedVerify(address));
-  }, [address]);
-  /** Call once the gas faucet has funded the wallet: continue to /welcome unverified. */
-  const skipVerification = useCallback(() => {
-    if (!address) return;
-    try {
-      sessionStorage.setItem(SKIPPED_VERIFY_KEY, address.toLowerCase());
-    } catch {
-      // Storage blocked — the in-memory flag still carries this visit.
-    }
-    setSkippedVerify(true);
-  }, [address]);
 
   const refreshGoodDollarStatus = async () => {
     await Promise.all([refreshClaimStatus(), refreshIdentity()]);
@@ -124,7 +99,7 @@ export function usePostAuthRoute() {
       hasRedirectedRef.current = false;
       return;
     }
-    if (isFetchingUsername) {
+    if (isFetchingUsername || (!hasProfile && isIdentityLoading && !isClaimWhitelisted)) {
       setRouteState("loading");
       return;
     }
@@ -146,14 +121,22 @@ export function usePostAuthRoute() {
       void import("@/components/main-app-header");
       // Still on the starter cards: top the wallet up to 0.4 CELO. Face-verified
       // signups used to skip this, so a 0.3 GoodDollar drip was all they got.
-      if ((isWhitelisted || skippedVerify) && needsStarter(address)) void requestGasTopup();
+      if (isWhitelisted && needsStarter(address)) void requestGasTopup();
       router.replace(needsStarter(address) ? "/play" : target);
       return;
     }
 
-    // No contract profile yet: the only next step is /welcome, where they
-    // choose a username and photo and setProfile writes it on chain.
-    // Nothing else in the app opens before that.
+    // No contract profile yet. The face check comes first: GoodDollar sends
+    // a little CELO on verification, which pays for setProfile, and the
+    // faucet only tops up verified wallets. Without it /welcome is a dead end.
+    if (!isWhitelisted) {
+      hasRedirectedRef.current = false;
+      setRouteState("needs_ubi_claim");
+      return;
+    }
+
+    // Verified: /welcome is the only next step, where they choose a username
+    // and photo and setProfile writes it on chain. Nothing else opens first.
     if (hasRedirectedRef.current) return;
     hasRedirectedRef.current = true;
     setRouteState("redirecting_welcome");
@@ -169,8 +152,9 @@ export function usePostAuthRoute() {
     authenticated,
     address,
     isFetchingUsername,
+    isIdentityLoading,
+    isClaimWhitelisted,
     isWhitelisted,
-    skippedVerify,
     hasProfile,
     router,
     redirectTarget,
@@ -186,10 +170,9 @@ export function usePostAuthRoute() {
     hasProfile,
     isWhitelisted,
     refreshGoodDollarStatus,
-    skipVerification,
     setupError,
     retrySetup,
     address: address ?? "",
-    isCheckingAccount: isFetchingUsername,
+    isCheckingAccount: isFetchingUsername || (!hasProfile && isIdentityLoading && !isClaimWhitelisted),
   };
 }

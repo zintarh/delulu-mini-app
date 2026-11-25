@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Fuel, Loader2, ShieldCheck } from "lucide-react";
+import { Fuel, Loader2, Send, ShieldCheck } from "lucide-react";
+import { COMMUNITY_TELEGRAM_URL } from "@/lib/support";
 import { Turnstile, TURNSTILE_SITE_KEY, type TurnstileHandle } from "@/components/turnstile";
 import { COMFORT_BALANCE_CELO } from "@/lib/faucet/rules";
 import { requestGasTopup } from "@/lib/faucet/request-client";
@@ -38,7 +39,7 @@ const RETRYABLE = new Set([
   "captcha_failed",
 ]);
 /** Only a face check gets past these today. */
-const NEEDS_FACE_CHECK = new Set(["not_eligible", "daily_claimed", "ip_limit", "subnet_limit", "blocked"]);
+const NEEDS_FACE_CHECK = new Set(["not_eligible", "ip_limit", "subnet_limit", "blocked"]);
 /** Shown as-is when the silent try already hit them, so the first tap isn't wasted. */
 const KNOWN_REASONS = new Set<string>([...NEEDS_FACE_CHECK, "sent_out", "stage_cap", "daily_budget", "faucet_empty", "paused"]);
 
@@ -147,6 +148,18 @@ export function NoGasModal({ open, reason, onClose, onClaimed }: NoGasModalProps
                   "Claim gas"
                 )}
               </button>
+            ) : null}
+
+            {/* Last resort when the claim didn't go through: someone in the group sends gas. */}
+            {(topupState === "rejected" || topupState === "error") && !verifying ? (
+              <a
+                href={COMMUNITY_TELEGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-border py-3 text-sm font-bold text-foreground transition-colors hover:bg-muted/50"
+              >
+                <Send className="h-4 w-4" /> Ask for gas on Telegram
+              </a>
             ) : null}
 
             <button

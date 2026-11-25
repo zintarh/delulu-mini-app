@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Send, Wallet } from "lucide-react";
+import { COMMUNITY_TELEGRAM_URL } from "@/lib/support";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStore } from "@/stores/useUserStore";
 import { useWeb3Auth, useWeb3AuthConnect } from "@web3auth/modal/react";
@@ -27,7 +28,6 @@ import { useDebouncedEmailProvider } from "@/hooks/use-debounced-email-provider"
 import { getEmailValidationMessage, isValidEmail, normalizeEmail, emailLooksComplete } from "@/lib/email-validation";
 import { cn } from "@/lib/utils";
 import { AppLoader } from "@/components/app-loader";
-import { Turnstile, TURNSTILE_SITE_KEY, type TurnstileHandle } from "@/components/turnstile";
 
 /** Generous — spans the user actually reading/typing their OTP, not just a network round-trip. */
 const SIGN_IN_TIMEOUT_MS = 3 * 60 * 1000;
@@ -76,49 +76,8 @@ export default function SignInPage() {
   const [isGoingBack, setIsGoingBack] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  const { routeState, isCheckingAccount, refreshGoodDollarStatus, skipVerification, setupError, retrySetup } =
+  const { routeState, isCheckingAccount, refreshGoodDollarStatus, setupError, retrySetup } =
     usePostAuthRoute();
-
-  // Skip the face check: the faucet sends enough gas for the profile
-  // transaction, which is the only reason signup needs verification at all.
-  const [isSkipping, setIsSkipping] = useState(false);
-  const [skipError, setSkipError] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const turnstileRef = useRef<TurnstileHandle>(null);
-  const handleSkipVerify = async () => {
-    if (isSkipping) return;
-    if (TURNSTILE_SITE_KEY && !captchaToken) {
-      setSkipError("One moment — checking you're human.");
-      return;
-    }
-    setIsSkipping(true);
-    setSkipError(null);
-    try {
-      const res = await fetch("/api/faucet/claim", {
-        method: "POST",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ captchaToken }),
-      });
-      if (res.status === 401) {
-        setSkipError("Still connecting your account. Try again in a moment.");
-        return;
-      }
-      const json = (await res.json().catch(() => ({}))) as { success?: boolean; reason?: string; message?: string };
-      // Funded now, already holds enough, or a drip is already on its way.
-      if (json.success || json.reason === "in_flight") {
-        skipVerification();
-        return;
-      }
-      setSkipError(json.message ?? "Free gas isn't available right now. Verify to continue.");
-    } catch {
-      setSkipError("Something went wrong. Try again.");
-    } finally {
-      setIsSkipping(false);
-      // Captcha tokens are single-use.
-      turnstileRef.current?.reset();
-    }
-  };
 
   const normalizedEmail = normalizeEmail(email);
   const emailValidationError = getEmailValidationMessage(email);
@@ -275,7 +234,7 @@ export default function SignInPage() {
   if (authenticated && setupError) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper px-6 text-center">
-        <h2 className="text-xl font-black text-foreground">Couldn't open your cards</h2>
+        <h2 className="text-xl font-black text-foreground">Couldn&apos;t open your cards</h2>
         <p className="max-w-sm text-sm font-semibold text-muted-foreground">{setupError}</p>
         <button
           type="button"
@@ -321,7 +280,7 @@ export default function SignInPage() {
                 Get free money every day
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                A quick face check unlocks free money every day. Or verify later.
+                A quick face check unlocks free money every day.
               </p>
             </div>
           </div>
@@ -335,33 +294,14 @@ export default function SignInPage() {
             />
           </div>
 
-          <div className="flex flex-col items-center gap-2 text-center">
-            <button
-              type="button"
-              onClick={() => void handleSkipVerify()}
-              disabled={isSkipping}
-              className="inline-flex items-center gap-2 p-2 text-sm font-bold text-muted-foreground disabled:opacity-60"
-            >
-              {isSkipping ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Setting up your account…
-                </>
-              ) : (
-                <>
-                  Verify later
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-            <p className="m-0 text-xs text-muted-foreground">You&apos;ll start with 0 G$ until you verify.</p>
-            <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
-            {skipError ? (
-              <p className="m-0 text-xs text-destructive" role="alert">
-                {skipError}
-              </p>
-            ) : null}
-          </div>
+          <a
+            href={COMMUNITY_TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 p-2 text-sm font-bold text-muted-foreground hover:text-foreground"
+          >
+            <Send className="h-4 w-4" /> Stuck? Ask on Telegram
+          </a>
         </div>
       </div>
     );

@@ -40,7 +40,6 @@ const TERMINAL = new Set([
   "has_enough",
   "captcha_required",
   "captcha_failed",
-  "daily_claimed",
   "ip_limit",
   "subnet_limit",
 ]);

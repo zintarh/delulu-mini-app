@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useIdentity } from "@/hooks/identityHook";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
@@ -62,6 +63,13 @@ export default function WelcomePage() {
     if (isReady && !authenticated) router.replace("/sign-in");
   }, [isReady, authenticated, router]);
 
+  // Face check before the profile: verifying is what puts gas in the wallet
+  // for setProfile. Other gates send anyone without a profile here, so send
+  // a wallet that is confirmed unverified back to the check on /sign-in.
+  // A failed identity read ("error") stays, so a flaky RPC can't loop them.
+  const { status: identityStatus } = useIdentity();
+  const mustVerifyFirst = identityStatus === "not_verified";
+
   // setProfile needs gas. Top the wallet up as soon as this form opens.
   useEffect(() => {
     if (authenticated && address) void requestGasTopup();
@@ -86,6 +94,10 @@ export default function WelcomePage() {
     const redirect = consumeSignInRedirect() ?? "/play";
     router.replace(redirect.startsWith("/join/") ? "/home" : redirect);
   };
+
+  useEffect(() => {
+    if (mustVerifyFirst && !isCheckingProfile && !alreadyOnboarded) router.replace("/sign-in");
+  }, [mustVerifyFirst, isCheckingProfile, alreadyOnboarded, router]);
 
   useEffect(() => {
     if (!alreadyOnboarded) return;
@@ -227,7 +239,8 @@ export default function WelcomePage() {
     }
   };
 
-  const isCheckingOnboarding = !isReady || (authenticated && (!address || isCheckingProfile));
+  const isCheckingOnboarding =
+    !isReady || (authenticated && (!address || isCheckingProfile || identityStatus === "loading" || mustVerifyFirst));
 
   if (isCheckingOnboarding) {
     return (
