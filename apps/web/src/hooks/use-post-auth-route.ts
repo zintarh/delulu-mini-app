@@ -18,6 +18,7 @@ import {
 } from "@/lib/auth-redirect";
 import { markGatePassed } from "@/lib/app-gate-pass";
 import { requestGasTopup } from "@/lib/faucet/request-client";
+import { hasChosenUsername } from "@/lib/profile/invented-username";
 
 export type PostAuthRouteState =
   | "loading"
@@ -73,7 +74,7 @@ export function usePostAuthRoute() {
     query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
 
-  const hasOnChainUsername = typeof username === "string" && username.trim().length > 0;
+  const hasOnChainUsername = !!address && hasChosenUsername(address, typeof username === "string" ? username : "");
   const hasProfile = hasOnChainUsername;
 
   // Routing and the main-app gate MUST agree: setProfile is the only profile.
@@ -143,7 +144,7 @@ export function usePostAuthRoute() {
       markGatePassed(address);
       setRouteState("redirecting_home");
       void import("@/components/main-app-header");
-      // Still on the starter cards: top the wallet up to 0.6 CELO. Face-verified
+      // Still on the starter cards: top the wallet up to 0.4 CELO. Face-verified
       // signups used to skip this, so a 0.3 GoodDollar drip was all they got.
       if ((isWhitelisted || skippedVerify) && needsStarter(address)) void requestGasTopup();
       router.replace(needsStarter(address) ? "/play" : target);

@@ -5,8 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useReadContract } from "wagmi";
 import { AppLoader } from "@/components/app-loader";
 import { useAuth } from "@/hooks/use-auth";
+import { useStoredUsername } from "@/hooks/use-stored-username";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { hasChosenUsername, isInventedUsername } from "@/lib/profile/invented-username";
 
 /** Pages that are not the product. Everywhere else, setProfile comes first. */
 function profileExempt(pathname: string): boolean {
@@ -23,7 +25,8 @@ function profileExempt(pathname: string): boolean {
 
 /**
  * No signed-in wallet reaches any product page until setProfile has written
- * a username on the Delulu contract. A database row does not count.
+ * a username the person chose on the Delulu contract. A database row does
+ * not count, and neither does the made-up player name that row may still hold.
  */
 export function ProfileRequiredGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -44,15 +47,19 @@ export function ProfileRequiredGate({ children }: { children: React.ReactNode })
     args: address ? [address] : undefined,
     query: { enabled: check, staleTime: 0, gcTime: 0 },
   });
-  const hasProfile = typeof onChainUsername === "string" && onChainUsername.trim().length > 0;
-  const missing = check && !isLoading && !isError && !hasProfile;
+  const storedName = useStoredUsername(check ? address : undefined);
+  const storedInvented = !!address && isInventedUsername(address, storedName);
+  const hasProfile = !!address && hasChosenUsername(address, typeof onChainUsername === "string" ? onChainUsername : "");
+  const chainSettled = !isLoading;
+  const missing = check && chainSettled && !hasProfile && (!isError || storedInvented);
 
   useEffect(() => {
     if (missing) router.replace("/welcome");
   }, [missing, router]);
 
   if (!check || hasProfile) return <>{children}</>;
-  if (!isLoading && isError) {
+  if (isLoading || (isError && storedName === undefined)) return <AppLoader label="Set up your profile" />;
+  if (isError && !storedInvented) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
         <h1 className="text-xl font-black text-foreground">Couldn&apos;t check your profile</h1>

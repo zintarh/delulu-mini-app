@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useReadContract } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { useIdentity } from "@/hooks/identityHook";
-import { ClaimPanelContent } from "@/components/claim-panel-content";
 import { useSetProfile } from "@/hooks/use-set-profile";
 import { useUserStore } from "@/stores/useUserStore";
 import { usePfpUpload } from "@/hooks/use-pfp-upload";
@@ -22,11 +20,11 @@ import {
 } from "@/lib/auth-redirect";
 import { getEmailValidationMessage } from "@/lib/email-validation";
 import { requestGasTopup } from "@/lib/faucet/request-client";
+import { isInventedUsername, hasChosenUsername } from "@/lib/profile/invented-username";
 
 export default function WelcomePage() {
   const router = useRouter();
   const { address, isReady, authenticated, email: resolvedEmail, provider: authProvider } = useAuth();
-  const { identityState, isLoading: identityLoading, refresh: refreshIdentity } = useIdentity();
   const { updateUsername, updateProfile } = useUserStore();
 
   const [username, setUsername] = useState("");
@@ -79,8 +77,8 @@ export default function WelcomePage() {
 
   const alreadyOnboarded =
     !isCheckingProfile &&
-    typeof existingUsername === "string" &&
-    existingUsername.trim().length > 0;
+    !!address &&
+    hasChosenUsername(address, typeof existingUsername === "string" ? existingUsername : "");
 
   /** Communities are gone from the app, so a leftover /join/ redirect lands on Home. */
   const finishOnboarding = () => {
@@ -198,6 +196,10 @@ export default function WelcomePage() {
     setTouched({ username: true, pfp: true });
     setEmailCheckError(null);
     if (username.trim().length < 3 || !pfpUrl || !address || profileSubmittedRef.current) return;
+    if (isInventedUsername(address, username)) {
+      setProfileSaveError("That name was made up for you. Choose your own.");
+      return;
+    }
 
     try {
       const params = new URLSearchParams({ email: email.trim() });
@@ -245,8 +247,10 @@ export default function WelcomePage() {
   const usernameTooShort = username.trim().length > 0 && username.trim().length < 3;
   const emailFormatError = email.trim() ? getEmailValidationMessage(email) : null;
   const emailError = emailFormatError ?? emailCheckError;
+  const inventedName = !!address && isInventedUsername(address, username);
   const canSubmitProfile =
     username.trim().length >= 3 &&
+    !inventedName &&
     !!pfpUrl &&
     !!email.trim() &&
     !emailError &&
@@ -267,21 +271,6 @@ export default function WelcomePage() {
             <br />
             signing?
           </h1>
-
-          {!identityLoading && identityState.state !== "verified" ? (
-            <div className="overflow-hidden rounded-3xl border-2 border-line bg-white">
-              <p className="m-0 px-4 pt-4 text-[13px] font-extrabold">Face check, then your name</p>
-              <p className="m-0 px-4 pb-2 text-[12px] font-semibold text-muted-foreground">
-                The face check sends a little gas so this profile can be saved on chain. Your username and photo are still required.
-              </p>
-              <ClaimPanelContent
-                onClose={() => {}}
-                showCloseButton={false}
-                onWhitelisted={() => void refreshIdentity()}
-                inlineIdentityFlow
-              />
-            </div>
-          ) : null}
 
           <div className="flex animate-rise items-center gap-5 [animation-delay:.1s]">
             <button
@@ -356,7 +345,9 @@ export default function WelcomePage() {
                 className="min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground outline-none placeholder:font-medium placeholder:text-faint"
               />
             </div>
-            {missingUsername ? (
+            {inventedName ? (
+              <p className="px-1 text-xs font-semibold text-orange">That name was made up for you. Choose your own.</p>
+            ) : missingUsername ? (
               <p className="px-1 text-xs font-semibold text-orange">Username is required</p>
             ) : showUsernameTooShort ? (
               <p className="px-1 text-xs font-semibold text-orange">At least 3 characters</p>

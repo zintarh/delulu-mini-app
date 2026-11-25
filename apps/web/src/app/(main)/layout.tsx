@@ -17,8 +17,10 @@ import { hasStoredAuthSession, preloadAuthProviders } from "@/lib/auth-session-h
 import { useReadContract } from "wagmi";
 import { DELULU_ABI } from "@/lib/abi";
 import { DELULU_CONTRACT_ADDRESS } from "@/lib/constant";
+import { hasChosenUsername, isInventedUsername } from "@/lib/profile/invented-username";
 import { AppLoader } from "@/components/app-loader";
 import { markGatePassed } from "@/lib/app-gate-pass";
+import { useStoredUsername } from "@/hooks/use-stored-username";
 
 const BottomNav = dynamic(
   () => import("@/components/bottom-nav").then((m) => m.BottomNav),
@@ -160,8 +162,9 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     args: address ? [address] : undefined,
     query: { enabled: !!authenticated && !!address, staleTime: 0, gcTime: 0 },
   });
-  const hasOnChainUsername =
-    typeof onChainUsername === "string" && onChainUsername.trim().length > 0;
+  const storedName = useStoredUsername(authenticated && address ? address : undefined);
+  const storedInvented = !!address && isInventedUsername(address, storedName);
+  const hasOnChainUsername = !!address && hasChosenUsername(address, typeof onChainUsername === "string" ? onChainUsername : "");
 
   // On refresh one auth SDK (usually Privy) can report ready before Web3Auth
   // has restored the session, so for a moment the user looks signed out and
@@ -183,8 +186,8 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     authenticated &&
     !!address &&
     !isLoadingUsername &&
-    !usernameReadFailed &&
-    !hasOnChainUsername;
+    !hasOnChainUsername &&
+    (!usernameReadFailed || storedInvented);
 
   useEffect(() => {
     if (profileMissing) router.replace("/welcome");
@@ -201,7 +204,10 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   }
 
   if (authenticated && address && !hasOnChainUsername) {
-    if (!isLoadingUsername && usernameReadFailed) {
+    if (isLoadingUsername || (usernameReadFailed && storedName === undefined)) {
+      return <AppLoader label="Set up your profile" />;
+    }
+    if (usernameReadFailed && !storedInvented) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
           <h1 className="text-xl font-black text-foreground">Couldn&apos;t check your profile</h1>
