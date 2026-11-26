@@ -21,9 +21,8 @@ const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k`
 function topUpError(raw: string): string {
   const m = raw.toLowerCase();
   if (/user (rejected|denied)|rejected the request|cancel/.test(m)) return "Cancelled.";
-  // Today's photo is in: the contract takes top-ups again when the next day opens.
   if (m.includes("periodalreadyresolved") || m.includes("already resolved") || m.includes("periodnotopen") || m.includes("not open")) {
-    return "You've posted today's photo. Top up again tomorrow, before your photo.";
+    return "This day is already settled. Try again in a moment.";
   }
   if (m.includes("notactive")) return "This card has ended.";
   if (m.includes("deadlinepassed") || m.includes("deadline")) {
@@ -61,13 +60,12 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
   const [raw, setRaw] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (!boost || ended) return null;
+  if (!boost || ended || boost.openSlot == null) return null;
 
   const balance = Math.floor(Number(formatted) || 0);
   const amount = /^\d+$/.test(raw) ? Number(raw) : 0;
   const busy = step !== "idle";
-  // The server knows if today can still take a top-up: not after today's photo.
-  const openToday = boost.openSlot != null;
+  // Top up anytime (after today's photo it counts for tomorrow). None once the last day is done.
 
   const run = async () => {
     if (!address || !market) {
@@ -131,17 +129,16 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
     <>
       <button
         type="button"
-        disabled={!openToday}
         onClick={() => {
           setFormError(null);
           setOpen(true);
         }}
         className={cn(
-          "press-edge flex h-12 w-full items-center justify-center rounded-2xl border-2 border-ink bg-white text-[14px] font-extrabold uppercase text-ink shadow-[0_3px_0_#000] disabled:border-line disabled:text-muted-foreground disabled:shadow-none",
+          "press-edge flex h-12 w-full items-center justify-center rounded-2xl border-2 border-ink bg-white text-[14px] font-extrabold uppercase text-ink shadow-[0_3px_0_#000]",
           className,
         )}
       >
-        {openToday ? "Top up" : "Top up tomorrow, before your photo"}
+        Top up
       </button>
       <ResponsiveSheet open={open} onOpenChange={(o) => !busy && setOpen(o)} title="Top up your stake" sheetClassName="rounded-t-3xl pb-10" modalClassName="max-w-md">
         <div className="flex flex-col gap-3 px-5 pt-1">

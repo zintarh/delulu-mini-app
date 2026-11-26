@@ -278,7 +278,10 @@ export async function buildBingoView(
         const kept = r.card.squares.filter((sq) => sq.state === "filled").map((sq) => sq.index);
         const stake = Number(mine.stake_amount);
         const sum = boostSummary({ startStake: stake, boosts, keptSlots: kept, days: campaign.duration_days });
-        const openSlot = !mineOver && !missedDay && r.today != null && !r.todayUsed ? r.today : null;
+        // Top up anytime (ForfeitMarket v5, 26 Nov): before today's photo it counts for
+        // today, after it for tomorrow. None once the last day is done (the goal has ended).
+        const nextDay = r.today != null && r.todayUsed ? r.today + 1 : r.today;
+        const openSlot = !mineOver && !missedDay && nextDay != null && nextDay < campaign.duration_days ? nextDay : null;
         me.boost = {
           pot: sum.pot,
           pct: sum.pct,
