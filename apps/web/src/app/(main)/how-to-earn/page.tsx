@@ -82,6 +82,18 @@ export default function HowToEarnPage() {
     <MainPage>
       <PageBackHeader title="How to earn on Delulu" eyebrow="Real money for showing up" />
       <div className="mx-auto flex max-w-3xl flex-col gap-8 px-5 pb-12 pt-4">
+        {/* Bank withdrawals inside the app aren't live yet (today: by hand, lib/rewards/cash-out.ts). */}
+        <div className="flex animate-rise items-center gap-3 rounded-[20px] border-2 border-ink bg-yellow px-3.5 py-3 text-ink shadow-[0_3px_0_#000]">
+          <span className="text-[26px] leading-none" aria-hidden>
+            🏦
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-extrabold leading-tight">Withdraw to your local bank</span>
+            <span className="mt-0.5 block text-[12px] font-bold text-[#5c4a0a]">e.g. Nigerian banks, straight from the app</span>
+          </span>
+          <span className="shrink-0 rounded-full bg-ink px-2.5 py-1 text-[11px] font-extrabold uppercase text-yellow">Coming soon</span>
+        </div>
+
         {/* Proof we pay — live from payout records */}
         <div className="relative animate-rise overflow-hidden rounded-[24px] bg-ink px-4 pb-4 pt-5 text-white shadow-edge-ink">
             <span className="absolute -right-4 -top-5 rotate-12 opacity-20" aria-hidden>
