@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BOOST, boostSummary } from "@/lib/bingo/boost";
+import { BOOST, MIN_TOP_UP_G, boostSummary } from "@/lib/bingo/boost";
+
+test("a top-up is at least 100 G$", () => {
+  assert.equal(MIN_TOP_UP_G, 100);
+});
 
 test("no boosts: 10% of the stake", () => {
   const s = boostSummary({ startStake: 3000, boosts: [], keptSlots: [0, 1, 2], days: 3 });

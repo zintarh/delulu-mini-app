@@ -33,6 +33,9 @@ export const BOOST = {
   maxPct: 17,
 } as const;
 
+/** Smallest top-up the app will send. The contract still accepts 1 wei; this is the product floor. */
+export const MIN_TOP_UP_G = 100;
+
 /** The most of one day's boost that earns cashback: today's free claim or half the card's starting stake, whichever is bigger. */
 export function dailyBoostCap(startStake: number, todaysClaim: number | null | undefined): number {
   return Math.max(Math.floor(startStake / 2), Math.floor(todaysClaim ?? 0));

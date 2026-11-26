@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTokenApproval } from "@/hooks/use-token-approval";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useUnifiedWriteContract } from "@/hooks/use-unified-write-contract";
-import { BOOST_ABI } from "@/lib/bingo/boost";
+import { BOOST_ABI, MIN_TOP_UP_G } from "@/lib/bingo/boost";
 import type { BingoView } from "@/lib/bingo/view";
 import { GOODDOLLAR_ADDRESSES, getForfeitMarketAddress } from "@/lib/constant";
 import { showAppToast, fireConfetti } from "@/lib/celebrate";
@@ -74,6 +74,10 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
     }
     if (!/^\d+$/.test(raw) || amount <= 0) {
       setFormError("Enter how much G$ you want to add.");
+      return;
+    }
+    if (amount < MIN_TOP_UP_G) {
+      setFormError(`Top up at least ${MIN_TOP_UP_G.toLocaleString("en-US")} G$.`);
       return;
     }
     if (amount > balance) {
@@ -143,7 +147,7 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
       <ResponsiveSheet open={open} onOpenChange={(o) => !busy && setOpen(o)} title="Top up your stake" sheetClassName="rounded-t-3xl pb-10" modalClassName="max-w-md">
         <div className="flex flex-col gap-3 px-5 pt-1">
           <p className="m-0 text-[13px] font-semibold text-muted-foreground">
-            Add G$ from your wallet to this card. The higher your stake, the higher your reward. You have {k(balance)} G$.
+            Add at least {MIN_TOP_UP_G.toLocaleString("en-US")} G$ from your wallet. The higher your stake, the higher your reward. You have {k(balance)} G$.
           </p>
           <label className="block">
             <span className="label-mono text-[10px] text-muted-foreground">Amount in G$</span>
@@ -152,7 +156,7 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
               pattern="[0-9]*"
               value={raw}
               disabled={busy}
-              placeholder="0"
+              placeholder={String(MIN_TOP_UP_G)}
               autoFocus
               onChange={(e) => {
                 setRaw(e.target.value.replace(/\D/g, ""));
@@ -163,8 +167,12 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
           </label>
           <button
             type="button"
-            disabled={busy || balance <= 0}
+            disabled={busy || balance < MIN_TOP_UP_G}
             onClick={() => {
+              if (balance < MIN_TOP_UP_G) {
+                setFormError(`Top up at least ${MIN_TOP_UP_G.toLocaleString("en-US")} G$.`);
+                return;
+              }
               setRaw(String(balance));
               setFormError(null);
             }}
@@ -172,11 +180,15 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
           >
             Max
           </button>
-          {formError ? <p className="m-0 text-center text-[12px] font-bold text-orange">{formError}</p> : null}
+          {formError ? (
+            <p className="m-0 text-center text-[12px] font-bold text-orange">{formError}</p>
+          ) : amount > 0 && amount < MIN_TOP_UP_G ? (
+            <p className="m-0 text-center text-[12px] font-bold text-orange">Top up at least {MIN_TOP_UP_G.toLocaleString("en-US")} G$.</p>
+          ) : null}
           <button
             type="button"
             onClick={() => void run()}
-            disabled={busy || amount <= 0}
+            disabled={busy || amount < MIN_TOP_UP_G}
             className="press-edge flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-green text-[14px] font-extrabold uppercase text-white shadow-[0_3px_0_#1d8a52] disabled:opacity-70"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
