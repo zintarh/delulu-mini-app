@@ -1,6 +1,5 @@
 "use client";
 
-import { BoostCard } from "@/components/bingo/boost-card";
 import { MissionSticker } from "@/components/bingo/mission-stickers";
 import { fmtUntil } from "@/lib/bingo/format";
 
@@ -15,7 +14,7 @@ import { useJoinCommunityCampaignOnChain, useSubmitCommunityMilestoneProofOnChai
 import { useResolveForfeitCommitmentSuccess, useSubmitForfeitProof, useTakeOverForfeitVerifier } from "@/hooks/use-create-forfeit-commitment";
 import { useAuth } from "@/hooks/use-auth";
 import { startProofReward } from "@/lib/proof-reward/client";
-import type { BingoSquareView, BingoView } from "@/lib/bingo/view";
+import type { BingoSquareView } from "@/lib/bingo/view";
 import { cn } from "@/lib/utils";
 
 type Step = "pick" | "uploading" | "checking" | "signing" | "confirming" | "done";
@@ -38,8 +37,6 @@ export function BingoProofSheet({
   onNextAction,
   reward,
   closesAt,
-  bingo,
-  onBoosted,
 }: {
   attemptId: string;
   square: BingoSquareView | null;
@@ -53,9 +50,6 @@ export function BingoProofSheet({
   reward?: number;
   /** When today's square closes, for the countdown. */
   closesAt?: string | null;
-  /** The card, so claim-and-top-up can sit on the photo itself. */
-  bingo?: BingoView | null;
-  onBoosted?: () => void | Promise<void>;
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -244,7 +238,6 @@ export function BingoProofSheet({
           </div>
         ) : (
           <>
-            {bingo && square && !square.bonus ? <BoostCard bingo={bingo} onBoosted={() => onBoosted?.()} /> : null}
             {square && !square.bonus ? (
               <div className="flex items-center gap-3">
                 <MissionSticker title={square.title} size={40} />

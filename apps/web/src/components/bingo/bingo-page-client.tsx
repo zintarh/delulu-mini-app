@@ -295,7 +295,6 @@ export function BingoPageClient({ slug }: { slug: string }) {
               <PhotoPrivacySwitch className="mt-3" />
             </section>
 
-            {/* Daily Boost: before today's photo (hidden until the contract upgrade is live). */}
             <BoostCard bingo={bingo} onBoosted={reload} className="mt-4" />
 
             {/* Right under it: the one thing to do now. */}
@@ -413,8 +412,6 @@ export function BingoPageClient({ slug }: { slug: string }) {
           onNextAction={onStepAction}
           reward={bingo.rewards.perProof}
           closesAt={step.untilLabel === "closes" ? (step.until ?? null) : null}
-          bingo={bingo}
-          onBoosted={reload}
         />
       ) : null}
       <CheerPrompt contest={cheers.data} onPick={() => document.getElementById("players-list")?.scrollIntoView({ behavior: "smooth" })} />
