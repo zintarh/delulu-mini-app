@@ -14,6 +14,7 @@ import { useJoinCommunityCampaignOnChain, useSubmitCommunityMilestoneProofOnChai
 import { useResolveForfeitCommitmentSuccess, useSubmitForfeitProof, useTakeOverForfeitVerifier } from "@/hooks/use-create-forfeit-commitment";
 import { useAuth } from "@/hooks/use-auth";
 import { startProofReward } from "@/lib/proof-reward/client";
+import { proofTip } from "@/lib/proof-tip";
 import type { BingoSquareView } from "@/lib/bingo/view";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +57,7 @@ export function BingoProofSheet({
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("pick");
-  const [error, setError] = useState<{ title: string; body: string } | null>(null);
+  const [error, setError] = useState<{ title: string; body: string; tip?: string } | null>(null);
   const { submitCommunityCampaignMilestoneProofAndWait } = useSubmitCommunityMilestoneProofOnChain();
   const { joinCommunityCampaignAndWait } = useJoinCommunityCampaignOnChain();
   const { submitProofAndWait } = useSubmitForfeitProof();
@@ -116,6 +117,7 @@ export function BingoProofSheet({
       if (!res.ok) {
         throw Object.assign(new Error(json.reason ?? json.error ?? "Your photo wasn't accepted."), {
           title: res.status === 422 ? "Try another photo" : "Not filled yet",
+          tip: res.status === 422 ? proofTip(square.title) : undefined,
         });
       }
 
@@ -187,6 +189,7 @@ export function BingoProofSheet({
       setError({
         title: cancelled ? "Not signed" : ((e as { title?: string }).title ?? "Something went wrong"),
         body: cancelled ? "Your photo was approved. Tap Fill square to sign when you're ready." : raw,
+        tip: cancelled ? undefined : (e as { tip?: string }).tip,
       });
       setStep("pick");
     }
@@ -296,6 +299,14 @@ export function BingoProofSheet({
               <div className="rounded-xl bg-orange-soft px-3 py-2.5 text-orange">
                 <p className="text-[13px] font-extrabold">{error.title}</p>
                 <p className="text-[13px] font-semibold leading-snug">{error.body}</p>
+                {error.tip ? (
+                  <>
+                    <p className="mt-1.5 text-[12px] font-bold leading-snug text-ink">{error.tip}</p>
+                    <GameButton variant="line" size="sm" className="mt-2" onClick={() => cameraRef.current?.click()} disabled={busy}>
+                      <Camera className="h-4 w-4" /> Take a new photo
+                    </GameButton>
+                  </>
+                ) : null}
               </div>
             ) : (
               <p className="text-center text-[12px] font-semibold text-muted-foreground">A photo you took today works best.</p>

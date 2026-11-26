@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, ChevronLeft, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatProofError, formatUploadError } from "@/lib/community/format-proof-error";
+import { proofTip } from "@/lib/proof-tip";
 import { ProofSuccessCard } from "@/components/proof-success-card";
 import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 
@@ -253,7 +254,7 @@ export function ProofModal({
                 <span key={pos} aria-hidden className={cn("absolute h-[30px] w-[30px] border-yellow", pos)} />
               ))}
               <span className="text-sm leading-relaxed text-[#A3A39C]">
-                {proofInstructions || "Show what you did. A screenshot is totally fine."}
+                {proofInstructions || "Take a photo now of what you did. A screenshot of your tracker works too."}
               </span>
             </button>
             {showErrorBanner ? (
@@ -306,6 +307,9 @@ export function ProofModal({
               <div role="alert" className="shrink-0 rounded-[20px] border-2 border-orange/30 bg-orange-soft px-4 py-3">
                 <p className="text-sm font-bold text-orange">{displayErrorTitle}</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-orange/90">{displayError}</p>
+                {submitErrorDisplay?.kind === "ai" && !uploadError ? (
+                  <p className="mt-1.5 text-xs font-bold leading-relaxed text-ink">{proofTip(title)}</p>
+                ) : null}
               </div>
             ) : null}
             {activeStep === "wallet-sign" && busy ? (
