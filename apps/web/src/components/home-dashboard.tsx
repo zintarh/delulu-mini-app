@@ -15,6 +15,7 @@ import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { HomeWalletStrip } from "@/components/home/home-wallet-strip";
 import { HomePotCard } from "@/components/home/home-pot-card";
+import { StakeClimbCard } from "@/components/home/stake-climb-card";
 import { FlowStateCard } from "@/components/home/flow-state-card";
 import { useLuluHomeNews } from "@/components/home/home-lulu-news";
 import { useBingoList } from "@/hooks/use-bingo";
@@ -84,8 +85,9 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
                 today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null}
               />
             ) : null}
-            {/* What you get (weekly pot + 10% cashback), then your G$. */}
+            {/* What you get, how to climb (stake more; no G$ → claim daily), then your G$ with the claim. */}
             <HomePotCard />
+            <StakeClimbCard compact />
             <HomeWalletStrip />
             <div id="forfeit-day-card" className="flex flex-col gap-5">
               <Link href="/how-it-works" className="flex items-center gap-3 rounded-2xl border-2 border-ink bg-white py-2.5 pl-3 pr-3 text-ink no-underline shadow-[0_3px_0_#161615]">
@@ -102,6 +104,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
         ) : (
           <>
             <HomePotCard />
+            <StakeClimbCard compact />
             <HomeBingo newcomer />
           </>
         )}

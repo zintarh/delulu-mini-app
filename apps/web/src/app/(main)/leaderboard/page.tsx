@@ -17,6 +17,7 @@ import { usePfps } from "@/hooks/use-profile-pfp";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatCompact } from "@/lib/levels";
 import Link from "next/link";
+import { StakeClimbCard } from "@/components/home/stake-climb-card";
 
 const PAGE_SIZE = 10;
 
@@ -308,6 +309,7 @@ export default function LeaderboardPage() {
     <MainPage>
       <PageBackHeader title="Leaderboard" />
       <div className="mx-auto max-w-3xl px-5 pb-8 pt-4 xl:max-w-3xl">
+        <StakeClimbCard compact className="mb-4" />
         <Segmented<Tab>
           ariaLabel="Leaderboard"
           value={activeTab}

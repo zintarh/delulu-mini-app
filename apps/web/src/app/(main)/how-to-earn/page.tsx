@@ -14,6 +14,7 @@ import { useEarnFacts } from "@/hooks/use-earn-facts";
 import { ngnWorthShowing } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
 import { TicketLadder } from "@/components/pot/stake-tickets";
+import { StakeClimbCard } from "@/components/home/stake-climb-card";
 import { useStakeRules } from "@/hooks/use-stake-rules";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -120,6 +121,9 @@ export default function HowToEarnPage() {
           <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-muted-foreground">A short video of joining, points, and the share. It stays in the app.</span>
           <WatchHowItWorks className="shrink-0 text-[13px]" />
         </div>
+
+        {/* The leaderboard rule: higher stake, higher you climb. No G$ → claim daily and stake it. */}
+        <StakeClimbCard />
 
         {/* Tickets: how the weekly pool is split — the higher the stake, the bigger the share. */}
         <section id="tickets" className="scroll-mt-20">
