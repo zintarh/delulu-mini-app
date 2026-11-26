@@ -646,7 +646,7 @@ export function referralNudge(p: Person, nowMs: number, history: NudgeHistory, f
         `${lp.kind === "bonus" ? `${who} showed up 3 days in a row` : `${who} is verified and posted their first photo`}, so ${g(lp.amountG)} just landed in your wallet.\n\n` +
         `That's ${g(r.earnedG)} from ${counted} friend${counted === 1 ? "" : "s"} this season.` +
         (round ? ` Every new friend is worth ${g(round.reward)}, and there's no limit per person.` : "") +
-        VOTE_FAVOUR(),
+        VOTE_FAVOUR(p),
       cta: "See my friends",
     };
   }
@@ -672,7 +672,7 @@ export function referralNudge(p: Person, nowMs: number, history: NudgeHistory, f
         emailBody:
           `You've earned ${g(r.earnedG)} so far, and ${g(waitingG)} more is waiting on friends who haven't finished yet:\n\n${lines}\n\n` +
           `Send them a quick message today. You get ${g(roundFirstPayment(round))} when a friend is verified and posts their first photo, and ${g(bonus)} more when they show up 3 days in a row.` +
-          VOTE_FAVOUR(),
+          VOTE_FAVOUR(p),
         cta: "See my friends",
       };
     }
@@ -702,8 +702,9 @@ export function referrerCheer(p: Person, nowMs: number): Nudge | null {
 // ── Flow State vote ─────────────────────────────────────────────────────────
 
 /** One extra line on referrer emails while voting is open: their verified friends can vote too. */
-const VOTE_FAVOUR = () =>
-  flowStateLive() ? "\n\n🗳️ One favour: Delulu is up for GoodBuilders funding on Flow State. Ask your friends to tap Vote for Delulu in the app. It's free and takes one tap, and it keeps the rewards flowing." : "";
+/** Skipped for anyone who already voted: voters get no vote messages at all. */
+const VOTE_FAVOUR = (p: Person) =>
+  flowStateLive() && p.flowVote !== "voted" ? "\n\n🗳️ One favour: Delulu is up for GoodBuilders funding on Flow State. Ask your friends to tap Vote for Delulu in the app. It's free and takes one tap, and it keeps the rewards flowing." : "";
 
 /** Face-verified and not voting for Delulu yet: every 2 days, stops once they vote or after 4 ignored. */
 export function flowVoteNudge(p: Person, nowMs: number, history: NudgeHistory): Nudge | null {

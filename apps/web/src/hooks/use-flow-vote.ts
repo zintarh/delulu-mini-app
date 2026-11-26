@@ -247,12 +247,16 @@ export function useFlowVote() {
     ? "loading"
     : !snapshot.recipientActive
       ? "closed"
-      : !snapshot.verified
-        ? "verify"
-        : snapshot.votingPower > 0n && allocation!.maximum === 0n
-          ? "full"
-          : snapshot.votingPower > 0n && allocation!.current > 0n && allocation!.current === allocation!.maximum
-            ? "voted"
+      : allocation!.current > 0n
+        // Any votes on Delulu = voted, the same rule as the server
+        // (flow-state-tally.ts), checked before the face check: more voting
+        // power later, or a lapsed face check, must not bring back the popup,
+        // the gate or reminders for someone who already voted.
+        ? "voted"
+        : !snapshot.verified
+          ? "verify"
+          : snapshot.votingPower > 0n && allocation!.maximum === 0n
+            ? "full"
             : "vote";
 
   return {
