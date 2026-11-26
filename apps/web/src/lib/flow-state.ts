@@ -13,9 +13,13 @@ export function setFlowStateLive(on: boolean) {
 }
 
 
-export const PROJECT_RECIPIENT = "0x2C9e818d1C0EeeA201AF0864Cc58C82081cF5627" as Address;
-
-export const PAST_RECIPIENTS: readonly Address[] = ["0x5f3dd795ad9d626f5c0621b339a243220bcbd025"];
+// Pinned, lowercase: every check lowercases the chain's value.
+export const PROJECT_RECIPIENT = "0x2c9e818d1c0eeea201af0864cc58c82081cf5627" as Address;
+/** Delulu's earlier recipients (lowercase). Votes there count as voted: never asked again, still in the totals. */
+export const PAST_RECIPIENTS: readonly Address[] = [
+  "0x5f3dd795ad9d626f5c0621b339a243220bcbd025",
+  "0x3b3e5efe7a6e26bd97c3aa5498056b39889b361d",
+];
 export const isDeluluRecipient = (recipient: string) => {
   const r = recipient.toLowerCase();
   return r === PROJECT_RECIPIENT || PAST_RECIPIENTS.includes(r as Address);

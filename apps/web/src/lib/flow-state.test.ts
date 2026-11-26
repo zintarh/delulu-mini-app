@@ -53,5 +53,7 @@ test("votes on Delulu's earlier address count as voted, so nobody is asked again
 test("recipient addresses are stored lowercase (every check lowercases the chain's value)", () => {
   assert.equal(PROJECT_RECIPIENT, PROJECT_RECIPIENT.toLowerCase());
   for (const r of PAST_RECIPIENTS) assert.equal(r, r.toLowerCase());
-  assert.equal(PROJECT_RECIPIENT, "0x3b3e5efe7a6e26bd97c3aa5498056b39889b361d");
+  assert.equal(PROJECT_RECIPIENT, "0x2c9e818d1c0eeea201af0864cc58c82081cf5627");
+  // Voters for either earlier address are still "voted".
+  assert.equal(votedForDelulu([{ recipient: "0x3B3E5eFe7A6e26bd97C3Aa5498056b39889B361D", amount: 2n }]), true);
 });
