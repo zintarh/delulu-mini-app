@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Copy, XIcon } from "lucide-react";
+import { Copy, TrendingUp, XIcon } from "lucide-react";
 import { Bolt, Flame, GameButton } from "@/components/ds";
 import { BASE_PROOF_POINTS } from "@/lib/dashboard/campaign-constants";
 import { ProofRewardRow } from "@/components/proof-reward-row";
 import { ProofNextStep } from "@/components/next-step-card";
 import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { SeasonNotice } from "@/components/season-notice";
-import { LOW_STAKE_POINTS, isSeason2PointsLive } from "@/lib/season/rules";
+import { LOW_STAKE_POINTS, POINTS_PER_STAKE_DIVISOR, STAKE_PRESETS_REGULAR, isSeason2PointsLive, seasonPointsForStake } from "@/lib/season/rules";
 
 export async function fireConfetti() {
   try {
@@ -52,7 +52,7 @@ export function ProofSuccessCard({
   myAvatar,
   myStreak,
   myPoints,
-  pointsAwarded = BASE_PROOF_POINTS,
+  pointsAwarded: pointsAwardedProp,
   milestoneIndex,
   milestoneCount,
   milestoneName,
@@ -60,6 +60,9 @@ export function ProofSuccessCard({
   showStakeUpsell = false,
   onDone,
 }: ProofSuccessCardProps) {
+  const pointsAwarded = pointsAwardedProp ?? BASE_PROOF_POINTS;
+  // Only Forfeit goals pass their stake-based points; campaigns fall back to the base.
+  const stakeScored = pointsAwardedProp != null;
   const [copied, setCopied] = useState(false);
   const confettiFired = useRef(false);
 
@@ -152,7 +155,9 @@ export function ProofSuccessCard({
       {/* Season 2: before it starts everyone sees what's coming; after, anyone on token points. */}
       {!isSeason2PointsLive() || showStakeUpsell || pointsAwarded <= LOW_STAKE_POINTS ? (
         <SeasonNotice force className="mt-4 animate-rise [animation-delay:.6s]" />
-      ) : null}
+      ) : (
+        stakeScored ? <StakeUpNudge points={pointsAwarded} /> : null
+      )}
 
       {myUsername ? (
         <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -205,5 +210,19 @@ export function ProofSuccessCard({
         Continue
       </GameButton>
     </div>
+  );
+}
+
+/** Staked, but under the top preset: what the same day would score at the next one up. */
+function StakeUpNudge({ points }: { points: number }) {
+  const stake = points * POINTS_PER_STAKE_DIVISOR;
+  const next = STAKE_PRESETS_REGULAR.find((p) => p > stake);
+  if (!next) return null;
+  const k = (n: number) => `${+(n / 1000).toFixed(1)}K`;
+  return (
+    <p className="m-0 mt-4 flex animate-rise items-center gap-1.5 rounded-2xl bg-yellow-soft px-3 py-2 text-[13px] font-extrabold text-ink [animation-delay:.6s]">
+      <TrendingUp className="h-4 w-4 shrink-0" strokeWidth={2.6} />
+      At {k(next)} G$ this day would be +{seasonPointsForStake(next).toLocaleString()} pts
+    </p>
   );
 }

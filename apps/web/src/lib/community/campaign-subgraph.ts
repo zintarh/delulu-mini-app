@@ -958,6 +958,8 @@ export type GlobalAppPointsRow = {
   /** Board windows only: distinct days (Lagos) with a kept proof, and the stake points before the consistency boost. */
   days_kept?: number;
   stake_points?: number;
+  /** Board windows only: the biggest real G$ stake behind a kept proof this round (First Week counts as its real stake). */
+  top_stake?: number;
 };
 
 const GLOBAL_USERS_POINTS_QUERY = `
@@ -1301,12 +1303,13 @@ export async function fetchBoardScoresFromGraph(
   /** Forfeit commitment id → the stake to score it at (First Week cards count as a 10k stake). */
   scoreStakeOverride: ReadonlyMap<string, number> = new Map(),
 ): Promise<GlobalAppPointsRow[]> {
-  const byWallet = new Map<string, { delulu: number; campaign: number; days: Set<string>; username: string | null }>();
+  const byWallet = new Map<string, { delulu: number; campaign: number; days: Set<string>; username: string | null; topStake: number }>();
   const lagosDay = (createdAt: string | number | undefined) => new Date(Number(createdAt ?? 0) * 1000 + 3_600_000).toISOString().slice(0, 10);
-  const add = (wallet: string, field: "delulu" | "campaign", pts: number, createdAt: string | undefined, username: string | null = null) => {
+  const add = (wallet: string, field: "delulu" | "campaign", pts: number, createdAt: string | undefined, username: string | null = null, realStake = 0) => {
     const w = wallet.toLowerCase();
-    const row = byWallet.get(w) ?? { delulu: 0, campaign: 0, days: new Set<string>(), username: null };
+    const row = byWallet.get(w) ?? { delulu: 0, campaign: 0, days: new Set<string>(), username: null, topStake: 0 };
     row[field] += pts;
+    if (realStake > row.topStake) row.topStake = realStake;
     row.days.add(lagosDay(createdAt));
     if (!row.username && username) row.username = username;
     byWallet.set(w, row);
@@ -1327,12 +1330,13 @@ export async function fetchBoardScoresFromGraph(
       }>(SEASON_CAMPAIGN_PROOFS_QUERY, "communityCampaignMilestoneCompletions", sinceUnix),
     ]);
     for (const r of forfeits) {
-      const stake = scoreStakeOverride.get(String(r.commitmentId)) ?? gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token);
-      add(r.creatorAddress, "delulu", seasonPointsForStake(stake), r.createdAt);
+      const real = gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token);
+      const stake = scoreStakeOverride.get(String(r.commitmentId)) ?? real;
+      add(r.creatorAddress, "delulu", seasonPointsForStake(stake), r.createdAt, null, real);
     }
     for (const r of campaigns) {
       const stake = r.challenge?.isPaid ? gDollarWhole(r.challenge.joinAmount, r.challenge.joinToken) : 0;
-      add(r.participantAddress, "campaign", seasonPointsForStake(stake), r.createdAt, r.participant?.username ?? null);
+      add(r.participantAddress, "campaign", seasonPointsForStake(stake), r.createdAt, r.participant?.username ?? null, stake);
     }
   } catch {
     return [];
@@ -1348,6 +1352,7 @@ export async function fetchBoardScoresFromGraph(
         campaign_points: v.campaign,
         days_kept: v.days.size,
         stake_points: stakePoints,
+        top_stake: v.topStake,
       };
     })
     .filter((r) => r.points_total > 0 && !isLeaderboardBlacklisted(r.wallet_address))

@@ -18,9 +18,12 @@ import {
   MapPin,
   Hourglass,
   ShieldCheck,
+  ShoppingBag,
+  TrendingUp,
   Users,
   X,
 } from "lucide-react";
+import { BUY_GD_URL } from "@/lib/buy-gd";
 import { Chip, HoldToSign, OptionTile, Segmented, gameButtonClass } from "@/components/ds";
 import { APP_HOME } from "@/components/main-nav-config";
 import { StakeTicketsHint, TicketChip } from "@/components/pot/stake-tickets";
@@ -40,6 +43,7 @@ import {
   MAX_GOAL_DAYS,
   STAKE_PRESETS_NEWCOMER,
   STAKE_PRESETS_REGULAR,
+  SUGGESTED_STAKE,
   seasonPointsForStake,
 } from "@/lib/season/rules";
 import { TokenBadge } from "@/components/token-badge";
@@ -694,6 +698,21 @@ export function ForfeitCreatePage() {
     }
   }, [stakeRulesLoading, selectedTokenSymbol, isWordPledge, wordPledgeAllowed, forfeitAmount, minForfeitAmount]);
 
+  // Start at the suggested stake when the wallet covers it, so the default
+  // climbs the board. Once only, and never over an amount they chose.
+  const amountTouched = useRef(false);
+  const suggestedOnce = useRef(false);
+  const gBalance = Number(selectedTokenBalance.formatted) || 0;
+  useEffect(() => {
+    if (suggestedOnce.current || amountTouched.current) return;
+    if (stakeRulesLoading || selectedTokenBalance.isLoading || selectedTokenSymbol !== "G$") return;
+    suggestedOnce.current = true;
+    if (forfeitAmount > 0 && forfeitAmount < SUGGESTED_STAKE && SUGGESTED_STAKE >= minForfeitAmount && gBalance >= SUGGESTED_STAKE) {
+      setForfeitAmount(SUGGESTED_STAKE);
+      setAmountDraft(String(SUGGESTED_STAKE));
+    }
+  }, [stakeRulesLoading, selectedTokenBalance.isLoading, selectedTokenSymbol, forfeitAmount, minForfeitAmount, gBalance]);
+
   const canNext =
     description.trim().length >= 3 &&
     !stakeRulesLoading &&
@@ -734,6 +753,7 @@ export function ForfeitCreatePage() {
   const saveAmount = () => {
     const parsed = Number(amountDraft.replace(/,/g, "").trim());
     if (!Number.isFinite(parsed) || parsed < minForfeitAmount) return;
+    amountTouched.current = true;
     setForfeitAmount(Math.floor(parsed));
     setAmountOpen(false);
   };
@@ -1704,9 +1724,13 @@ export function ForfeitCreatePage() {
         hideTitleVisually
       >
         <div className="px-1 pb-4 pt-1">
-          <h2 className="mb-3 text-lg font-extrabold text-foreground" style={CLASH}>
+          <h2 className="mb-1 text-lg font-extrabold text-foreground" style={CLASH}>
             Stake
           </h2>
+          <p className="mb-3 flex items-center gap-1.5 text-[13px] font-extrabold text-ink" style={MANROPE}>
+            <TrendingUp className="h-4 w-4 shrink-0" strokeWidth={2.6} />
+            Higher stake, higher you climb on the leaderboard
+          </p>
 
           {wordPledgeAllowed ? (
             <Segmented<"money" | "word">
@@ -1734,6 +1758,7 @@ export function ForfeitCreatePage() {
               <button
                 type="button"
                 onClick={() => {
+                  amountTouched.current = true;
                   setForfeitAmount(0);
                   setAmountDraft("0");
                   setAmountOpen(false);
@@ -1839,6 +1864,16 @@ export function ForfeitCreatePage() {
                     Max
                   </button>
                 ) : null}
+                {!selectedTokenBalance.isLoading && selectedTokenSymbol === "G$" ? (
+                  <a
+                    href={BUY_GD_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white no-underline"
+                  >
+                    <ShoppingBag className="h-3 w-3" /> Buy G$
+                  </a>
+                ) : null}
               </div>
             ) : null}
 
@@ -1862,6 +1897,7 @@ export function ForfeitCreatePage() {
                 key={amount}
                 type="button"
                 onClick={() => {
+                  amountTouched.current = true;
                   setForfeitAmount(amount);
                   setAmountDraft(String(amount));
                   setAmountOpen(false);

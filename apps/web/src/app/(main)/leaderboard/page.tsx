@@ -22,7 +22,7 @@ const PAGE_SIZE = 10;
 
 type Tab = BoardWindow;
 
-type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number; daysKept?: number };
+type Entry = { address: string; username: string | null; points: number; rank: number; streak?: number; daysKept?: number; topStake?: number };
 
 /** Days in a row — what we reward. Shown next to points so consistency is visible, not just volume. */
 function StreakFlame({ days, className }: { days?: number; className?: string }) {
@@ -35,6 +35,20 @@ function StreakFlame({ days, className }: { days?: number; className?: string })
     >
       <Flame size={14} />
       {days}
+    </span>
+  );
+}
+
+/** Their biggest G$ stake this round, so everyone sees the top of the board stakes big. */
+function StakeChip({ stake, className }: { stake?: number; className?: string }) {
+  if (!stake || stake < 1_000) return null;
+  const label = stake >= 1_000_000 ? `${+(stake / 1_000_000).toFixed(1)}M` : `${+(stake / 1_000).toFixed(1)}K`;
+  return (
+    <span
+      className={cn("label-mono inline-flex shrink-0 items-center rounded-full bg-yellow px-1.5 py-px text-[10px] font-extrabold text-ink", className)}
+      title={`Staking ${stake.toLocaleString("en-US")} G$`}
+    >
+      {label} G$
     </span>
   );
 }
@@ -101,6 +115,7 @@ function Row({
       <span className="min-w-0 flex-1 truncate font-bold">
         {isMe ? "You" : displayName(entry)}
       </span>
+      <StakeChip stake={entry.topStake} />
       <StreakFlame days={entry.streak} />
       <span className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="label-mono text-xs font-semibold text-ink">
@@ -143,6 +158,7 @@ function Podium({
             {formatCompact(e.points)}
             <StreakFlame days={e.streak} className="text-[10px]" />
           </span>
+          <StakeChip stake={e.topStake} />
           {earnedLabel(earnedByAddress[e.address.toLowerCase()] ?? 0) ? (
             <span className="label-mono text-[9px] text-muted-foreground/80">{earnedLabel(earnedByAddress[e.address.toLowerCase()] ?? 0)}</span>
           ) : null}

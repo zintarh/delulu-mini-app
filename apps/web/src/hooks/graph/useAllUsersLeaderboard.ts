@@ -16,6 +16,8 @@ export interface UserLeaderboardEntry {
   streak?: number;
   /** Weekly / 2-week boards: days kept this round. */
   daysKept?: number;
+  /** Weekly / 2-week boards: biggest G$ stake behind a kept day this round. */
+  topStake?: number;
 }
 
 type ApiRow = {
@@ -25,6 +27,7 @@ type ApiRow = {
   username: string | null;
   streak?: number;
   days_kept?: number | null;
+  top_stake?: number | null;
 };
 
 type ApiResponse = {
@@ -78,6 +81,7 @@ export function useAllUsersLeaderboard(page: number = 0, currentUserAddress?: st
             points: row.points_total,
             streak: row.streak ?? 0,
             daysKept: row.days_kept ?? undefined,
+            topStake: row.top_stake ?? undefined,
             totalStaked: 0,
             totalClaimed: 0,
             deluluCount: 0,

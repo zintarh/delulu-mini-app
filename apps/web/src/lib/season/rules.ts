@@ -45,7 +45,9 @@ export const POINTS_STAKE_CAP = 100_000;
 export const LOW_STAKE_POINTS = 10;
 
 /** Stake presets shown to regulars — the points they earn sit right under them. */
-export const STAKE_PRESETS_REGULAR = [1_000, 2_500, 5_000] as const;
+export const STAKE_PRESETS_REGULAR = [1_000, 5_000, 10_000] as const;
+/** Suggested first stake when the wallet can cover it: higher stake, higher on the board. */
+export const SUGGESTED_STAKE = 5_000;
 export const STAKE_PRESETS_NEWCOMER = STAKE_PRESETS_REGULAR;
 
 const DAY_MS = 86_400_000;

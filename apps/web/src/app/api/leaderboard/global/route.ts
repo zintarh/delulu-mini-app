@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     delulu_points: row.delulu_points,
     campaign_points: row.campaign_points,
     days_kept: row.days_kept ?? null,
+    top_stake: row.top_stake ?? null,
   }));
   const streaks = await fetchLiveStreaks(admin, pageRows.map((r) => r.wallet_address));
   const pageWithStreaks = pageRows.map((r) => ({ ...r, streak: streaks[r.wallet_address.toLowerCase()] ?? 0 }));

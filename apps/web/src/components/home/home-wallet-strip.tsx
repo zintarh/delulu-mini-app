@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
-import { ArrowLeftRight, Gift, Loader2, ShieldCheck } from "lucide-react";
+import { Gift, Loader2, ShieldCheck, ShoppingBag } from "lucide-react";
 import { Coin } from "@/components/ds";
 import { useReportHomeReady } from "@/components/home/home-ready";
 import { useGoodDollarClaim } from "@/hooks/useGoodDollarClaim";
@@ -11,11 +11,12 @@ import { useGoodDollarPrice } from "@/hooks/use-gooddollar-price";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useFaceCheck } from "@/contexts/right-panel-context";
 import { GOODDOLLAR_ADDRESSES } from "@/lib/constant";
+import { BUY_GD_URL } from "@/lib/buy-gd";
 import { afterVote } from "@/lib/vote-gate";
 import { cn } from "@/lib/utils";
 
-/** Where to get more G$ until there's a swap inside the app: Uniswap on Celo, G$ pre-selected. */
-export const GET_GD_URL = `https://app.uniswap.org/swap?chain=celo&outputCurrency=${GOODDOLLAR_ADDRESSES.mainnet}`;
+/** Where to buy more G$ (lib/buy-gd.ts). Kept under the old name for existing imports. */
+export const GET_GD_URL = BUY_GD_URL;
 
 const fmtG = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M` : n >= 10_000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : Math.floor(n).toLocaleString("en-US");
@@ -81,7 +82,7 @@ export function HomeWalletStrip({ className }: { className?: string }) {
       <div className="mt-3 flex gap-2">
         {claimButton}
         <a href={GET_GD_URL} target="_blank" rel="noopener noreferrer" className={btn("flex-none bg-ink px-4 text-white shadow-[0_3px_0_#000]")}>
-          <ArrowLeftRight className="h-4 w-4" /> Get G$
+          <ShoppingBag className="h-4 w-4" /> Buy G$
         </a>
       </div>
     </section>
