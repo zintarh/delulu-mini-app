@@ -1,18 +1,37 @@
 import { decodeFunctionData, parseAbi, zeroAddress, type Address, type Hex } from "viem";
 
-
+/**
+ * The Flow State vote drive — voted right here in Delulu, no MetaMask.
+ *
+ * A Flow Council is a plain contract: a GoodDollar-verified wallet claims its
+ * votes through Flow State's eligibility API (one signed message, no fee —
+ * their bot adds it as a voter), then casts them with one `vote()` call.
+ * Adapted from Calebux/flowstate-vote-kit (rules, relay, receipt checks) and
+ * checked against flow-state-coop/flow-council + /platform.
+ *
+ * On or off is an admin switch (Admin → Home → Voting popup), stored in
+ * app_settings.flow_vote. `active` is only the fallback before that has been
+ * read, or if it can't be.
+ */
 export const FLOW_STATE = {
   active: true,
+  /** Optional "Voting ends Fri 28 Nov" line; null hides it. */
   endsOn: null as string | null,
 };
 let live = FLOW_STATE.active;
-
+/**
+ * Whether voting is on. Server code reads the admin switch first
+ * (lib/app-settings.ts getFlowVoteEnabled); client components use
+ * useFlowVoteLive(), which keeps this in step.
+ */
 export const flowStateLive = () => live;
 export function setFlowStateLive(on: boolean) {
   live = on;
 }
 
-export const PROJECT_RECIPIENT = "0x3b3e5efe7a6e26bd97c3aa5498056b39889b361d" as Address;
+// Pinned — never take a vote destination from a URL or request body.
+/** Delulu's recipient address on the council (Flow State lists it as "Delulu"). Lowercase. */
+export const PROJECT_RECIPIENT = "0x5f3dd795ad9d626f5c0621b339a243220bcbd025" as Address;
 export const PROJECT_NAME = "Delulu";
 /** GoodBuilders S5 council on Celo. */
 export const FLOW_COUNCIL = "0x889e0aadaa3f8b28a794ef70da147827c620a590" as Address;
