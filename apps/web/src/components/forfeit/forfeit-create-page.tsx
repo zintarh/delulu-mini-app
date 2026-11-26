@@ -705,13 +705,13 @@ export function ForfeitCreatePage() {
   const gBalance = Number(selectedTokenBalance.formatted) || 0;
   useEffect(() => {
     if (suggestedOnce.current || amountTouched.current) return;
-    if (stakeRulesLoading || selectedTokenBalance.isLoading || selectedTokenSymbol !== "G$") return;
+    if (!address || stakeRulesLoading || selectedTokenBalance.isLoading || selectedTokenSymbol !== "G$") return;
     suggestedOnce.current = true;
     if (forfeitAmount > 0 && forfeitAmount < SUGGESTED_STAKE && SUGGESTED_STAKE >= minForfeitAmount && gBalance >= SUGGESTED_STAKE) {
       setForfeitAmount(SUGGESTED_STAKE);
       setAmountDraft(String(SUGGESTED_STAKE));
     }
-  }, [stakeRulesLoading, selectedTokenBalance.isLoading, selectedTokenSymbol, forfeitAmount, minForfeitAmount, gBalance]);
+  }, [address, stakeRulesLoading, selectedTokenBalance.isLoading, selectedTokenSymbol, forfeitAmount, minForfeitAmount, gBalance]);
 
   const canNext =
     description.trim().length >= 3 &&
