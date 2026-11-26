@@ -8,7 +8,6 @@ import { isActiveForfeit, useCreatorForfeits } from "@/hooks/use-creator-forfeit
 import { cn } from "@/lib/utils";
 import { periodOpensAt } from "@/lib/forfeit/period-window";
 import { HomeDailyGoalSkeleton } from "@/components/delulu-skeleton";
-import { HeartHandshake } from "lucide-react";
 import { HowToEarnLink } from "@/components/home/how-to-earn-link";
 import { useDaypart } from "@/hooks/use-daypart";
 import type { Daypart } from "@/lib/daypart/daypart";
@@ -74,10 +73,10 @@ export function HomeGreeting({ name, address }: { name?: string; address: string
       <div className="mt-1 flex min-h-5 items-center justify-between gap-3">
         <p className="m-0 min-w-0 text-sm text-muted-foreground">{sub}</p>
         <Link
-          href="/support"
-          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink no-underline"
+          href="/how-it-works"
+          className="inline-flex shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink underline decoration-2 underline-offset-2"
         >
-          <HeartHandshake className="h-3.5 w-3.5 text-pink" strokeWidth={2.6} /> Support others
+          How it works
         </Link>
       </div>
     </div>

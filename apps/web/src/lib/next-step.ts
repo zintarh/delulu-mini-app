@@ -178,6 +178,13 @@ export function bingoNextStep(b: BingoView, all: BingoView[] = []): NextStep {
   };
 }
 
+/** "Done for today / come back tomorrow" is a note, not a task. No button to press. */
+export function comeBackTomorrowNote(step: NextStep): string | null {
+  if (step.tone !== "wait" || step.cta || !step.title.startsWith("Done for today")) return null;
+  const detail = step.body?.replace(/\.$/, "");
+  return detail ? `Done for today. ${detail}.` : "Done for today. Come back tomorrow.";
+}
+
 /** After a proof on a personal goal or campaign (the shared success card). */
 export function proofNextStep(input: { milestoneIndex?: number | null; milestoneCount?: number | null; nextBingo?: BingoView | null }): NextStep {
   const i = input.milestoneIndex;

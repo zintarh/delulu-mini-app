@@ -83,7 +83,7 @@ test("rolling card: each day needs its square or the card ends; personal clock f
 });
 
 test("next step: every state says what to do next", async () => {
-  const { bingoNextStep, proofNextStep } = await import("@/lib/next-step");
+  const { bingoNextStep, comeBackTomorrowNote, proofNextStep } = await import("@/lib/next-step");
   const missions = [
     { title: "Share a selfie", bonus: false },
     { title: "Something you love", bonus: false },
@@ -116,6 +116,8 @@ test("next step: every state says what to do next", async () => {
   const doneToday = bingoNextStep(mk({ requiredFilled: 1, squaresFilled: 1, todayUsed: true, nextSquareAt: new Date(now + 3_600_000).toISOString() }));
   assert.match(doneToday.body ?? "", /Come back tomorrow for day 2: “Something you love”/);
   assert.equal(doneToday.remind, true);
+  assert.match(comeBackTomorrowNote(doneToday) ?? "", /^Done for today\. Come back tomorrow/);
+  assert.equal(comeBackTomorrowNote(day1), null);
   const last = bingoNextStep(mk({ requiredFilled: 2, squaresFilled: 2, today: 2 }));
   assert.equal(last.title, "Last square today!");
   const finished = bingoNextStep(mk({ requiredFilled: 3, squaresFilled: 3, today: 2, todayUsed: true }), [weekly]);

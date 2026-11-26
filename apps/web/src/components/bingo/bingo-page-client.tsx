@@ -16,7 +16,7 @@ import { BingoPlayers } from "@/components/bingo/bingo-players";
 import { PhotoPrivacySwitch } from "@/components/bingo/photo-privacy-switch";
 import { BoostCard } from "@/components/bingo/boost-card";
 import { BingoEarnings, BingoEarningsLine } from "@/components/bingo/bingo-earnings";
-import { CheerContestBanner, CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
+import { CheerPrompt, useCheerContest } from "@/components/bingo/cheers";
 import { BingoJoinSheet } from "@/components/bingo/bingo-join-sheet";
 import { BingoProofSheet } from "@/components/bingo/bingo-proof-sheet";
 import { StreakFreezeButton } from "@/components/bingo/streak-freeze-button";
@@ -24,7 +24,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBingo, useBingoBoard, useBingoList, type BoardCard } from "@/hooks/use-bingo";
 import { NextStepCard } from "@/components/next-step-card";
 import { suggestInstall } from "@/components/pwa/install-prompt-gate";
-import { bingoNextStep, type NextStepAction } from "@/lib/next-step";
+import { bingoNextStep, comeBackTomorrowNote, type NextStepAction } from "@/lib/next-step";
 import { useRedirectToSignIn } from "@/hooks/use-redirect-to-sign-in";
 import { showAppToast } from "@/lib/celebrate";
 import { buildSquares, type BingoSquareView, type BingoView } from "@/lib/bingo/view";
@@ -35,6 +35,21 @@ import { BingoFinishSheet, finishSeen } from "@/components/bingo/bingo-finish-sh
 import { LeaderboardPrizeCard } from "@/components/leaderboard/prize-card";
 import { FIRST_WEEK_SLUG } from "@/lib/bingo/first-week";
 
+
+/** Once per visit: the "come back tomorrow" line, then it goes away. */
+function DoneTodayNote({ slug, message }: { slug: string; message: string }) {
+  useEffect(() => {
+    const key = `delulu:done-today:${slug}:${message}`;
+    try {
+      if (sessionStorage.getItem(key) === "1") return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* private mode — still show it */
+    }
+    showAppToast(message);
+  }, [slug, message]);
+  return null;
+}
 
 function statusLine(b: BingoView) {
   if (b.enrollment === "rolling") {
@@ -228,6 +243,8 @@ export function BingoPageClient({ slug }: { slug: string }) {
   // Bonus squares aren't on the pinboard (it shows the days); they get their own buttons.
   const openBonus = me && myLive ? me.squares.filter((sq) => sq.bonus && availability(sq) === "open") : [];
 
+  const doneNote = me && myLive && !addTarget ? comeBackTomorrowNote(step) : null;
+
   const onStepAction = (action: NextStepAction) => {
     if (action === "join") return requireAuth(() => setJoinOpen(true));
     if (!me) return;
@@ -333,8 +350,9 @@ export function BingoPageClient({ slug }: { slug: string }) {
               </div>
             ) : null}
 
-            {/* Nothing to add right now (posted today, card ended, missed a day): what's next. */}
-            {addTarget ? null : <NextStepCard step={step} onAction={onStepAction} className="mt-4" />}
+            {/* Posted today is a toast, not a card. Other dead-ends (missed, ended) still get a next step. */}
+            {doneNote ? <DoneTodayNote slug={slug} message={doneNote} /> : null}
+            {addTarget || doneNote ? null : <NextStepCard step={step} onAction={onStepAction} className="mt-4" />}
             {/* Posted today: where that put you on the board. */}
             {me?.todayUsed ? <LeaderboardPrizeCard className="mt-3" /> : null}
           </>
@@ -357,12 +375,13 @@ export function BingoPageClient({ slug }: { slug: string }) {
 
         {showBoard ? (
           <section id="players" className="mt-9 scroll-mt-20">
-            {/* This week's Best card contest: the prize, the top 3, and a nudge to cheer. */}
+            {/* Best card prize banner ("Wins 10k G$") hidden for now.
             {cheers.data?.live && !cheers.data.setupPending ? (
               <div className="mb-4">
                 <CheerContestBanner contest={cheers.data} onCheer={() => document.getElementById("players-list")?.scrollIntoView({ behavior: "smooth" })} />
               </div>
             ) : null}
+            */}
             <div id="players-list" className="flex scroll-mt-20 items-baseline justify-between">
               <h2 className="font-display text-xl font-extrabold uppercase">Leaderboard</h2>
               <span className="label-mono text-[11px] text-muted-foreground">{board.total} {rolling ? "recent" : "playing"}</span>

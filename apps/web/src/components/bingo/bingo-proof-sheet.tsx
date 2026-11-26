@@ -9,7 +9,7 @@ import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
 import { GameButton } from "@/components/ds";
 import { ProofRewardRow } from "@/components/proof-reward-row";
 import { NextStepCard } from "@/components/next-step-card";
-import type { NextStep, NextStepAction } from "@/lib/next-step";
+import { comeBackTomorrowNote, type NextStep, type NextStepAction } from "@/lib/next-step";
 import { useJoinCommunityCampaignOnChain, useSubmitCommunityMilestoneProofOnChain } from "@/hooks/use-community-campaign-onchain";
 import { useResolveForfeitCommitmentSuccess, useSubmitForfeitProof, useTakeOverForfeitVerifier } from "@/hooks/use-create-forfeit-commitment";
 import { useAuth } from "@/hooks/use-auth";
@@ -222,7 +222,7 @@ export function BingoProofSheet({
             <p className="font-display text-2xl font-extrabold uppercase">Square filled</p>
             {square && !square.bonus ? <ProofRewardRow /> : null}
             {square?.bonus ? <p className="m-0 text-[13px] font-bold text-green-edge">+ bonus points</p> : null}
-            {nextStep ? (
+            {nextStep && !comeBackTomorrowNote(nextStep) ? (
               <NextStepCard
                 step={nextStep}
                 className="w-full"

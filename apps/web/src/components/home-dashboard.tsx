@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { HomeGuestSkeleton, HomeSignedInSkeleton } from "@/components/delulu-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { hasStoredAuthSession } from "@/lib/auth-session-hint";
@@ -14,7 +13,6 @@ import { useHomeNextStep } from "@/components/home/home-next-step";
 import { HomeFirstWeek } from "@/components/home/home-first-week";
 import { FirstWeekWelcome } from "@/components/home/first-week-welcome";
 import { HomeWalletStrip } from "@/components/home/home-wallet-strip";
-import { HomePotCard } from "@/components/home/home-pot-card";
 import { StakeClimbCard } from "@/components/home/stake-climb-card";
 import { FlowStateCard } from "@/components/home/flow-state-card";
 import { useLuluHomeNews } from "@/components/home/home-lulu-news";
@@ -30,8 +28,8 @@ interface HomeDashboardProps {
 /**
  * Home, kept short (25 Nov 2026): Lulu says the one thing to do (next step,
  * referral news) instead of a stack of cards; today's card in small; your G$
- * (balance, price, free claim, get more); how you earn in three steps; your
- * goals; Bingos in one swipeable row. Missions live in Explore.
+ * (balance, price, free claim, get more); your goals; Bingos in one
+ * swipeable row. How it works sits next to the greeting. Missions live in Explore.
  */
 export function HomeDashboard({ className }: HomeDashboardProps) {
   const { authenticated, address, isReady } = useAuth();
@@ -85,17 +83,10 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
                 today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null}
               />
             ) : null}
-            {/* What you get, how to climb (stake more; no G$ → claim daily), then your G$ with the claim. */}
-            <HomePotCard />
+            {/* How to climb (stake more; no G$ → claim daily), then your G$ with the claim. */}
             <StakeClimbCard compact />
             <HomeWalletStrip />
             <div id="forfeit-day-card" className="flex flex-col gap-5">
-              <Link href="/how-it-works" className="flex items-center gap-3 rounded-2xl border-2 border-ink bg-white py-2.5 pl-3 pr-3 text-ink no-underline shadow-[0_3px_0_#161615]">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-extrabold leading-tight">How Delulu works</span>
-                  <span className="block truncate text-[11px] font-semibold text-muted-foreground">GoodDollar, staking, points, and the weekly pool</span>
-                </span>
-              </Link>
               <FlowStateCard />
               <ForfeitDayCard address={address} onEmptyChange={setNoForfeits} hideEmptyState />
             </div>
@@ -103,7 +94,6 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
           </>
         ) : (
           <>
-            <HomePotCard />
             <StakeClimbCard compact />
             <HomeBingo newcomer />
           </>
