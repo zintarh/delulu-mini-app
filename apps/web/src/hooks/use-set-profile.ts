@@ -6,15 +6,31 @@ import {
   useWriteContract,
 } from "wagmi";
 import { useState } from "react";
-import { createPublicClient, createWalletClient, custom, decodeErrorResult, http } from "viem";
+import { createPublicClient, createWalletClient, custom, decodeErrorResult, http, type EIP1193Provider } from "viem";
 import { celo } from "wagmi/chains";
 import { getDeluluContractAddress } from "@/lib/constant";
 import { DELULU_ABI } from "@/lib/abi";
+import { useWeb3Auth } from "@web3auth/modal/react";
 import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { pickPrivyWallet } from "@/lib/auth/pick-privy-wallet";
+import { useNoGas } from "@/contexts/no-gas-context";
+import { isInsufficientGasError } from "@/lib/contract-error";
+import { reportClientError } from "@/lib/client-error";
 
 export function useSetProfile() {
   const chainId = useChainId();
   const { writeContractAsync } = useWriteContract();
+  // Live provider, not only the module bridge. The bridge is cleared if
+  // Web3Auth reports disconnected for a moment, and the write then has no
+  // signer and never opens a confirm screen.
+  const { provider: liveProvider, isConnected: web3AuthConnected } = useWeb3Auth();
+  // Privy players: their own wallet, even before it reaches the bridge (it is
+  // wired up a moment after sign-in). Without this the write fell through to
+  // wagmi, which has no Privy connection, threw, and never sent anything.
+  const { authenticated: privyAuthenticated } = usePrivy();
+  const { wallets: privyWallets } = useWallets();
+  const { trigger: triggerNoGas } = useNoGas();
   const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
   const [isPending, setIsPending] = useState(false);
   const [writeError, setWriteError] = useState<Error | null>(null);
@@ -63,12 +79,15 @@ export function useSetProfile() {
         }
       }
 
-      const w3aProvider = getWeb3AuthProvider();
+      const privyWallet = privyAuthenticated ? pickPrivyWallet(privyWallets) : undefined;
+      const w3aProvider = ((web3AuthConnected ? liveProvider : null) ??
+        getWeb3AuthProvider() ??
+        (privyWallet ? await privyWallet.getEthereumProvider().catch(() => null) : null)) as EIP1193Provider | null;
       let txHash: `0x${string}`;
 
       if (w3aProvider) {
         // Web3Auth / Privy path — wagmi has no wallet client for this user,
-        // so write directly via viem using the EIP-1193 provider from the bridge.
+        // so write directly via viem using their EIP-1193 provider.
         const walletClient = createWalletClient({
           chain: celo,
           transport: custom(w3aProvider),
@@ -96,6 +115,9 @@ export function useSetProfile() {
     } catch (err) {
       const formatted = formatErrorForDisplay(err);
       setWriteError(formatted);
+      reportClientError("setProfile", err, { provider: web3AuthConnected ? "web3auth" : privyAuthenticated ? "privy" : "wagmi" });
+      // Out of gas on "Who's signing?": open the claim-gas popup (claim button, then Telegram).
+      if (isInsufficientGasError(err)) triggerNoGas({ force: true });
       throw formatted;
     } finally {
       setIsPending(false);

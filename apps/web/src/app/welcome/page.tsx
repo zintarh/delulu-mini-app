@@ -44,7 +44,7 @@ export default function WelcomePage() {
   const savedRef = useRef(false);
   const profileSubmittedRef = useRef(false);
 
-  const { setProfile, isPending, isSuccess, error: contractError } = useSetProfile();
+  const { setProfile, isPending, isConfirming, isSuccess, error: contractError } = useSetProfile();
   const { upload, isUploading, error: pfpUploadError, inputRef, openPicker, clearError } = usePfpUpload();
 
   useEffect(() => {
@@ -449,9 +449,9 @@ export default function WelcomePage() {
               disabled={!canSubmitProfile}
               className="press-edge flex h-14 w-full items-center justify-between rounded-2xl bg-ink pl-5 pr-1.5 text-base font-bold text-white shadow-edge-ink disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isPending ? "Confirm in wallet…" : isSuccess ? "Saving…" : "Start"}
+              {isConfirming || isSuccess ? "Saving…" : isPending ? "Confirm in wallet…" : "Start"}
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow text-ink">
-                {isPending || isSuccess ? (
+                {isPending || isConfirming || isSuccess ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <ArrowRight className="h-5 w-5" strokeWidth={2.4} />

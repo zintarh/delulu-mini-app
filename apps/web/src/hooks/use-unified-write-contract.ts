@@ -5,7 +5,9 @@ import { createWalletClient, custom, type Abi, type EIP1193Provider } from "viem
 import { celo } from "wagmi/chains";
 import { getWeb3AuthProvider } from "@/lib/web3auth-bridge";
 import { useState, useCallback } from "react";
-import { useWallets } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { pickPrivyWallet } from "@/lib/auth/pick-privy-wallet";
+import { reportClientError } from "@/lib/client-error";
 import { useNoGas } from "@/contexts/no-gas-context";
 import { isInsufficientGasError } from "@/lib/contract-error";
 
@@ -31,6 +33,7 @@ export function useUnifiedWriteContract() {
   } = useWriteContract();
   const { isConnected: wagmiIsConnected } = useAccount();
   const { wallets: privyWallets } = useWallets();
+  const { authenticated: privyAuthenticated } = usePrivy();
 
   const { trigger: triggerNoGas } = useNoGas();
 
@@ -68,6 +71,32 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
+          reportClientError("write", e, { fn: params.functionName });
+          if (isInsufficientGasError(e)) triggerNoGas({ force: true });
+          throw e;
+        } finally {
+          setIsPending(false);
+        }
+      } else if (privyAuthenticated && pickPrivyWallet(privyWallets)) {
+        // Privy player whose wallet isn't on the bridge yet (it is wired up
+        // a moment after sign-in). Sign with their own Privy wallet, never a
+        // wallet the browser injects, which wagmi may have auto-connected
+        // and which is usually empty.
+        setIsPending(true);
+        try {
+          const privyProvider = (await pickPrivyWallet(privyWallets)!
+            .getEthereumProvider()
+            .catch(() => null)) as EIP1193Provider | null;
+          if (!privyProvider) {
+            throw new Error("No wallet connected. Please reconnect your wallet and try again.");
+          }
+          const txHash = await signDirect(privyProvider, params);
+          setHash(txHash);
+          return txHash;
+        } catch (err) {
+          const e = err instanceof Error ? err : new Error(String(err));
+          setError(e);
+          reportClientError("write:privy", e, { fn: params.functionName });
           if (isInsufficientGasError(e)) triggerNoGas({ force: true });
           throw e;
         } finally {
@@ -85,6 +114,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
+          reportClientError("write", e, { fn: params.functionName });
           if (isInsufficientGasError(e)) triggerNoGas({ force: true });
           throw e;
         } finally {
@@ -98,7 +128,7 @@ export function useUnifiedWriteContract() {
         // which throws inside @wagmi/core when there's no real connection.
         setIsPending(true);
         try {
-          const privyProvider = (await privyWallets[0]
+          const privyProvider = (await pickPrivyWallet(privyWallets)
             ?.getEthereumProvider()
             .catch(() => null)) as EIP1193Provider | null;
           if (!privyProvider) {
@@ -110,6 +140,7 @@ export function useUnifiedWriteContract() {
         } catch (err) {
           const e = err instanceof Error ? err : new Error(String(err));
           setError(e);
+          reportClientError("write", e, { fn: params.functionName });
           if (isInsufficientGasError(e)) triggerNoGas({ force: true });
           throw e;
         } finally {
@@ -117,7 +148,7 @@ export function useUnifiedWriteContract() {
         }
       }
     },
-    [wagmiWriteAsync, wagmiIsConnected, privyWallets, signDirect, triggerNoGas]
+    [wagmiWriteAsync, wagmiIsConnected, privyWallets, privyAuthenticated, signDirect, triggerNoGas]
   );
 
   const writeContract = useCallback(

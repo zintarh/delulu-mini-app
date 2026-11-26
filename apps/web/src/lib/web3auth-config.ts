@@ -28,7 +28,15 @@ export const web3AuthContextConfig: Web3AuthContextConfig = {
     // Lets people take their wallet to MetaMask (Flow State voting). Also needs
     // "Key export" switched on in the Web3Auth dashboard for this project.
     // (loginMode is set by the auth connector itself.)
-    walletServicesConfig: { enableKeyExport: true } as Web3AuthContextConfig["web3AuthOptions"]["walletServicesConfig"],
+    // "modal" keeps the confirm screen inside the page. The default opens a
+    // popup for eth_sendTransaction, and phones block that popup once the
+    // email check has awaited — the button then sits on "Confirm in wallet…"
+    // with nothing on screen.
+    walletServicesConfig: {
+      enableKeyExport: true,
+      confirmationStrategy: "modal",
+      modalZIndex: 2147483000,
+    } as Web3AuthContextConfig["web3AuthOptions"]["walletServicesConfig"],
     modalConfig: {
       connectors: {
         auth: {
