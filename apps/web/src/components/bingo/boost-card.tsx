@@ -38,7 +38,18 @@ function topUpError(raw: string): string {
  * Top up is its own action. A button on the card opens an amount sheet.
  * It is not part of the photo, and it is not limited to the moment before a proof.
  */
-export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; onBoosted: () => void | Promise<void>; className?: string }) {
+export function BoostCard({
+  bingo,
+  onBoosted,
+  label = "Top up your stake",
+  className,
+}: {
+  bingo: BingoView;
+  onBoosted: () => void | Promise<void>;
+  /** Short label on the home card; the full line on the Bingo card. */
+  label?: string;
+  className?: string;
+}) {
   const me = bingo.me;
   const boost = me?.boost;
   const ended = !me || me.phase === "ended" || me.missedDay;
@@ -138,11 +149,11 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
           setOpen(true);
         }}
         className={cn(
-          "press-edge flex h-12 w-full items-center justify-center rounded-2xl border-2 border-ink bg-white text-[14px] font-extrabold uppercase text-ink shadow-[0_3px_0_#000]",
+          "press-edge inline-flex h-9 w-fit shrink-0 items-center justify-center whitespace-nowrap rounded-full border-2 border-ink bg-white px-3 text-[12px] font-extrabold text-ink shadow-[0_2px_0_#000]",
           className,
         )}
       >
-        Top up
+        {label}
       </button>
       <ResponsiveSheet open={open} onOpenChange={(o) => !busy && setOpen(o)} title="Top up your stake" sheetClassName="rounded-t-3xl pb-10" modalClassName="max-w-md">
         <div className="flex flex-col gap-3 px-5 pt-1">

@@ -39,7 +39,7 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
   const [noForfeits, setNoForfeits] = useState<boolean | null>(null);
   const next = useHomeNextStep();
   const news = useLuluHomeNews();
-  const { bingos } = useBingoList();
+  const { bingos, reload: reloadBingos } = useBingoList();
 
   useEffect(() => {
     if (!sessionHint || authenticated) {
@@ -77,10 +77,12 @@ export function HomeDashboard({ className }: HomeDashboardProps) {
             <LuluHero address={address} extra={news} />
             {featured?.me ? (
               <HomeBingoMini
+                bingo={featured}
                 card={featured.me}
                 slug={featured.slug}
                 title={featured.title}
                 today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null}
+                onBoosted={reloadBingos}
               />
             ) : null}
             {/* How to climb (stake more; no G$ → claim daily), then your G$ with the claim. */}

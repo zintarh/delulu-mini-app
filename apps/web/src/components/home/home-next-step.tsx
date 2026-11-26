@@ -24,7 +24,7 @@ export function HomeNextStep() {
   const router = useRouter();
   const faceCheck = useFaceCheckOptional();
   const next = useHomeNextStep();
-  const { bingos } = useBingoList();
+  const { bingos, reload: reloadBingos } = useBingoList();
   const facts = useEarnFacts();
   if (!next) return <div className="h-[104px] animate-pulse rounded-[20px] bg-line" aria-busy="true" />;
 
@@ -45,7 +45,16 @@ export function HomeNextStep() {
         <NextStepCard step={next.step} onAction={onAction} compact={waiting} />
       </div>
       {/* Your card, small — the full board is one tap away on the Bingo page. */}
-      {featured?.me ? <HomeBingoMini card={featured.me} slug={featured.slug} title={featured.title} today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null} /> : null}
+      {featured?.me ? (
+        <HomeBingoMini
+          bingo={featured}
+          card={featured.me}
+          slug={featured.slug}
+          title={featured.title}
+          today={featured.me.dayOrdered && !featured.me.todayUsed ? featured.me.today : null}
+          onBoosted={reloadBingos}
+        />
+      ) : null}
     </section>
   );
 }

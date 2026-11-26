@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Lock } from "lucide-react";
 import { Lulu } from "@/components/ds";
 import { MissionSticker } from "@/components/bingo/mission-stickers";
@@ -23,6 +24,7 @@ export function BingoCollage({
   mine = false,
   canPick,
   onPick,
+  titleAside,
   className,
 }: {
   card: BingoCardView;
@@ -32,6 +34,8 @@ export function BingoCollage({
   /** Your own card: which empty squares can take a photo right now (e.g. today's). */
   canPick?: (squareIndex: number) => boolean;
   onPick?: (squareIndex: number) => void;
+  /** Sits on the right of the card title (top up). */
+  titleAside?: ReactNode;
   className?: string;
 }) {
   const t = flexTheme(card.tierKey);
@@ -169,7 +173,10 @@ export function BingoCollage({
           {card.tierLabel}
         </span>
       </div>
-      <p className="m-0 mt-2 font-display text-[24px] font-extrabold uppercase leading-[0.95] tracking-tight">{bingoTitle}</p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p className="m-0 min-w-0 flex-1 font-display text-[24px] font-extrabold uppercase leading-[0.95] tracking-tight">{bingoTitle}</p>
+        {titleAside}
+      </div>
 
       {/* The pinboard */}
       <div className="relative mt-3 grid grid-cols-2 gap-2">

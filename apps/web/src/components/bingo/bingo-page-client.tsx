@@ -308,11 +308,10 @@ export function BingoPageClient({ slug }: { slug: string }) {
                   const sq = me.squares.find((x) => x.index === i);
                   if (sq) pickSquare(sq);
                 }}
+                titleAside={<BoostCard bingo={bingo} onBoosted={reload} />}
               />
               <PhotoPrivacySwitch className="mt-3" />
             </section>
-
-            <BoostCard bingo={bingo} onBoosted={reload} className="mt-4" />
 
             {/* Right under it: the one thing to do now. */}
             {addTarget ? (
