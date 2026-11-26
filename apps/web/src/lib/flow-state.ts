@@ -13,7 +13,7 @@ export function setFlowStateLive(on: boolean) {
 }
 
 
-export const PROJECT_RECIPIENT = "0x3b3e5efe7a6e26bd97c3aa5498056b39889b361d" as Address;
+export const PROJECT_RECIPIENT = "0x2C9e818d1C0EeeA201AF0864Cc58C82081cF5627" as Address;
 
 export const PAST_RECIPIENTS: readonly Address[] = ["0x5f3dd795ad9d626f5c0621b339a243220bcbd025"];
 export const isDeluluRecipient = (recipient: string) => {
@@ -61,10 +61,6 @@ export function flowAllocation(snapshot: FlowSnapshot) {
   return { current, past, voted: current + past > 0n, other, otherTotal, maximum };
 }
 
-/**
- * The ballot: only Delulu's line. vote() changes just the recipients it's
- * given, so every vote the player gave other projects stays as it was.
- */
 export function buildFlowVote(snapshot: FlowSnapshot, amount: bigint): FlowVote[] {
   if (!snapshot.verified) throw new Error("Verify your face first — it's what gives you votes.");
   if (!snapshot.recipientActive) throw new Error(`${PROJECT_NAME} isn't taking votes in this round right now.`);
@@ -82,7 +78,6 @@ export function flowSnapshotKey(snapshot: FlowSnapshot) {
   return [snapshot.votingPower, snapshot.maxSpread, snapshot.verified, snapshot.recipientActive, ...snapshot.votes.map((v) => `${v.recipient.toLowerCase()}:${v.amount}`).sort()].join("|");
 }
 
-/** A mined transaction really is this player's Delulu vote of this amount (not a replacement / cancel). */
 export function matchesFlowVoteTransaction(address: Address, amount: string, tx: { from: Address; to: Address | null; input: Hex; value: bigint }) {
   try {
     const decoded = decodeFunctionData({ abi: FLOW_ABI, data: tx.input });
