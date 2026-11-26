@@ -5,7 +5,8 @@ import { useRef } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { useFlowVote } from "@/hooks/use-flow-vote";
-import { FLOW_STATE, flowStateLive } from "@/lib/flow-state";
+import { FLOW_STATE } from "@/lib/flow-state";
+import { useFlowVoteLive } from "@/hooks/use-flow-vote-live";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
  * gone on the next visit. The Activity panel always has it while the vote is on.
  */
 export function FlowStateCard({ place = "home" }: { place?: "home" | "activity" }) {
-  if (!flowStateLive()) return null;
+  if (useFlowVoteLive() !== true) return null;
   return <FlowStateRow place={place} />;
 }
 

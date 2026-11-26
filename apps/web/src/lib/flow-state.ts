@@ -9,14 +9,25 @@ import { decodeFunctionData, parseAbi, zeroAddress, type Address, type Hex } fro
  * Adapted from Calebux/flowstate-vote-kit (rules, relay, receipt checks) and
  * checked against flow-state-coop/flow-council + /platform.
  *
- * Set `active: false` to take the Home card down when voting ends.
+ * On or off is an admin switch (Admin → Home → Voting popup), stored in
+ * app_settings.flow_vote. `active` is only the fallback before that has been
+ * read, or if it can't be.
  */
 export const FLOW_STATE = {
   active: true,
   /** Optional "Voting ends Fri 28 Nov" line; null hides it. */
   endsOn: null as string | null,
 };
-export const flowStateLive = () => FLOW_STATE.active;
+let live = FLOW_STATE.active;
+/**
+ * Whether voting is on. Server code reads the admin switch first
+ * (lib/app-settings.ts getFlowVoteEnabled); client components use
+ * useFlowVoteLive(), which keeps this in step.
+ */
+export const flowStateLive = () => live;
+export function setFlowStateLive(on: boolean) {
+  live = on;
+}
 
 // Pinned — never take a vote destination from a URL or request body.
 /** Delulu's recipient address on the council (Flow State lists it as "Delulu"). Lowercase. */

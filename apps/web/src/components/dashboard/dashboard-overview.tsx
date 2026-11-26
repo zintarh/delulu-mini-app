@@ -27,6 +27,7 @@ import {
   type ChartDatum,
 } from "@/components/dashboard/dashboard-charts";
 import { cn } from "@/lib/utils";
+import { VotingSwitchCard } from "@/components/dashboard/voting-switch-card";
 
 function EnhancedStat({
   label,
@@ -151,6 +152,8 @@ export function DashboardOverview() {
           Platform health and items that need attention.
         </p>
       </div>
+
+      <VotingSwitchCard />
 
       <DashboardStatGrid className="mb-4 sm:grid-cols-2 lg:grid-cols-4">
         <EnhancedStat

@@ -5,6 +5,7 @@ import { buildLuluEmailHtml, buildLuluEmailText } from "@/lib/outreach/email";
 import { loadPeople, type Person } from "@/lib/nudges/people";
 import { getEarnFacts } from "@/lib/earn/facts";
 import { flowStateLive } from "@/lib/flow-state";
+import { getFlowVoteEnabled } from "@/lib/app-settings";
 import { flowVoteStates } from "@/lib/flow-state-tally";
 import { NUDGE_RULES, actedOn, isQuietHours, pickNudge, type Nudge, type NudgeHistory, type NudgeRule } from "@/lib/nudges/rules";
 
@@ -43,6 +44,8 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
   if (opts.only?.length) people = people.filter((p) => opts.only!.includes(p.wallet));
   const byWallet = new Map(people.map((p) => [p.wallet, p]));
   // Flow State: who's verified and not voting for Delulu yet (one multicall per 300 people).
+  // Reads the admin switch; the vote rules below check flowStateLive().
+  await getFlowVoteEnabled(admin);
   if (flowStateLive()) {
     const states = await flowVoteStates(people.map((p) => p.wallet)).catch((err) => {
       console.error("[nudges] flow vote states unavailable", err);

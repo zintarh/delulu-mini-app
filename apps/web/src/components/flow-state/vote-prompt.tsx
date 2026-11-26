@@ -9,7 +9,8 @@ import { useFlowVote } from "@/hooks/use-flow-vote";
 import { useFlowVotersLine } from "@/hooks/use-flow-voters";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
 import { fireConfetti } from "@/lib/celebrate";
-import { FLOW_STATE, flowStateLive } from "@/lib/flow-state";
+import { FLOW_STATE } from "@/lib/flow-state";
+import { useFlowVoteLive } from "@/hooks/use-flow-vote-live";
 import { registerVoteGate } from "@/lib/vote-gate";
 
 /**
@@ -19,7 +20,10 @@ import { registerVoteGate } from "@/lib/vote-gate";
  */
 export function VotePrompt() {
   const { address } = useAuth();
-  if (!address || !flowStateLive()) return null;
+  // Admin switch off (or not known yet): no popup and no vote gate, so every
+  // action that waits on afterVote() goes straight through.
+  const live = useFlowVoteLive();
+  if (!address || live !== true) return null;
   return <VotePromptInner key={address} />;
 }
 

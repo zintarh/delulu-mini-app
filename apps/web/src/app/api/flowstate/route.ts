@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress, verifyMessage } from "viem";
-import { FLOW_CHAIN, FLOW_COUNCIL, flowClaimMessage, flowStateLive } from "@/lib/flow-state";
+import { FLOW_CHAIN, FLOW_COUNCIL, flowClaimMessage } from "@/lib/flow-state";
+import { getFlowVoteEnabled } from "@/lib/app-settings";
 import { flowTally } from "@/lib/flow-state-tally";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
 
@@ -13,7 +14,7 @@ const reply = (body: unknown, status = 200) => NextResponse.json(body, { status,
 /** GET — "N Delulu players have voted" (our players backing Delulu + Delulu's council votes). */
 export async function GET() {
   const admin = getSupabaseAdmin();
-  if (!admin || !flowStateLive()) return reply({ voters: 0, votes: 0, canVote: 0 });
+  if (!admin || !(await getFlowVoteEnabled(admin))) return reply({ voters: 0, votes: 0, canVote: 0 });
   try {
     const tally = await flowTally(admin);
     return NextResponse.json(tally, { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=300" } });

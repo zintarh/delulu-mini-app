@@ -9,6 +9,7 @@ import { ICON_BUTTON_CLASS } from "@/components/page-back-header";
 import { ExportKeySheet } from "@/components/wallet/export-key-sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { FLOW_STATE, FLOW_URL } from "@/lib/flow-state";
+import { useFlowVoteLive } from "@/hooks/use-flow-vote-live";
 import { useFlowVotersLine } from "@/hooks/use-flow-voters";
 import { useFlowVote } from "@/hooks/use-flow-vote";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
@@ -81,6 +82,9 @@ export default function FlowStateGuidePage() {
   const os = useOs();
   const { done, mark } = useDoneSteps();
   const [exportOpen, setExportOpen] = useState(false);
+  // Admin switch off: the page stays for the MetaMask export (Settings links
+  // here), but the vote itself is hidden.
+  const voteOn = useFlowVoteLive() !== false;
   const [copied, setCopied] = useState(false);
   const url = FLOW_URL;
 
@@ -105,16 +109,16 @@ export default function FlowStateGuidePage() {
         <header className="flex items-center gap-3">
           <Lulu size={56} mood="kept" />
           <div>
-            <p className="label-mono m-0 text-[11px] text-orange">Urgent · 2 minutes</p>
+            {voteOn ? <p className="label-mono m-0 text-[11px] text-orange">Urgent · 2 minutes</p> : null}
             <h1 className="m-0 mt-1 font-display text-[26px] font-extrabold uppercase leading-[0.95]">Vote for Delulu</h1>
           </div>
         </header>
         <p className="m-0 text-[14px] font-semibold text-muted-foreground">
-          Your vote keeps rewards flowing to you.
-          {FLOW_STATE.endsOn ? <b className="text-ink"> Ends {FLOW_STATE.endsOn}.</b> : null}
+          {voteOn ? "Your vote keeps rewards flowing to you." : "Voting is closed right now."}
+          {voteOn && FLOW_STATE.endsOn ? <b className="text-ink"> Ends {FLOW_STATE.endsOn}.</b> : null}
         </p>
 
-        <VoteHere />
+        {voteOn ? <VoteHere /> : null}
 
         {/* For anyone whose votes sit on another wallet: the old MetaMask way. */}
         <details className="group mt-2">
