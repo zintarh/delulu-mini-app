@@ -177,12 +177,12 @@ export function DashboardOverview() {
           isLoading={loadingPlatform}
         />
         <EnhancedStat
-          label="Users"
+          label="Users on-chain"
           value={platform?.users.total ?? "—"}
           sub={
-            platform && platform.users.newThisWeek > 0
-              ? `+${platform.users.newThisWeek} this week`
-              : undefined
+            platform && (platform.users.newThisWeek ?? 0) > 0
+              ? `+${platform.users.newThisWeek} this week · profiles on the Delulu contract`
+              : "profiles on the Delulu contract"
           }
           icon={Users}
           isLoading={loadingPlatform}
@@ -253,15 +253,15 @@ export function DashboardOverview() {
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <UserPlus className="h-4 w-4 text-emerald-600" />
-              <h3 className="text-sm font-bold text-foreground">New signups</h3>
+              <h3 className="text-sm font-bold text-foreground">New on-chain profiles</h3>
             </div>
             {loadingPlatform ? (
               <div className="h-16 animate-pulse rounded-lg bg-muted" />
             ) : (
               <>
-                <p className="text-2xl font-bold tabular-nums">{platform?.users.newThisWeek ?? 0}</p>
+                <p className="text-2xl font-bold tabular-nums">{platform?.users.newThisWeek ?? "—"}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  since Wednesday · {platform?.users.total ?? 0} total users
+                  since Wednesday · {platform?.users.total ?? "—"} users on the Delulu contract
                 </p>
               </>
             )}

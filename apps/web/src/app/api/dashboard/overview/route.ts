@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/admin-session";
 import { isPlatformAdminRole } from "@/lib/dashboard/authorize";
 import { getSupabaseAdmin } from "@/lib/push/supabase";
+import { onchainUsers } from "@/lib/dashboard/onchain-users";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,7 @@ export async function GET() {
   const [
     { data: communities, count: communityCount },
     campaignsResult,
-    { count: userCount },
-    { count: newUsersCount },
+    users,
     membersResult,
   ] = await Promise.all([
     communitiesQuery,
@@ -49,8 +49,11 @@ export async function GET() {
       if (!isPlatformAdmin) q = q.in("community_id", communityIds);
       return q;
     })(),
-    admin.from("profiles").select("address", { count: "exact", head: true }),
-    admin.from("profiles").select("address", { count: "exact", head: true }).gte("created_at", sinceWednesday.toISOString()),
+    // Users come from the Delulu contract (on-chain profiles), never the database.
+    onchainUsers(sinceWednesday).catch((e) => {
+      console.error("[dashboard/overview] on-chain users", e);
+      return null;
+    }),
     (async () => {
       if (!isPlatformAdmin && communityIds.length === 0) {
         return { data: [] as { gd_first_claimed_at: string | null }[] };
@@ -87,8 +90,9 @@ export async function GET() {
         funded: (byStatus.active ?? 0) + (byStatus.funding ?? 0) + (byStatus.ended ?? 0),
       },
       users: {
-        total: userCount ?? 0,
-        newThisWeek: newUsersCount ?? 0,
+        total: users?.total ?? null,
+        newThisWeek: users?.newSince ?? null,
+        source: "contract",
       },
       members: {
         total: memberRows.length,

@@ -11,7 +11,8 @@ export type DashboardOverviewStats = {
     active: number;
     funded: number;
   };
-  users: { total: number; newThisWeek: number };
+  /** From the Delulu contract (on-chain profiles). null when the chain read failed. */
+  users: { total: number | null; newThisWeek: number | null; source?: "contract" };
   members: { total: number; claimed: number };
 };
 
