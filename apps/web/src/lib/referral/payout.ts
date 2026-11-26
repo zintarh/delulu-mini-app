@@ -4,6 +4,7 @@ import { isReferralCreditCountable } from "@/lib/referral/eligibility";
 import { getReferrerStanding, notifyReferralPayoutHeld } from "@/lib/referral/standing";
 import {
   REFERRAL_GDOLLARS_REWARD,
+  isReferralPaused,
   referralRoundAt,
   roundFirstPayment,
 } from "@/lib/referral/campaign";
@@ -69,6 +70,9 @@ export async function payReferralCredit(
   // ends. Credits outside every round (the old Sep programme) are closed for good.
   const round = referralRoundAt(credit.credited_at as string);
   if (!round) return;
+  // 26 Nov 2026: unpaid referral payouts wait out the pause. The row keeps its
+  // status, so the retry cron pays it once the pause ends (Wednesday 2 Dec).
+  if (isReferralPaused()) return;
   // The first part; the 3-day bonus is paid separately (lib/referral/streak.ts).
   const amount = roundFirstPayment(round);
 
