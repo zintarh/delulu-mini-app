@@ -1,45 +1,35 @@
 import { decodeFunctionData, parseAbi, zeroAddress, type Address, type Hex } from "viem";
 
-/**
- * The Flow State vote drive — voted right here in Delulu, no MetaMask.
- *
- * A Flow Council is a plain contract: a GoodDollar-verified wallet claims its
- * votes through Flow State's eligibility API (one signed message, no fee —
- * their bot adds it as a voter), then casts them with one `vote()` call.
- * Adapted from Calebux/flowstate-vote-kit (rules, relay, receipt checks) and
- * checked against flow-state-coop/flow-council + /platform.
- *
- * On or off is an admin switch (Admin → Home → Voting popup), stored in
- * app_settings.flow_vote. `active` is only the fallback before that has been
- * read, or if it can't be.
- */
+
 export const FLOW_STATE = {
   active: true,
-  /** Optional "Voting ends Fri 28 Nov" line; null hides it. */
   endsOn: null as string | null,
 };
 let live = FLOW_STATE.active;
-/**
- * Whether voting is on. Server code reads the admin switch first
- * (lib/app-settings.ts getFlowVoteEnabled); client components use
- * useFlowVoteLive(), which keeps this in step.
- */
+
 export const flowStateLive = () => live;
 export function setFlowStateLive(on: boolean) {
   live = on;
 }
 
-// Pinned — never take a vote destination from a URL or request body.
-/** Delulu's recipient address on the council (Flow State lists it as "Delulu"). Lowercase. */
-export const PROJECT_RECIPIENT = "0x5f3dd795ad9d626f5c0621b339a243220bcbd025" as Address;
+
+export const PROJECT_RECIPIENT = "0x3b3e5efe7a6e26bd97c3aa5498056b39889b361d" as Address;
+
+export const PAST_RECIPIENTS: readonly Address[] = ["0x5f3dd795ad9d626f5c0621b339a243220bcbd025"];
+export const isDeluluRecipient = (recipient: string) => {
+  const r = recipient.toLowerCase();
+  return r === PROJECT_RECIPIENT || PAST_RECIPIENTS.includes(r as Address);
+};
+
+export const votedForDelulu = (votes: readonly { recipient: string; amount: bigint }[]) =>
+votes.some((v) => v.amount > 0n && isDeluluRecipient(v.recipient));
 export const PROJECT_NAME = "Delulu";
-/** GoodBuilders S5 council on Celo. */
 export const FLOW_COUNCIL = "0x889e0aadaa3f8b28a794ef70da147827c620a590" as Address;
 export const FLOW_CHAIN = 42220;
 export const FLOW_URL = `https://flowstate.network/flow-councils/${FLOW_CHAIN}/${FLOW_COUNCIL}`;
 export const FLOW_QUERY = `chainId=${FLOW_CHAIN}&councilId=${FLOW_COUNCIL}`;
 
-// GoodDollar identity (Celo) — the same contract lib/identity/status.ts uses.
+
 export const IDENTITY_CONTRACT = "0xC361A6E67822a0EDc17D899227dd9FC50BD62F42" as Address;
 export const IDENTITY_ABI = parseAbi(["function getWhitelistedRoot(address account) view returns (address)"]);
 export const normalizeName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -63,10 +53,12 @@ export function flowClaimMessage(address: Address, issuedAt: number) {
 /** Delulu's votes now, and the most it can get: everything not given to another project. */
 export function flowAllocation(snapshot: FlowSnapshot) {
   const current = snapshot.votes.find((v) => v.recipient.toLowerCase() === PROJECT_RECIPIENT)?.amount ?? 0n;
+  /** Votes on Delulu at an earlier address. They count as voted; they aren't free to move. */
+  const past = snapshot.votes.filter((v) => PAST_RECIPIENTS.includes(v.recipient.toLowerCase() as Address)).reduce((sum, v) => sum + v.amount, 0n);
   const other = snapshot.votes.filter((v) => v.recipient.toLowerCase() !== PROJECT_RECIPIENT && v.recipient !== zeroAddress);
   const otherTotal = other.reduce((sum, vote) => sum + vote.amount, 0n);
   const maximum = snapshot.votingPower > otherTotal ? snapshot.votingPower - otherTotal : 0n;
-  return { current, other, otherTotal, maximum };
+  return { current, past, voted: current + past > 0n, other, otherTotal, maximum };
 }
 
 /**

@@ -247,11 +247,11 @@ export function useFlowVote() {
     ? "loading"
     : !snapshot.recipientActive
       ? "closed"
-      : allocation!.current > 0n
-        // Any votes on Delulu = voted, the same rule as the server
-        // (flow-state-tally.ts), checked before the face check: more voting
-        // power later, or a lapsed face check, must not bring back the popup,
-        // the gate or reminders for someone who already voted.
+      : allocation!.voted
+        // Any votes on Delulu, at its current or earlier address, = voted. The
+        // same rule as the server (flow-state-tally.ts), checked before the
+        // face check: more voting power, a lapsed face check or Delulu's new
+        // address must not bring back the popup, gate or reminders.
         ? "voted"
         : !snapshot.verified
           ? "verify"
@@ -262,7 +262,7 @@ export function useFlowVote() {
   return {
     status,
     /** Delulu's votes from this player, and how many they have in all (0 before claiming). */
-    votes: allocation?.current ?? 0n,
+    votes: allocation ? allocation.current + allocation.past : 0n,
     votingPower: snapshot?.votingPower ?? 0n,
     pending,
     busy,

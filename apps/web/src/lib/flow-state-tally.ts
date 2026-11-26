@@ -1,7 +1,7 @@
 import { createPublicClient, http, type Address } from "viem";
 import { celo } from "viem/chains";
 import type { getSupabaseAdmin } from "@/lib/push/supabase";
-import { FLOW_ABI, FLOW_COUNCIL, IDENTITY_ABI, IDENTITY_CONTRACT, PROJECT_RECIPIENT } from "@/lib/flow-state";
+import { FLOW_ABI, FLOW_COUNCIL, IDENTITY_ABI, IDENTITY_CONTRACT, PAST_RECIPIENTS, PROJECT_RECIPIENT, votedForDelulu } from "@/lib/flow-state";
 
 type Admin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
 
@@ -33,7 +33,7 @@ export async function flowVoteStates(wallets: string[]): Promise<Map<string, Flo
       const votes = res[2 * k + 1];
       // Unreadable → leave them out rather than ask someone who already voted.
       if (root.status !== "success" || votes.status !== "success") return;
-      const voted = (votes.result as readonly { recipient: Address; amount: bigint }[]).some((v) => v.recipient.toLowerCase() === PROJECT_RECIPIENT && v.amount > 0n);
+      const voted = votedForDelulu(votes.result as readonly { recipient: Address; amount: bigint }[]);
       const verified = !/^0x0{40}$/i.test(root.result as string);
       out.set(a, voted ? "voted" : verified ? "todo" : "unverified");
     });
@@ -55,15 +55,18 @@ export async function flowTally(admin: Admin): Promise<FlowTally> {
     wallets.push(...(data ?? []).map((p) => String(p.address)));
     if (!data || data.length < 1000) break;
   }
-  const [states, recipient] = await Promise.all([
+  const [states, ...recipients] = await Promise.all([
     flowVoteStates(wallets),
-    client().readContract({ address: FLOW_COUNCIL, abi: FLOW_ABI, functionName: "getRecipient", args: [PROJECT_RECIPIENT] }),
+    ...[PROJECT_RECIPIENT, ...PAST_RECIPIENTS].map((r) =>
+      client().readContract({ address: FLOW_COUNCIL, abi: FLOW_ABI, functionName: "getRecipient", args: [r] }),
+    ),
   ]);
   const all = [...states.values()];
   const tally: FlowTally = {
     voters: all.filter((s) => s === "voted").length,
     canVote: all.filter((s) => s !== "unverified").length,
-    votes: Number(recipient.votes),
+    // Delulu's council votes at its current and earlier addresses.
+    votes: recipients.reduce((sum, r) => sum + Number(r.votes), 0),
     at: new Date().toISOString(),
   };
   cached = { tally, at: Date.now() };

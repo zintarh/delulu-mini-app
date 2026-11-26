@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PROJECT_RECIPIENT, buildFlowVote, flowAllocation, flowClaimMessage, type FlowSnapshot } from "@/lib/flow-state";
+import { PAST_RECIPIENTS, PROJECT_RECIPIENT, buildFlowVote, flowAllocation, flowClaimMessage, votedForDelulu, type FlowSnapshot } from "@/lib/flow-state";
 
 const other = "0xb2914810724fe2fb871960eb200dea427854b1c7" as const;
 const snap = (over: Partial<FlowSnapshot> = {}): FlowSnapshot => ({ votingPower: 10n, votes: [], maxSpread: 0, verified: true, recipientActive: true, ...over });
@@ -35,4 +35,23 @@ test("the ballot only touches Delulu, with every vote not on another project", (
   assert.throws(() => buildFlowVote(snap({ verified: false }), 10n), /Verify/);
   assert.throws(() => buildFlowVote(snap({ votingPower: 0n }), 0n), /Claim/);
   assert.throws(() => buildFlowVote(snap({ maxSpread: 1, votes: [{ recipient: other, amount: 4n }] }), 6n), /most projects/);
+});
+
+test("votes on Delulu's earlier address count as voted, so nobody is asked again", () => {
+  const old = "0x5F3DD795AD9d626f5c0621b339a243220bCBD025"; // checksummed, as the chain returns it
+  const a = flowAllocation(snap({ votes: [{ recipient: old as `0x${string}`, amount: 10n }] }));
+  assert.equal(a.voted, true);
+  assert.equal(a.past, 10n);
+  assert.equal(a.current, 0n);
+  assert.equal(votedForDelulu([{ recipient: old, amount: 3n }]), true);
+  assert.equal(votedForDelulu([{ recipient: PROJECT_RECIPIENT.toUpperCase().replace("0X", "0x"), amount: 1n }]), true);
+  assert.equal(votedForDelulu([{ recipient: old, amount: 0n }]), false);
+  assert.equal(votedForDelulu([{ recipient: other, amount: 5n }]), false);
+  assert.equal(flowAllocation(snap()).voted, false);
+});
+
+test("recipient addresses are stored lowercase (every check lowercases the chain's value)", () => {
+  assert.equal(PROJECT_RECIPIENT, PROJECT_RECIPIENT.toLowerCase());
+  for (const r of PAST_RECIPIENTS) assert.equal(r, r.toLowerCase());
+  assert.equal(PROJECT_RECIPIENT, "0x3b3e5efe7a6e26bd97c3aa5498056b39889b361d");
 });
