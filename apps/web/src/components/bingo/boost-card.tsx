@@ -13,6 +13,7 @@ import { BOOST_ABI } from "@/lib/bingo/boost";
 import type { BingoView } from "@/lib/bingo/view";
 import { GOODDOLLAR_ADDRESSES, getForfeitMarketAddress } from "@/lib/constant";
 import { showAppToast, fireConfetti } from "@/lib/celebrate";
+import { checkBoost } from "@/lib/bingo/boost-preflight";
 import { cn } from "@/lib/utils";
 
 const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : Math.round(n).toLocaleString("en-US"));
@@ -20,12 +21,11 @@ const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k`
 function topUpError(raw: string): string {
   const m = raw.toLowerCase();
   if (/user (rejected|denied)|rejected the request|cancel/.test(m)) return "Cancelled.";
-  if (m.includes("periodalreadyresolved") || m.includes("already resolved")) {
-    return "This day is already set. You can top up again when the next day opens.";
+  // Today's photo is in: the contract takes top-ups again when the next day opens.
+  if (m.includes("periodalreadyresolved") || m.includes("already resolved") || m.includes("periodnotopen") || m.includes("not open")) {
+    return "You've posted today's photo. Top up again tomorrow, before your photo.";
   }
-  if (m.includes("periodnotopen") || m.includes("not open")) {
-    return "The next day isn't open yet. You can top up as soon as it starts.";
-  }
+  if (m.includes("notactive")) return "This card has ended.";
   if (m.includes("deadlinepassed") || m.includes("deadline")) {
     return "Today's deadline has passed.";
   }
@@ -66,6 +66,8 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
   const balance = Math.floor(Number(formatted) || 0);
   const amount = /^\d+$/.test(raw) ? Number(raw) : 0;
   const busy = step !== "idle";
+  // The server knows if today can still take a top-up: not after today's photo.
+  const openToday = boost.openSlot != null;
 
   const run = async () => {
     if (!address || !market) {
@@ -84,6 +86,8 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
     try {
       setStep("boosting");
       if (approval.needsApproval(amount)) await approval.approve(amount);
+      // Ask the contract first, so a refused top-up is never sent (it would cost the fee and revert).
+      await checkBoost({ market, account: address as `0x${string}`, commitmentId: BigInt(boost.commitmentId), amountWei: parseUnits(String(amount), 18) });
       const hash = await writeContractAsync({
         address: market,
         abi: BOOST_ABI,
@@ -127,16 +131,17 @@ export function BoostCard({ bingo, onBoosted, className }: { bingo: BingoView; o
     <>
       <button
         type="button"
+        disabled={!openToday}
         onClick={() => {
           setFormError(null);
           setOpen(true);
         }}
         className={cn(
-          "press-edge flex h-12 w-full items-center justify-center rounded-2xl border-2 border-ink bg-white text-[14px] font-extrabold uppercase text-ink shadow-[0_3px_0_#000]",
+          "press-edge flex h-12 w-full items-center justify-center rounded-2xl border-2 border-ink bg-white text-[14px] font-extrabold uppercase text-ink shadow-[0_3px_0_#000] disabled:border-line disabled:text-muted-foreground disabled:shadow-none",
           className,
         )}
       >
-        Top up
+        {openToday ? "Top up" : "Top up tomorrow, before your photo"}
       </button>
       <ResponsiveSheet open={open} onOpenChange={(o) => !busy && setOpen(o)} title="Top up your stake" sheetClassName="rounded-t-3xl pb-10" modalClassName="max-w-md">
         <div className="flex flex-col gap-3 px-5 pt-1">
