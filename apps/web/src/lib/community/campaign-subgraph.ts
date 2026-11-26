@@ -1239,6 +1239,7 @@ const SEASON_FORFEIT_PROOFS_QUERY = `
       creatorAddress
       createdAt
       commitmentId
+      periodIndex
       commitment { stakeAmount token }
     }
   }
@@ -1289,6 +1290,33 @@ async function pageAll<T extends { id: string }>(
 }
 
 /**
+ * Which day (0-based) each success resolution kept. ForfeitMarket emits
+ * PeriodResolvedSuccess after moving to the next period, so its periodIndex is
+ * the kept day + 1, except on the final period, which doesn't move: the same
+ * index then shows up twice on one commitment, and the later one is that day.
+ */
+export function keptDayOfResolutions(
+  rows: readonly { id: string; commitmentId: string; createdAt: string; periodIndex: number }[],
+): Map<string, number> {
+  const out = new Map<string, number>();
+  const seen = new Map<string, string>(); // commitmentId:periodIndex → earliest resolution id
+  const sorted = [...rows].sort((a, b) => Number(a.createdAt) - Number(b.createdAt) || a.id.localeCompare(b.id));
+  for (const r of sorted) {
+    const key = `${r.commitmentId}:${r.periodIndex}`;
+    const repeat = seen.has(key);
+    if (!repeat) seen.set(key, r.id);
+    out.set(r.id, repeat ? r.periodIndex : Math.max(0, Number(r.periodIndex) - 1));
+  }
+  return out;
+}
+
+/** G$ topped up for days up to and including `day`. */
+export function topUpsThrough(list: readonly { slot: number; amount: number }[] | undefined, day: number): number {
+  if (!list) return 0;
+  return list.reduce((sum, t) => (t.slot <= day ? sum + t.amount : sum), 0);
+}
+
+/**
  * Season leaderboard: every verified proof since `sinceUnix` earns
  * seasonPointsForStake(stake) — Forfeit goals and 3-day Bingos by their
  * stake, campaigns and weekly Bingos by the join stake.
@@ -1302,6 +1330,8 @@ export async function fetchBoardScoresFromGraph(
   sinceUnix: number,
   /** Forfeit commitment id → the stake to score it at (First Week cards count as a 10k stake). */
   scoreStakeOverride: ReadonlyMap<string, number> = new Map(),
+  /** Forfeit commitment id → its top-ups (bingo_boosts): day (0-based) and whole G$. */
+  topUps: ReadonlyMap<string, readonly { slot: number; amount: number }[]> = new Map(),
 ): Promise<GlobalAppPointsRow[]> {
   const byWallet = new Map<string, { delulu: number; campaign: number; days: Set<string>; username: string | null; topStake: number }>();
   const lagosDay = (createdAt: string | number | undefined) => new Date(Number(createdAt ?? 0) * 1000 + 3_600_000).toISOString().slice(0, 10);
@@ -1316,7 +1346,7 @@ export async function fetchBoardScoresFromGraph(
   };
   try {
     const [forfeits, campaigns] = await Promise.all([
-      pageAll<{ id: string; creatorAddress: string; createdAt: string; commitmentId: string; commitment: { stakeAmount: string; token: string } | null }>(
+      pageAll<{ id: string; creatorAddress: string; createdAt: string; commitmentId: string; periodIndex: number; commitment: { stakeAmount: string; token: string } | null }>(
         SEASON_FORFEIT_PROOFS_QUERY,
         "forfeitPeriodResolutions",
         sinceUnix,
@@ -1329,10 +1359,14 @@ export async function fetchBoardScoresFromGraph(
         challenge: { joinAmount: string; joinToken: string | null; isPaid: boolean } | null;
       }>(SEASON_CAMPAIGN_PROOFS_QUERY, "communityCampaignMilestoneCompletions", sinceUnix),
     ]);
+    const keptDays = keptDayOfResolutions(forfeits);
     for (const r of forfeits) {
+      const id = String(r.commitmentId);
       const real = gDollarWhole(r.commitment?.stakeAmount, r.commitment?.token);
-      const stake = scoreStakeOverride.get(String(r.commitmentId)) ?? real;
-      add(r.creatorAddress, "delulu", seasonPointsForStake(stake), r.createdAt, null, real);
+      // Top-ups count from their day on: this kept day scores the stake as it stood then.
+      const added = topUpsThrough(topUps.get(id), keptDays.get(r.id) ?? 0);
+      const stake = (scoreStakeOverride.get(id) ?? real) + added;
+      add(r.creatorAddress, "delulu", seasonPointsForStake(stake), r.createdAt, null, real + added);
     }
     for (const r of campaigns) {
       const stake = r.challenge?.isPaid ? gDollarWhole(r.challenge.joinAmount, r.challenge.joinToken) : 0;

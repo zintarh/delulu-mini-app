@@ -36,8 +36,20 @@ export async function GET(request: NextRequest) {
       for (const c of cards ?? []) firstWeekOverride.set(String(c.forfeit_commitment_id), FIRST_WEEK_BOARD_STAKE);
     }
   }
+  // Top-ups raise the stake behind every kept day from their day on (higher stake, higher you climb).
+  const topUps = new Map<string, { slot: number; amount: number }[]>();
+  if (range) {
+    const { data: boosts, error: boostError } = await admin.from("bingo_boosts").select("commitment_id, slot_index, amount").limit(50_000);
+    if (boostError) console.error("[leaderboard] top-ups unavailable", boostError.message);
+    for (const b of boosts ?? []) {
+      const id = String(b.commitment_id);
+      const list = topUps.get(id) ?? [];
+      list.push({ slot: Number(b.slot_index), amount: Number(b.amount) });
+      topUps.set(id, list);
+    }
+  }
   const rows = range
-    ? await fetchBoardScoresFromGraph(Math.floor(range.startMs / 1000), firstWeekOverride)
+    ? await fetchBoardScoresFromGraph(Math.floor(range.startMs / 1000), firstWeekOverride, topUps)
     : season === 2
       ? await fetchSeasonPointsFromGraph(Math.floor(SEASON_2_POINTS_START_MS / 1000))
       : await fetchGlobalAppPointsFromGraph();
