@@ -10,13 +10,13 @@ import { sweepMissedRewards } from "@/lib/rewards/engine";
 import { retryLegacyFailedProofRewards } from "@/lib/proof-reward/grant";
 import { reconcileSupports } from "@/lib/support/service";
 import { reconcileFaucetClaims } from "@/lib/faucet/service";
-import { sweepCommunityPoolToVault } from "@/lib/celo/pot-sweep";
+import { collectCommunityPoolRevenue } from "@/lib/celo/pot-sweep";
 
 /**
  * Rewards Engine upkeep. Hit every 15 minutes by GitHub Actions
  * (.github/workflows/rewards-payouts.yml), daily by Vercel cron as a fallback.
  *
- *  0. pot:       players' missed stakes → the reward pot (on-chain, so rewards are player-funded)
+ *  0. pot:       players' missed stakes → the Delulu treasury (revenue; never paid out as rewards)
  *  1. sweep:     reserves weekly/completion rewards a crashed request missed
  *  2. reconcile: settles submitted txs from their receipts, resends failed
  *                or stuck rewards within the vault pool's balance
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     }
   };
 
-  const pot = await step("pot", () => sweepCommunityPoolToVault());
+  const pot = await step("pot", () => collectCommunityPoolRevenue());
   const sweep = await step("sweep", () => sweepMissedRewards(admin, { deadlineMs: 20_000 }));
   const reconcile = await step("reconcile", () => reconcilePayouts(admin, { deadlineMs: 60_000 }));
   const legacy = await step("legacy", () => retryLegacyFailedProofRewards(admin, 5));
