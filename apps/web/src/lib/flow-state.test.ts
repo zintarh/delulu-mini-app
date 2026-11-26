@@ -38,7 +38,7 @@ test("the ballot only touches Delulu, with every vote not on another project", (
 });
 
 test("votes on Delulu's earlier address count as voted, so nobody is asked again", () => {
-  const old = "0x5F3DD795AD9d626f5c0621b339a243220bCBD025"; // checksummed, as the chain returns it
+  const old = "0x3B3E5eFe7A6e26bd97C3Aa5498056b39889B361D"; // checksummed, as the chain returns it
   const a = flowAllocation(snap({ votes: [{ recipient: old as `0x${string}`, amount: 10n }] }));
   assert.equal(a.voted, true);
   assert.equal(a.past, 10n);
@@ -53,7 +53,8 @@ test("votes on Delulu's earlier address count as voted, so nobody is asked again
 test("recipient addresses are stored lowercase (every check lowercases the chain's value)", () => {
   assert.equal(PROJECT_RECIPIENT, PROJECT_RECIPIENT.toLowerCase());
   for (const r of PAST_RECIPIENTS) assert.equal(r, r.toLowerCase());
-  assert.equal(PROJECT_RECIPIENT, "0x2c9e818d1c0eeea201af0864cc58c82081cf5627");
-  // Voters for either earlier address are still "voted".
-  assert.equal(votedForDelulu([{ recipient: "0x3B3E5eFe7A6e26bd97C3Aa5498056b39889B361D", amount: 2n }]), true);
+  assert.equal(PROJECT_RECIPIENT, "0x5f3dd795ad9d626f5c0621b339a243220bcbd025");
+  // Voters for the other addresses are still "voted"; the active one is never also "past" (no double count).
+  assert.equal(votedForDelulu([{ recipient: "0x2C9e818d1C0EeeA201AF0864Cc58C82081cF5627", amount: 2n }]), true);
+  assert.ok(!PAST_RECIPIENTS.includes(PROJECT_RECIPIENT));
 });
