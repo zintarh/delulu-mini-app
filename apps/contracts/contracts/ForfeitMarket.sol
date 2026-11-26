@@ -694,9 +694,14 @@ contract ForfeitMarket is
         emit CommitmentCancelled(commitmentId, remainder);
     }
 
-    /// @notice The creator adds G$ to an active commitment during the current period,
-    ///         before that period is resolved. The top-up joins the stake: it comes back
-    ///         with the rest on a finish, and it is forfeited with the rest on a miss.
+    /// @notice The creator adds G$ to an active commitment at any time before the
+    ///         current period's deadline, including after the previous period was
+    ///         resolved and before the next one opens (it then counts for that next
+    ///         period). The top-up joins the stake: it comes back with the rest on a
+    ///         finish, and it is forfeited with the rest on a miss.
+    /// @dev    No _requirePeriodOpen here (v5): that guard stops one sitting from
+    ///         proving several periods. A top-up only adds the creator's own money
+    ///         at risk, so it doesn't need it.
     function boostCommitment(uint256 commitmentId, uint256 amount) external nonReentrant whenNotPaused {
         Commitment storage c = commitments[commitmentId];
         if (c.creator == address(0)) revert CommitmentNotFound();
@@ -707,7 +712,6 @@ contract ForfeitMarket is
         if (periodOutcome[commitmentId][c.currentPeriodIndex] != PeriodOutcome.Pending) {
             revert PeriodAlreadyResolved();
         }
-        _requirePeriodOpen(c);
 
         IERC20(c.token).safeTransferFrom(msg.sender, address(this), amount);
         c.stakeAmount += amount;

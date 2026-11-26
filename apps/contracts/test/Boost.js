@@ -67,13 +67,23 @@ describe("Daily Boost", function () {
     expect(await market.read.communityPoolBalance([token.address])).to.equal(parseEther("1485"));
   });
 
-  it("refuses strangers, zero, a closed day and an ended goal", async function () {
+  it("tops up after today's proof, before the next day opens: counts for the next day", async function () {
+    const { market, player, id } = await loadFixture(fixture);
+    await market.write.resolveCommitmentSuccess([id], { account: player.account });
+    // Day 2 hasn't opened yet: proofs still wait (PeriodNotOpen), a top-up doesn't.
+    await assertRevert(market.write.submitProof([id, "x"], { account: player.account }), /PeriodNotOpen/);
+    await market.write.boostCommitment([id, parseEther("200")], { account: player.account });
+    expect(await market.read.boostedAmount([id, 1])).to.equal(parseEther("200"));
+    expect((await market.read.commitments([id]))[2]).to.equal(parseEther("1200"));
+  });
+
+  it("refuses strangers, zero, a missed deadline and an ended goal", async function () {
     const { market, player, stranger, keeper, id } = await loadFixture(fixture);
     await assertRevert(market.write.boostCommitment([id, parseEther("1")], { account: stranger.account }), /Unauthorized/);
     await assertRevert(market.write.boostCommitment([id, 0n], { account: player.account }), /InvalidInput/);
-    await market.write.resolveCommitmentSuccess([id], { account: player.account });
-    await assertRevert(market.write.boostCommitment([id, parseEther("1")], { account: player.account }), /PeriodNotOpen|PeriodAlreadyResolved|NotOpen/);
-    await time.increase(Number(DAY) * 3);
+    await time.increase(Number(DAY) + 10);
+    await assertRevert(market.write.boostCommitment([id, parseEther("1")], { account: player.account }), /DeadlinePassed/);
+    await time.increase(Number(DAY) * 2);
     await market.write.resolveCommitmentForfeited([id], { account: keeper.account });
     await assertRevert(market.write.boostCommitment([id, parseEther("1")], { account: player.account }), /NotActive/);
   });
