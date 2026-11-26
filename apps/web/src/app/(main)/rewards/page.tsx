@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBalance } from "wagmi";
-import { ArrowDownLeft, ArrowUpRight, Check, Copy, Landmark, Loader2, Lock } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Copy, Landmark, Loader2, Lock, ArrowLeftRight } from "lucide-react";
 
 import { formatUnits } from "viem";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,7 @@ import { useClaimAllAdminRewards } from "@/hooks/use-claim-all-admin-rewards";
 import { ForfeitDestinationType } from "@/hooks/use-create-forfeit-commitment";
 import { WalletClaimsTab } from "@/components/wallet/wallet-claims-tab";
 import { TransferSheet } from "@/components/transfer-sheet";
+import { SwapGuideSheet } from "@/components/wallet/swap-guide-sheet";
 import { CashOutSheet } from "@/components/cashout/cash-out-sheet";
 import { useCashOutInfo } from "@/hooks/use-cash-out-info";
 import { formatNaira, nairaFor } from "@/lib/cashout/goodcash";
@@ -97,6 +98,7 @@ export default function RewardsPage() {
   const router = useRouter();
   const { address, isConnected, isReady } = useAuth();
   const [sendOpen, setSendOpen] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
   const [cashOutOpen, setCashOutOpen] = useState(false);
   const cashOut = useCashOutInfo();
   const [copied, setCopied] = useState(false);
@@ -459,7 +461,7 @@ export default function RewardsPage() {
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-4 gap-2">
                   <GameButton
                     variant="line"
                     size="sm"
@@ -472,6 +474,10 @@ export default function RewardsPage() {
                   <GameButton variant="line" size="sm" onClick={openClaimPanel}>
                     <ArrowDownLeft className="h-4 w-4" strokeWidth={2} />
                     Get
+                  </GameButton>
+                  <GameButton variant="line" size="sm" onClick={() => setSwapOpen(true)}>
+                    <ArrowLeftRight className="h-4 w-4" strokeWidth={2} />
+                    Swap
                   </GameButton>
                   <GameButton
                     variant="line"
@@ -599,6 +605,14 @@ export default function RewardsPage() {
         </div>
       </MainPage>
 
+      <SwapGuideSheet
+        open={swapOpen}
+        onOpenChange={setSwapOpen}
+        onSend={() => {
+          setSwapOpen(false);
+          setSendOpen(true);
+        }}
+      />
       <TransferSheet
         open={sendOpen}
         onOpenChange={setSendOpen}
