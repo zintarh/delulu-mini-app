@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Check, ChevronRight, Copy, Lock } from "lucide-react";
 import { useReferralCode } from "@/components/referral-invite-card";
 import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
-import { referralCampaignEndLabel, referralOpensLabel, referralPhase } from "@/lib/referral/campaign";
+import { REFERRAL_PAUSE_COPY, referralCampaignEndLabel, referralOpensLabel, referralPhase } from "@/lib/referral/campaign";
 import { cn } from "@/lib/utils";
 import { useReferralSlots } from "@/hooks/use-referral-slots";
 import { slotsLine } from "@/lib/referral/slots-copy";
@@ -22,6 +22,18 @@ export function ReferralBanner({ address, className }: { address: string; classN
   const [copied, setCopied] = useState(false);
   const slots = useReferralSlots(live);
   if (phase.phase === "off") return null;
+  if (phase.phase === "paused") {
+    return (
+      <Link href="/referrals" className={cn("flex items-center gap-3 rounded-2xl border-2 border-line bg-white py-2.5 pl-3 pr-3 text-ink no-underline shadow-edge-sm", className)}>
+        <span className="text-[22px] leading-none" aria-hidden>🤝</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px] font-extrabold leading-tight">Referrals continue Wednesday</span>
+          <span className="block truncate text-[11px] font-semibold text-muted-foreground">{REFERRAL_PAUSE_COPY}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+    );
+  }
 
   const reward = phase.round.reward.toLocaleString("en-US");
   const locked = eligible && Boolean(standing?.locked);

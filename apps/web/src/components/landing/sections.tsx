@@ -21,7 +21,7 @@ import { APP_HOME } from "@/components/main-nav-config";
 import { useEffect, useState } from "react";
 import { ngnWorthShowing, type EarnFacts } from "@/lib/earn/format";
 import { ACTIVE_POT } from "@/lib/pool/tickets";
-import { referralRewardNow } from "@/lib/referral/campaign";
+import { REFERRAL_PAUSE_COPY, isReferralPaused, referralRewardNow } from "@/lib/referral/campaign";
 
 /* Copy and layout follow docs/redesign/screens/Main.dc.html. */
 
@@ -235,6 +235,7 @@ export function ProblemSection() {
 export function TwoWaysSection() {
   const facts = useLandingFacts();
   const reward = referralRewardNow();
+  const paused = isReferralPaused();
   const rewardNgn = ngnOf(facts, reward);
   const card = "reveal flex flex-col gap-4 rounded-[28px] border-2 border-line bg-white p-7 shadow-[0_6px_0_#e6e6e0]";
   return (
@@ -253,11 +254,20 @@ export function TwoWaysSection() {
           </div>
           <div data-reveal="right" style={revealDelay(0.1)} className={card}>
             <Lulu size={48} mood="kept" />
-            <span className="text-2xl font-extrabold">Invite friends</span>
-            <span className="font-display text-[40px] font-extrabold leading-none">{reward.toLocaleString("en-US")} G$</span>
-            <span className="text-[15px] leading-snug text-muted-foreground">
-              For each friend who verifies, stakes, and keeps a proof{rewardNgn ? ` (≈ ${rewardNgn})` : ""}.
-            </span>
+            {paused ? (
+              <>
+                <span className="text-2xl font-extrabold">Referrals continue Wednesday</span>
+                <span className="text-[15px] leading-snug text-muted-foreground">{REFERRAL_PAUSE_COPY}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl font-extrabold">Invite friends</span>
+                <span className="font-display text-[40px] font-extrabold leading-none">{reward.toLocaleString("en-US")} G$</span>
+                <span className="text-[15px] leading-snug text-muted-foreground">
+                  For each friend who verifies, stakes, and keeps a proof{rewardNgn ? ` (≈ ${rewardNgn})` : ""}.
+                </span>
+              </>
+            )}
           </div>
           <div data-reveal="left" style={revealDelay(0.18)} className={card}>
             <Chest size={52} />
@@ -388,7 +398,7 @@ export function StoriesSection() {
 /* ---------------------------------------------------------------- FAQ */
 const FAQS: [string, string][] = [
   ["Do I need money to start?", "Claim free G$ every day from GoodDollar after one face check, then play it on a Bingo card."],
-  ["How much can I earn?", `Play a card and you get 10% of your stake back: a share on every proof, the rest when you finish, plus your stake. Show up all 7 days and you also share $100 that week, worth 1,000,000 G$. Invite friends for ${referralRewardNow().toLocaleString("en-US")} G$ each.`],
+  ["How much can I earn?", "Play a card and you get 10% of your stake back: a share on every proof, the rest when you finish, plus your stake. Show up all 7 days and you also share $100 that week, worth 1,000,000 G$."],
   ["What happens if I miss a day?", "The card ends and that stake goes to the community pool. You keep everything you've earned so far, and you can start another Bingo."],
   ["How are proofs checked?", "AI checks your proof in seconds. Each day runs midnight to midnight, so you have the whole day to submit it."],
   ["Can I turn it into naira?", "Yes. Cash out G$ to a Nigerian bank with GoodCash. The rate moves with the market."],
@@ -396,6 +406,9 @@ const FAQS: [string, string][] = [
 ];
 
 export function FaqSection() {
+  const invite = isReferralPaused()
+    ? ` ${REFERRAL_PAUSE_COPY}`
+    : ` Invite friends for ${referralRewardNow().toLocaleString("en-US")} G$ each.`;
   return (
     <section id="faq" className="border-y-2 border-line bg-white">
       <div className="mx-auto flex max-w-[820px] flex-col gap-10 px-6 py-16 sm:py-[110px]">
@@ -414,7 +427,7 @@ export function FaqSection() {
                   <Plus className="h-[18px] w-[18px]" strokeWidth={2.8} />
                 </span>
               </summary>
-              <p className="m-0 px-[22px] pb-[22px] text-base leading-relaxed text-muted-foreground">{a}</p>
+              <p className="m-0 px-[22px] pb-[22px] text-base leading-relaxed text-muted-foreground">{q === "How much can I earn?" ? `${a}${invite}` : a}</p>
             </details>
           ))}
         </div>

@@ -137,14 +137,28 @@ export function referralRewardNow(now: Date = new Date()): number {
 /** @deprecated Use referralRewardNow() — rounds can pay different amounts. */
 export const REFERRAL_GDOLLARS_REWARD = referralRewardNow();
 
-/** Referrals are being credited right now. */
-export function isReferralCampaignLive(now: Date = new Date()): boolean {
-  return currentReferralRound(now) != null;
+/**
+ * This week's spots are taken (26 Nov 2026). New credits wait until Wednesday
+ * 2 Dec, Lagos midnight. The round after that opens on its own. Already-earned
+ * rewards still pay.
+ */
+export const REFERRAL_PAUSE_UNTIL = "2026-12-02T00:00:00+01:00";
+export const REFERRAL_PAUSE_COPY = "This week's referral target is met. Referrals continue Wednesday.";
+
+export function isReferralPaused(now: Date = new Date()): boolean {
+  return now.getTime() < Date.parse(REFERRAL_PAUSE_UNTIL);
 }
 
-/** No round running — between rounds or after the last one. */
+/** Referrals are being credited right now. */
+export function isReferralCampaignLive(now: Date = new Date()): boolean {
+  return currentReferralRound(now) != null && !isReferralPaused(now);
+}
+
+/** The programme is finished — a weekly pause is not the end. */
 export function isReferralCampaignOver(now: Date = new Date()): boolean {
-  return !isReferralCampaignLive(now);
+  if (isReferralPaused(now)) return false;
+  const t = now.getTime();
+  return t >= Date.parse(REFERRAL_ROUNDS[REFERRAL_ROUNDS.length - 1].end);
 }
 
 /** Whether a timestamp (sign-up, credit) is within the round-based programme. */
@@ -174,12 +188,17 @@ export function nextReferralRound(now: Date = new Date()): ReferralRound | null 
  * Where referrals stand: "live" (link works), "soon" (announced — everything
  * visible, link opens at the round start), or "off".
  */
-export type ReferralPhase = { phase: "live"; round: ReferralRound } | { phase: "soon"; round: ReferralRound } | { phase: "off" };
+export type ReferralPhase =
+  | { phase: "live"; round: ReferralRound }
+  | { phase: "soon"; round: ReferralRound }
+  | { phase: "paused" }
+  | { phase: "off" };
 
 /** How far ahead an upcoming round is announced. */
 const ANNOUNCE_MS = 36 * 60 * 60 * 1000;
 
 export function referralPhase(now: Date = new Date()): ReferralPhase {
+  if (isReferralPaused(now)) return { phase: "paused" };
   const live = currentReferralRound(now);
   if (live) return { phase: "live", round: live };
   const next = nextReferralRound(now);

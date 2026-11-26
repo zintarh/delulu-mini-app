@@ -10,6 +10,7 @@ import { useReferralEligibility } from "@/hooks/use-referral-eligibility";
 import { ONBOARDING_STEP_LABELS } from "@/components/referral-onboarding-checklist";
 import { GameButton, GameCard, Trophy } from "@/components/ds";
 import {
+  REFERRAL_PAUSE_COPY,
   referralRewardNow,
   referralOpensLabel,
   referralPhase,
@@ -61,6 +62,22 @@ export function useReferralCode(address: string | null) {
 export function ReferralInviteCard({ address }: { address: string }) {
   const referral = referralPhase();
   const live = referral.phase === "live";
+  if (referral.phase === "paused") {
+    return (
+      <GameCard id="invite" className="animate-rise scroll-mt-24 px-3.5 py-3">
+        <div className="flex items-center gap-3">
+          <Trophy size={40} />
+          <div className="min-w-0 flex-1">
+            <p className="m-0 font-bold">Referrals continue Wednesday</p>
+            <p className="label-mono m-0 mt-0.5 text-[10px] text-muted-foreground">{REFERRAL_PAUSE_COPY}</p>
+          </div>
+          <Link href="/referrals" className="shrink-0 text-[12px] font-extrabold text-ink underline">
+            See yours
+          </Link>
+        </div>
+      </GameCard>
+    );
+  }
   // Announced but not open yet: show everything, the link opens at the round start.
   const soon = referral.phase === "soon";
   const opensLabel = referral.phase === "soon" ? referralOpensLabel(referral.round) : "";

@@ -92,7 +92,7 @@ export function offerLines(nowMs: number, skip: "gift" | "photo" | "finish" | "r
   if (skip !== "finish") lines.push("🏆 Finish a 7-day Bingo: your stake back + up to 20,000 G$ bonus");
   if (skip !== "gift" && giftEligible) lines.push("🎁 1,000 G$ free to start your first Bingo (after one quick face check)");
   const ref = referralPhase(new Date(nowMs));
-  if (skip !== "referral" && ref.phase !== "off") {
+  if (skip !== "referral" && (ref.phase === "live" || ref.phase === "soon")) {
     lines.push(`🤝 ${ref.round.reward.toLocaleString("en-US")} G$ for every friend you invite${ref.phase === "soon" ? " (opens soon)" : " this week"}`);
   }
   // Only promise naira once there's someone to message for it.

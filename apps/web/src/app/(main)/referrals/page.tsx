@@ -13,7 +13,7 @@ import { PageBackHeader } from "@/components/page-back-header";
 import { Lulu, gameButtonClass } from "@/components/ds";
 import { buildSignInUrl, persistSignInRedirect } from "@/lib/auth-redirect";
 import type { MyReferral, MyReferralSteps } from "@/app/api/referral/my-referrals/route";
-import { referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, referralCampaignEndLabel, currentReferralRound, roundFirstPayment, roundHasStreakBonus, REFERRAL_ROUNDS } from "@/lib/referral/campaign";
+import { REFERRAL_PAUSE_COPY, referralRewardNow, isInCurrentReferralCampaign, isReferralCampaignOver, isReferralPaused, referralCampaignEndLabel, currentReferralRound, roundFirstPayment, roundHasStreakBonus, REFERRAL_ROUNDS } from "@/lib/referral/campaign";
 
 
 const STEPS: { key: keyof MyReferralSteps; label: string; next: string }[] = [
@@ -126,6 +126,7 @@ export default function MyReferralsPage() {
 
   const counted = (referrals ?? []).filter((r) => r.counted).length;
   const ended = isReferralCampaignOver();
+  const paused = isReferralPaused();
   const round = currentReferralRound();
   const slots = useReferralSlots(!ended);
   const roundNumber = round ? REFERRAL_ROUNDS.findIndex((r) => r.start === round.start) + 1 : 0;
@@ -145,7 +146,9 @@ export default function MyReferralsPage() {
           )}
         >
           <Clock className="h-4 w-4 shrink-0" />
-          {ended ? (
+          {paused ? (
+            REFERRAL_PAUSE_COPY
+          ) : ended ? (
             "Referrals have ended"
           ) : (
             // Urgency from scarcity, not an end date: spots left this round, and they refresh weekly.
@@ -162,7 +165,7 @@ export default function MyReferralsPage() {
         </div>
 
         {/* How a referral pays — the same split each friend's row tracks below. */}
-        {!ended && round && roundHasStreakBonus(round) ? (
+        {!ended && !paused && round && roundHasStreakBonus(round) ? (
           <div className="rounded-[20px] border-2 border-ink bg-white p-4 shadow-[0_3px_0_#000]">
             <p className="label-mono m-0 text-[10px] text-muted-foreground">How you get paid · {round.reward.toLocaleString()} G$ per friend</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -180,7 +183,7 @@ export default function MyReferralsPage() {
             ) : null}
             <p className="m-0 mt-1 text-[11px] font-semibold text-muted-foreground">Nudge your friends to keep going — the bigger part comes at day 3.</p>
           </div>
-        ) : !ended && round ? (
+        ) : !ended && !paused && round ? (
           <div className="rounded-[20px] border-2 border-ink bg-white p-4 shadow-[0_3px_0_#000]">
             <div className="rounded-2xl bg-green-soft px-3 py-2.5">
               <p className="m-0 font-display text-[22px] font-extrabold leading-none text-green-edge">+{round.reward.toLocaleString()} G$</p>
@@ -192,7 +195,7 @@ export default function MyReferralsPage() {
           </div>
         ) : null}
 
-        {!ended && !isLoadingEligibility && standing?.locked && standing.campaign ? (
+        {!ended && !paused && !isLoadingEligibility && standing?.locked && standing.campaign ? (
           <Link
             href={`/communities/${standing.campaign.slug}/campaigns/${standing.campaign.id}`}
             className="press-edge flex items-center gap-2 rounded-[20px] bg-ink px-4 py-3 text-sm font-bold text-white shadow-edge-ink"
@@ -200,7 +203,7 @@ export default function MyReferralsPage() {
             <Hourglass className="h-4 w-4 shrink-0" />
             Payouts waiting. Post today&apos;s proof to get paid →
           </Link>
-        ) : address && !ended && !isLoadingEligibility && !eligible ? (
+        ) : address && !ended && !paused && !isLoadingEligibility && !eligible ? (
           <div className="flex items-center gap-2 rounded-[20px] border-2 border-line bg-white px-4 py-3 text-sm font-semibold text-muted-foreground">
             <Lock className="h-4 w-4 shrink-0" />
             Finish your own onboarding for referrals to count on the leaderboard.

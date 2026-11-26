@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { LuluMessage, LuluTone } from "@/components/home/lulu-hero";
 import { useHomeNextStep } from "@/components/home/home-next-step";
 import { useFaceCheckOptional } from "@/contexts/right-panel-context";
-import { referralPhase } from "@/lib/referral/campaign";
+import { REFERRAL_PAUSE_COPY, referralPhase } from "@/lib/referral/campaign";
 
 const TONE: Record<"go" | "wait" | "win" | "warn", LuluTone> = { go: "progress", wait: "happy", win: "reward", warn: "urgent" };
 
@@ -31,7 +31,14 @@ export function useLuluHomeNews(): LuluMessage[] {
         onAct: verify ? () => faceCheck?.start() : undefined,
       });
     }
-    if (phase.phase === "live") {
+    if (phase.phase === "paused") {
+      out.push({
+        id: "ref:paused",
+        tone: "tip",
+        text: REFERRAL_PAUSE_COPY,
+        cta: { label: "See referrals", href: "/referrals" },
+      });
+    } else if (phase.phase === "live") {
       out.push({
         id: `ref:${phase.round.start}`,
         tone: "tip",

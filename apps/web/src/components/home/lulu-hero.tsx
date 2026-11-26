@@ -239,7 +239,7 @@ export function pickLuluMessages(input: LuluInput): LuluMessage[] {
 
   // 3b. Referrals: announce the round the day before, cheer while it's open.
   const referral = referralPhase(now);
-  if (referral.phase !== "off") {
+  if (referral.phase === "live" || referral.phase === "soon") {
     const reward = referral.round.reward.toLocaleString("en-US");
     out.push(
       referral.phase === "live"
