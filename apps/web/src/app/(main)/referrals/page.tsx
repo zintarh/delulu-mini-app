@@ -44,6 +44,7 @@ function StatusLine({ r, ended }: { r: MyReferral; ended: boolean }) {
     );
   }
   if (ended) return <span className="font-semibold text-muted-foreground">Referrals ended</span>;
+  if (r.closed) return <span className="font-semibold text-muted-foreground">Doesn&apos;t count · joined before this round</span>;
   const next = STEPS.find((s) => !r.steps[s.key]);
   return <span className="font-semibold text-orange">{next?.next}</span>;
 }

@@ -4,7 +4,7 @@ import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
 import { REFERRAL_MIN_POINTS, evaluateAndCreditReferral, hasStaked } from "@/lib/referral/evaluate";
 import { hasConsecutiveDays, payReferralStreakBonus } from "@/lib/referral/streak";
-import { referralRoundAt, roundFirstPayment } from "@/lib/referral/campaign";
+import { REFERRAL_PAUSE_UNTIL, referralRoundAt, roundFirstPayment } from "@/lib/referral/campaign";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +30,8 @@ export type MyReferral = {
   amount?: number | null;
   /** The 3-days-in-a-row bonus: what it is and whether it's been paid. */
   bonus?: { amount: number; paid: boolean } | null;
+  /** Not credited before the 26 Nov pause, so it never counts (lib/referral/evaluate.ts). */
+  closed?: boolean;
 };
 
 /**
@@ -149,6 +151,7 @@ export async function GET(request: NextRequest) {
         },
         counted: false,
         payout: null,
+        closed: Date.parse(base.joinedAt) < Date.parse(REFERRAL_PAUSE_UNTIL),
       };
     }),
   );

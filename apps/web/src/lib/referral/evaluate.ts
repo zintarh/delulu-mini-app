@@ -3,7 +3,7 @@ import { isGoodDollarVerified } from "@/lib/referral/verify-identity";
 import { processReferralPayouts } from "@/lib/referral/payout";
 import { payReferralStreakBonus } from "@/lib/referral/streak";
 import { totalProofPointsOnGraph } from "@/lib/community/campaign-subgraph";
-import { currentReferralRound, isInCurrentReferralCampaign, isReferralCampaignOver, isReferralPaused } from "@/lib/referral/campaign";
+import { REFERRAL_PAUSE_UNTIL, currentReferralRound, isInCurrentReferralCampaign, isReferralCampaignOver, isReferralPaused } from "@/lib/referral/campaign";
 import { roundSlots } from "@/lib/referral/slots";
 
 type SupabaseAdmin = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -85,8 +85,13 @@ export async function evaluateAndCreditReferral(
     return { credited: false, reason: "already_credited" };
   }
 
-  // This week's target is met. A friend who already qualifies is credited when Wednesday's round is checked.
+  // This week's target is met: nothing new is credited during the pause.
   if (isReferralPaused()) return { credited: false, reason: "budget_reached" };
+  // A friend not credited before the pause never counts (26 Nov 2026): no backlog
+  // fills Wednesday's spots. Only friends who sign up from the pause's end count.
+  if (Date.parse(String(profile.created_at ?? "")) < Date.parse(REFERRAL_PAUSE_UNTIL)) {
+    return { credited: false, reason: "signed_up_outside_campaign" };
+  }
 
   let qualifyingAction: "forfeit" | "campaign_join" | "bingo_join" | null = null;
 
