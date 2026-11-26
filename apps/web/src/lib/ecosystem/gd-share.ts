@@ -7,6 +7,8 @@
 // moves between a project's own contracts don't count — plus the
 // transactions and the wallets on the other side. Results go to
 // gd_share_days / gd_share_network (docs/migrations/20261124_gd_share.sql).
+// Each day's wallet lists go to private storage (bucket gd-share, days/<day>.json)
+// so the leaderboard can count unique users over any range, not wallet-days.
 
 import { createPublicClient, formatUnits, http, parseAbiItem } from "viem";
 import { celo } from "viem/chains";
@@ -18,9 +20,14 @@ const G_DOLLAR = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A" as const;
 const TRANSFER = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");
 const STEP = 5_000n;
 const DAY_S = 86_400n;
+const ZERO = "0x0000000000000000000000000000000000000000";
+const BUCKET = "gd-share";
+const walletFile = (day: string) => `days/${day}.json`;
 
 export type ShareProject = { name: string; addresses: string[]; isUs: boolean; active: boolean; sort: number };
 export type ProjectDay = { project: string; gIn: number; gOut: number; volume: number; txs: number; wallets: number };
+/** A computed day also carries who was on the other side (never sent to the browser). */
+type ComputedRow = ProjectDay & { walletList: string[] };
 export type NetworkDay = { day: string; totalG: number; transfers: number; fromBlock: number; toBlock: number; complete: boolean; computedAt: string };
 
 const client = () =>
@@ -49,7 +56,7 @@ async function blockAt(c: ReturnType<typeof client>, unix: bigint, latest: bigin
 }
 
 /** One Lagos day, every project. Throws if the day hasn't started. */
-export async function computeDay(day: string, projects: ShareProject[]): Promise<{ network: NetworkDay; rows: ProjectDay[] }> {
+export async function computeDay(day: string, projects: ShareProject[]): Promise<{ network: NetworkDay; rows: ComputedRow[] }> {
   const c = client();
   const latestBlock = await c.getBlock();
   const latest = latestBlock.number;
@@ -78,8 +85,9 @@ export async function computeDay(day: string, projects: ShareProject[]): Promise
       const pa = owner.get(a);
       const pb = owner.get(b);
       if (pa && pa === pb) continue; // inside one project: not G$ moving through it
-      if (pa) { const x = acc.get(pa)!; x.outW += v; x.txs.add(l.transactionHash!); x.wallets.add(b); }
-      if (pb) { const x = acc.get(pb)!; x.inW += v; x.txs.add(l.transactionHash!); x.wallets.add(a); }
+      // A user is a wallet on the other side: never a listed contract or the mint/burn address.
+      if (pa) { const x = acc.get(pa)!; x.outW += v; x.txs.add(l.transactionHash!); if (!pb && b !== ZERO) x.wallets.add(b); }
+      if (pb) { const x = acc.get(pb)!; x.inW += v; x.txs.add(l.transactionHash!); if (!pa && a !== ZERO) x.wallets.add(a); }
     }
   }
 
@@ -88,7 +96,7 @@ export async function computeDay(day: string, projects: ShareProject[]): Promise
     network: { day, totalG: g(total), transfers, fromBlock: Number(from), toBlock: Number(toBlock), complete, computedAt: new Date().toISOString() },
     rows: projects.map((p) => {
       const x = acc.get(p.name)!;
-      return { project: p.name, gIn: g(x.inW), gOut: g(x.outW), volume: g(x.inW + x.outW), txs: x.txs.size, wallets: x.wallets.size };
+      return { project: p.name, gIn: g(x.inW), gOut: g(x.outW), volume: g(x.inW + x.outW), txs: x.txs.size, wallets: x.wallets.size, walletList: [...x.wallets].sort() };
     }),
   };
 }
@@ -116,6 +124,34 @@ export async function saveDay(admin: Admin, result: Awaited<ReturnType<typeof co
     })));
     if (e3) throw new Error(e3.message);
   }
+  await saveWalletLists(admin, n.day, rows);
+}
+
+async function saveWalletLists(admin: Admin, day: string, rows: ComputedRow[]) {
+  const body = JSON.stringify(Object.fromEntries(rows.map((r) => [r.project, r.walletList])));
+  const put = () => admin.storage.from(BUCKET).upload(walletFile(day), body, { contentType: "application/json", upsert: true });
+  let { error } = await put();
+  if (error && /not found/i.test(error.message)) {
+    await admin.storage.createBucket(BUCKET, { public: false });
+    ({ error } = await put());
+  }
+  if (error) throw new Error(`[gd-share] wallet lists for ${day}: ${error.message}`);
+}
+
+/** Unique wallets per project across the days. A project is null if any of those days has no stored list yet. */
+async function uniqueUsers(admin: Admin, days: string[], projects: string[]): Promise<Record<string, number | null>> {
+  const sets = new Map(projects.map((p) => [p, new Set<string>()]));
+  let gaps = false;
+  await Promise.all(days.map(async (day) => {
+    const { data, error } = await admin.storage.from(BUCKET).download(walletFile(day));
+    if (error || !data) { gaps = true; return; }
+    const lists = JSON.parse(await data.text()) as Record<string, string[]>;
+    for (const [project, wallets] of Object.entries(lists)) {
+      const set = sets.get(project);
+      if (set) for (const w of wallets) set.add(w);
+    }
+  }));
+  return Object.fromEntries(projects.map((p) => [p, gaps ? null : sets.get(p)!.size]));
 }
 
 /** Compute and store one day for the active projects. */
@@ -130,6 +166,8 @@ export type EcosystemReport = {
   projects: ShareProject[];
   days: Array<NetworkDay & { rows: ProjectDay[] }>;
   missing: string[];
+  /** Unique wallets per project over the whole range (null: some day hasn't got its list yet — recompute it). */
+  users: Record<string, number | null>;
   from: string;
   to: string;
 };
@@ -155,5 +193,6 @@ export async function loadReport(admin: Admin, from: string, to: string): Promis
   const have = new Set(days.filter((d) => d.complete).map((d) => d.day));
   const missing: string[] = [];
   for (let d = from; d <= to && d <= lagosToday(); d = addDays(d, 1)) if (!have.has(d)) missing.push(d);
-  return { projects, days, missing, from, to };
+  const users = await uniqueUsers(admin, days.map((d) => d.day), projects.map((p) => p.name));
+  return { projects, days, missing, users, from, to };
 }

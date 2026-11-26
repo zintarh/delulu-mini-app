@@ -128,7 +128,7 @@ export default function EcosystemPage() {
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <tr><th className="py-1.5 pr-2">#</th><th className="py-1.5 pr-2">Project</th><th className="w-[34%] py-1.5 pr-2">Share of G$</th><th className="py-1.5 pr-2 text-right">G$ volume</th><th className="py-1.5 pr-2 text-right">Txs</th><th className="py-1.5 pr-2 text-right">Wallets*</th><th className="py-1.5 pr-2 text-right">Days #1</th><th className="py-1.5 text-right">Best day</th></tr>
+                  <tr><th className="py-1.5 pr-2">#</th><th className="py-1.5 pr-2">Project</th><th className="w-[34%] py-1.5 pr-2">Share of G$</th><th className="py-1.5 pr-2 text-right">G$ volume</th><th className="py-1.5 pr-2 text-right">Txs</th><th className="py-1.5 pr-2 text-right">Users</th><th className="py-1.5 pr-2 text-right">Wallet-days*</th><th className="py-1.5 pr-2 text-right">Days #1</th><th className="py-1.5 text-right">Best day</th></tr>
                 </thead>
                 <tbody>
                   {view.board.map((p) => (
@@ -145,7 +145,8 @@ export default function EcosystemPage() {
                       </td>
                       <td className="py-2 pr-2 text-right tabular-nums">{fmt(p.volume)}</td>
                       <td className="py-2 pr-2 text-right tabular-nums">{fmt(p.txs)}</td>
-                      <td className="py-2 pr-2 text-right tabular-nums">{fmt(p.walletDays)}</td>
+                      <td className="py-2 pr-2 text-right tabular-nums">{p.users == null ? <span title="Some days have no wallet list yet. Recompute them below.">—</span> : <>{fmt(p.users)}{p.usersRank === 1 && p.users > 0 ? <span className="ml-1 text-[10px] text-green-700">#1</span> : null}</>}</td>
+                      <td className="py-2 pr-2 text-right tabular-nums text-muted-foreground">{fmt(p.walletDays)}</td>
                       <td className="py-2 pr-2 text-right tabular-nums">{p.daysFirst}</td>
                       <td className="py-2 text-right tabular-nums">{p.best ? `${pct(p.best.share)} · ${dayLabel(p.best.day)}` : "—"}</td>
                     </tr>
@@ -153,7 +154,7 @@ export default function EcosystemPage() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">Share = the project&apos;s G$ in + out of its contracts ÷ all the projects&apos; combined. Moves between a project&apos;s own contracts don&apos;t count. *Wallets are counted per day and added up.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">Share = the project&apos;s G$ in + out of its contracts ÷ all the projects&apos; combined. Moves between a project&apos;s own contracts don&apos;t count. Users = different wallets that sent G$ to or got G$ from the project&apos;s contracts in this range, each counted once. *Wallet-days count a wallet again on every day it shows up.</p>
           </section>
 
           <DailyTable view={view} today={to} onRecompute={(d) => void compute([d])} busy={!!busy} />
@@ -189,8 +190,10 @@ function summarize(data: EcosystemReport) {
       const s = d.shares.get(name) ?? 0;
       if (s > 0 && (!best || s > best.share)) best = { day: d.day, share: s };
     }
-    return { name, isUs: isUs.has(name), volume, txs, walletDays, daysFirst, best, share: listed > 0 ? volume / listed : 0, rank: 0, txRank: 0 };
+    const users = data.users?.[name] ?? null;
+    return { name, isUs: isUs.has(name), volume, txs, walletDays, users, daysFirst, best, share: listed > 0 ? volume / listed : 0, rank: 0, txRank: 0, usersRank: 0 };
   }).sort((a, b) => b.volume - a.volume);
+  [...board].sort((a, b) => (b.users ?? -1) - (a.users ?? -1)).forEach((p, i) => { p.usersRank = p.users == null ? 0 : i + 1; });
   board.forEach((p, i) => { p.rank = i + 1; });
   [...board].sort((a, b) => b.txs - a.txs).forEach((p, i) => { p.txRank = i + 1; });
   const us = board.find((p) => p.isUs) ?? null;
