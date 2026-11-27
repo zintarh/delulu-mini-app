@@ -1,5 +1,6 @@
 "use client";
 
+import { shrinkProofForUpload } from "@/lib/compress-image";
 import { MissionSticker } from "@/components/bingo/mission-stickers";
 import { fmtUntil } from "@/lib/bingo/format";
 
@@ -99,10 +100,16 @@ export function BingoProofSheet({
       if (file) {
         setStep("uploading");
         const form = new FormData();
-        form.append("file", file);
+        form.append("file", await shrinkProofForUpload(file));
         const up = await fetch("/api/ipfs/upload-image", { method: "POST", body: form });
         const upJson = await up.json().catch(() => ({}));
-        if (!up.ok || !upJson.url) throw Object.assign(new Error(upJson.error ?? "Upload failed. Try again."), { title: "Couldn't upload" });
+        if (!up.ok || !upJson.url) {
+          const tooBig = up.status === 413 || /5\s*mb|too large/i.test(String(upJson.error ?? ""));
+          throw Object.assign(
+            new Error(tooBig ? "This photo is too big to send. Take a new one or pick a smaller photo." : (upJson.error ?? "Upload failed. Check your connection and try again.")),
+            { title: "Couldn't upload" },
+          );
+        }
         url = upJson.url as string;
       }
       if (!url) return;

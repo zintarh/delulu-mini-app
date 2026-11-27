@@ -1,5 +1,6 @@
 "use client";
 
+import { shrinkProofForUpload } from "@/lib/compress-image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, ChevronLeft, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -156,7 +157,7 @@ export function ProofModal({
     setUploadError(null);
     try {
       const formData = new FormData();
-      formData.append("file", imageFile);
+      formData.append("file", await shrinkProofForUpload(imageFile));
       const res = await fetch("/api/ipfs/upload-image", {
         method: "POST",
         body: formData,

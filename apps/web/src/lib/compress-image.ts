@@ -87,3 +87,31 @@ export async function compressImageForUpload(file: File): Promise<File> {
   const baseName = file.name.replace(/\.[^.]+$/, "") || "profile";
   return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
 }
+
+/** Vercel rejects request bodies over 4.5 MB before our route runs; stay under it. */
+const PROOF_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
+const PROOF_MAX_DIMENSION = 2048;
+
+/**
+ * Proof photos: sent as they are when they fit (keeps the EXIF capture date the
+ * proof check reads), and only shrunk to ≤2048px JPEG when the phone's full-size
+ * photo would be too big to upload at all.
+ */
+export async function shrinkProofForUpload(file: File): Promise<File> {
+  if (file.size <= PROOF_UPLOAD_MAX_BYTES) return file;
+  const img = await loadImage(file);
+  const scale = Math.min(1, PROOF_MAX_DIMENSION / Math.max(img.width, img.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Couldn't read this photo. Try another one.");
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  let quality = 0.88;
+  let blob = await canvasToBlob(canvas, quality);
+  while (blob.size > PROOF_UPLOAD_MAX_BYTES && quality > 0.5) {
+    quality -= 0.1;
+    blob = await canvasToBlob(canvas, quality);
+  }
+  return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "proof"}.jpg`, { type: "image/jpeg" });
+}
