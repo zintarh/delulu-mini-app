@@ -18,6 +18,14 @@ const MAX_EMAILS_PER_RUN = 60;
 /** Across all runs in a Lagos day — keeps the sending domain healthy while we reach the dormant base. */
 const MAX_EMAILS_PER_DAY = 300;
 const MAX_PUSH_PER_RUN = 600;
+/**
+ * Email is the scarce channel (a daily sending limit), so it goes first to people
+ * on a live card: their stake closes tonight. Everyone else — missed a day,
+ * dormant, referral and vote asks — gets at most one general email a week
+ * (push is unaffected).
+ */
+const STREAK_RULES = new Set<NudgeRule>(["photo_unconfirmed", "last_call", "square_due", "boost_ready"]);
+const GENERAL_EMAIL_EVERY_DAYS = 7;
 /** The platform's own wallets never get nudged. */
 const INTERNAL_WALLETS = new Set(["0x9d8a7a866af0eee89b45abbb4f1bc9c3698b33e4"]);
 
@@ -71,6 +79,12 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
     historyOf.set(l.wallet, [...(historyOf.get(l.wallet) ?? []), { rule: l.rule, sentAt: l.sent_at, acted: !!l.acted_at }]);
   }
   const today = lagosDay(nowMs);
+  // Who already got a general (non-streak) email this week.
+  const generalEmailedThisWeek = new Set(
+    (log ?? [])
+      .filter((l) => l.channel === "email" && l.status === "sent" && !STREAK_RULES.has(l.rule as NudgeRule) && nowMs - Date.parse(l.sent_at) < GENERAL_EMAIL_EVERY_DAYS * 86_400_000)
+      .map((l) => l.wallet),
+  );
   const nudgedToday = new Set((log ?? []).filter((l) => l.status === "sent" && lagosDay(Date.parse(l.sent_at)) === today).map((l) => l.wallet));
 
   let actedMarked = 0;
@@ -124,6 +138,8 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
     const channel: "push" | "email" | null = p.pushOn ? "push" : p.email ? "email" : null;
     if (!channel) continue;
     if (channel === "email" && recentlyEmailed.has(p.wallet)) continue;
+    // Email: streak reminders for live cards; anything else once a week at most.
+    if (channel === "email" && !(STREAK_RULES.has(n.rule) && p.activeCard) && generalEmailedThisWeek.has(p.wallet)) continue;
     if (
       (channel === "email" && (emailsThisRun >= MAX_EMAILS_PER_RUN || emails >= MAX_EMAILS_PER_DAY)) ||
       (channel === "push" && pushes >= MAX_PUSH_PER_RUN)
@@ -137,6 +153,7 @@ export async function runNudges(admin: Admin, opts: { dryRun?: boolean; nowMs?: 
     else {
       emails++;
       emailsThisRun++;
+      if (!STREAK_RULES.has(n.rule)) generalEmailedThisWeek.add(p.wallet);
     }
     if (opts.dryRun) continue;
 
